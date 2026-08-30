@@ -710,7 +710,7 @@ function App() {
               </svg>
             </div>
             <h2>CollectionsOS</h2>
-            <p>South African Municipal Debt Recovery & Revenue Operating System</p>
+            <p>Municipal Debt Recovery & Revenue System</p>
           </div>
 
           {loginError && <div className="login-error">{loginError}</div>}
