@@ -91,14 +91,14 @@ function App() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState("COLLECTOR");
-  const [newTenantId, setNewTenantId] = useState("");
+  const [newTenantIds, setNewTenantIds] = useState<string[]>([]);
 
   // Edit User Modal state
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editFullName, setEditFullName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editRole, setEditRole] = useState("");
-  const [editTenantId, setEditTenantId] = useState("");
+  const [editTenantIds, setEditTenantIds] = useState<string[]>([]);
   const [editPassword, setEditPassword] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
 
@@ -198,8 +198,10 @@ function App() {
         if (Array.isArray(data) && data.length > 0) {
           setTenants(data);
           setSelectedTenant(prev => {
-            if (currentUser?.role === "COLLECTOR" || (currentUser?.role === "ADMIN" && currentUser?.tenant_id)) {
-              return currentUser.tenant_id || data[0].id;
+            const userAssigned = currentUser?.tenant_ids || (currentUser?.tenant_id ? [currentUser.tenant_id] : []);
+            if (currentUser?.role !== "SUPERADMIN" && userAssigned.length > 0) {
+              if (prev && userAssigned.includes(prev)) return prev;
+              return userAssigned[0];
             }
             return prev || data[0].id;
           });
@@ -220,6 +222,14 @@ function App() {
         setSelectedTenant(prev => prev || "9199c540-11dc-4ce0-bc70-922fccf25274");
       });
   };
+
+  // Get municipalities accessible to the current user
+  const accessibleTenants = tenants.filter(t => {
+    if (!currentUser || currentUser.role === "SUPERADMIN") return true;
+    const userAssigned = currentUser.tenant_ids || (currentUser.tenant_id ? [currentUser.tenant_id] : []);
+    if (userAssigned.length === 0) return true;
+    return userAssigned.includes(t.id);
+  });
 
   useEffect(() => {
     fetchTenants();
@@ -321,6 +331,10 @@ function App() {
     e.preventDefault();
     setLoading(true);
     try {
+      const assigned = currentUser?.role === "ADMIN" 
+        ? [currentUser.tenant_id || selectedTenant] 
+        : newTenantIds;
+
       const res = await fetch(`${API}/auth/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -329,7 +343,7 @@ function App() {
           email: newEmail,
           password: newPassword,
           role: newRole,
-          tenant_id: (currentUser?.role === "ADMIN" ? (currentUser.tenant_id || selectedTenant) : newTenantId) || null,
+          tenant_ids: assigned,
         }),
       });
       const data = await res.json();
@@ -341,6 +355,7 @@ function App() {
       setNewFullName("");
       setNewEmail("");
       setNewPassword("");
+      setNewTenantIds([]);
       refreshData();
     } catch (err: any) {
       alert("Could not reach backend server");
@@ -354,7 +369,7 @@ function App() {
     setEditFullName(user.full_name || "");
     setEditEmail(user.email || "");
     setEditRole(user.role || "COLLECTOR");
-    setEditTenantId(user.tenant_id || "");
+    setEditTenantIds(user.tenant_ids || (user.tenant_id ? [user.tenant_id] : []));
     setEditPassword("");
     setEditIsActive(user.is_active !== false);
   };
@@ -369,15 +384,10 @@ function App() {
         email: editEmail,
         role: editRole,
         is_active: editIsActive,
+        tenant_ids: editTenantIds,
       };
       if (editPassword.trim()) {
         payload.password = editPassword;
-      }
-      if (editTenantId) {
-        payload.tenant_id = editTenantId;
-        payload.remove_tenant = false;
-      } else {
-        payload.remove_tenant = true;
       }
 
       const res = await fetch(`${API}/auth/users/${editingUser.id}`, {
@@ -833,9 +843,9 @@ function App() {
         </div>
 
         <div className="tenant-selector" style={{ marginBottom: "18px" }}>
-          <label>Active Municipality</label>
+          <label>Active Municipality ({accessibleTenants.length})</label>
           <select value={selectedTenant} onChange={e => setSelectedTenant(e.target.value)}>
-            {tenants.map(t => (
+            {accessibleTenants.map(t => (
               <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
             ))}
           </select>
@@ -1815,25 +1825,29 @@ function App() {
 
                   {newRole !== "SUPERADMIN" && (
                     <div className="form-group" style={{ marginBottom: "20px" }}>
-                      <label>Assign to Municipality</label>
-                      <select
-                        value={newTenantId || selectedTenant}
-                        onChange={e => setNewTenantId(e.target.value)}
-                        className="form-select"
-                        style={{
-                          background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                          borderColor: "#3b82f6",
-                          color: "#ffffff",
-                          fontWeight: 600,
-                          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
-                        }}
-                      >
-                        {tenants.map(t => (
-                          <option key={t.id} value={t.id} style={{ background: "#0f172a", color: "#ffffff" }}>
-                            {t.name} ({t.code})
-                          </option>
-                        ))}
-                      </select>
+                      <label>Assign to Municipalities (Multi-Select)</label>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", padding: "10px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                        {tenants.map(t => {
+                          const isChecked = newTenantIds.includes(t.id);
+                          return (
+                            <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={e => {
+                                  if (e.target.checked) {
+                                    setNewTenantIds([...newTenantIds, t.id]);
+                                  } else {
+                                    setNewTenantIds(newTenantIds.filter(id => id !== t.id));
+                                  }
+                                }}
+                                style={{ width: "16px", height: "16px" }}
+                              />
+                              <span>{t.name} ({t.code})</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
 
@@ -1886,9 +1900,37 @@ function App() {
                           </span>
                         </td>
                         <td>
-                          {u.tenant_id
-                            ? tenants.find(t => t.id === u.tenant_id)?.name ?? "Municipality User"
-                            : "🌐 Global All Municipalities"}
+                          {(() => {
+                            const userAssigned = u.tenant_ids && u.tenant_ids.length > 0
+                              ? u.tenant_ids
+                              : (u.tenant_id ? [u.tenant_id] : []);
+                            if (userAssigned.length === 0) {
+                              return <span style={{ color: "#94a3b8" }}>🌐 Global All Municipalities</span>;
+                            }
+                            return (
+                              <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                {userAssigned.map((tid: string) => {
+                                  const t = tenants.find(item => item.id === tid);
+                                  return (
+                                    <span
+                                      key={tid}
+                                      style={{
+                                        padding: "2px 8px",
+                                        borderRadius: "4px",
+                                        background: "rgba(56, 189, 248, 0.15)",
+                                        border: "1px solid rgba(56, 189, 248, 0.3)",
+                                        color: "#38bdf8",
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      🏛️ {t ? `${t.name} (${t.code})` : "Municipality"}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td>
                           <span className={`status-pill ${u.is_active !== false ? "status-paying" : "status-broken"}`}>
@@ -1935,12 +1977,25 @@ function App() {
 
                     <div className="mobile-card-body">
                       <div className="mobile-stat" style={{ gridColumn: "span 2" }}>
-                        <label>Municipality Scope</label>
-                        <span>
-                          {u.tenant_id
-                            ? tenants.find(t => t.id === u.tenant_id)?.name ?? "Municipality User"
-                            : "🌐 Global All Municipalities"}
-                        </span>
+                        <label>Assigned Municipalities</label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "4px" }}>
+                          {(() => {
+                            const userAssigned = u.tenant_ids && u.tenant_ids.length > 0
+                              ? u.tenant_ids
+                              : (u.tenant_id ? [u.tenant_id] : []);
+                            if (userAssigned.length === 0) {
+                              return <span style={{ color: "#94a3b8" }}>🌐 Global All Municipalities</span>;
+                            }
+                            return userAssigned.map((tid: string) => {
+                              const t = tenants.find(item => item.id === tid);
+                              return (
+                                <span key={tid} style={{ padding: "2px 6px", borderRadius: "4px", background: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", fontSize: "11px" }}>
+                                  {t ? t.code : "MUNI"}
+                                </span>
+                              );
+                            });
+                          })()}
+                        </div>
                       </div>
                       <div className="mobile-stat">
                         <label>Account Status</label>
@@ -2036,7 +2091,7 @@ function App() {
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: "12.5px", color: "#94a3b8" }}>
-                  Assigned Role: <strong style={{ color: "#38bdf8" }}>{currentUser.role}</strong> • Scope: <strong style={{ color: "#ffffff" }}>{currentUser.tenant_id ? tenants.find(t => t.id === currentUser.tenant_id)?.name ?? "Municipality User" : "Global SuperAdmin"}</strong>
+                  Assigned Role: <strong style={{ color: "#38bdf8" }}>{currentUser.role}</strong>
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: "10px 24px" }}>
                   {loading ? "Saving Changes..." : "💾 Save Changes"}
@@ -2054,7 +2109,7 @@ function App() {
             <div className="panel-header" style={{ marginBottom: "18px" }}>
               <div className="panel-title">
                 <h3>✏️ Edit User & Municipality Scope</h3>
-                <p>Modify user details, role permissions, and assigned municipality</p>
+                <p>Modify user details, role permissions, and assigned municipalities</p>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setEditingUser(null)}>✕</button>
             </div>
@@ -2083,49 +2138,54 @@ function App() {
                 </div>
               </div>
 
-              <div className="info-grid" style={{ marginBottom: "16px" }}>
-                <div className="form-group">
-                  <label>Role</label>
-                  <select
-                    value={editRole}
-                    onChange={e => setEditRole(e.target.value)}
-                    className="form-select"
-                    style={{
-                      background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                      borderColor: "#3b82f6",
-                      color: "#ffffff",
-                      fontWeight: 600,
-                    }}
-                    disabled={currentUser?.role === "ADMIN" && editingUser.role === "SUPERADMIN"}
-                  >
-                    <option value="SUPERADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>👑 SUPERADMIN</option>
-                    <option value="ADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>🏛️ ADMIN</option>
-                    <option value="COLLECTOR" style={{ background: "#0f172a", color: "#ffffff" }}>🎯 COLLECTOR</option>
-                    <option value="AUDITOR" style={{ background: "#0f172a", color: "#ffffff" }}>📑 AUDITOR</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Assigned Municipality (Scope)</label>
-                  <select
-                    value={editTenantId}
-                    onChange={e => setEditTenantId(e.target.value)}
-                    className="form-select"
-                    style={{
-                      background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                      borderColor: "#3b82f6",
-                      color: "#ffffff",
-                      fontWeight: 600,
-                    }}
-                  >
-                    <option value="" style={{ background: "#0f172a", color: "#ffffff" }}>🌐 Global All Municipalities (SuperAdmin)</option>
-                    {tenants.map(t => (
-                      <option key={t.id} value={t.id} style={{ background: "#0f172a", color: "#ffffff" }}>
-                        {t.name} ({t.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Role</label>
+                <select
+                  value={editRole}
+                  onChange={e => setEditRole(e.target.value)}
+                  className="form-select"
+                  style={{
+                    background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                    borderColor: "#3b82f6",
+                    color: "#ffffff",
+                    fontWeight: 600,
+                  }}
+                  disabled={currentUser?.role === "ADMIN" && editingUser.role === "SUPERADMIN"}
+                >
+                  <option value="SUPERADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>👑 SUPERADMIN (Global)</option>
+                  <option value="ADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>🏛️ ADMIN</option>
+                  <option value="COLLECTOR" style={{ background: "#0f172a", color: "#ffffff" }}>🎯 COLLECTOR</option>
+                  <option value="AUDITOR" style={{ background: "#0f172a", color: "#ffffff" }}>📑 AUDITOR</option>
+                </select>
               </div>
+
+              {editRole !== "SUPERADMIN" && (
+                <div className="form-group" style={{ marginBottom: "16px" }}>
+                  <label>Assigned Municipalities (Multi-Select)</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", padding: "10px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    {tenants.map(t => {
+                      const isChecked = editTenantIds.includes(t.id);
+                      return (
+                        <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setEditTenantIds([...editTenantIds, t.id]);
+                              } else {
+                                setEditTenantIds(editTenantIds.filter(id => id !== t.id));
+                              }
+                            }}
+                            style={{ width: "16px", height: "16px" }}
+                          />
+                          <span>{t.name} ({t.code})</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="form-group" style={{ marginBottom: "16px" }}>
                 <label>Reset Password (optional)</label>

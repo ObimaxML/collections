@@ -109,7 +109,27 @@ def seed_users_endpoint(db: Session = Depends(get_db)):
     return {"status": "success", "message": "Default SuperAdmin and Admin accounts initialized."}
 
 
-@router.post("/auth/login", response_model=TokenResponse)
+def serialize_user_response(user: User, db: Session) -> dict:
+    from app.models import UserTenant
+    assigned = db.execute(
+        select(UserTenant.tenant_id).where(UserTenant.user_id == user.id)
+    ).scalars().all()
+    tenant_ids = [t for t in assigned]
+    if user.tenant_id and user.tenant_id not in tenant_ids:
+        tenant_ids.append(user.tenant_id)
+    return {
+        "id": user.id,
+        "tenant_id": user.tenant_id or (tenant_ids[0] if tenant_ids else None),
+        "tenant_ids": tenant_ids,
+        "email": user.email,
+        "full_name": user.full_name,
+        "role": user.role,
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+    }
+
+
+@router.post("/auth/login")
 def login(payload: UserLogin, db: Session = Depends(get_db)):
     # Ensure default users are seeded on first login attempt if DB is fresh
     seed_default_users(db)
@@ -130,18 +150,18 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
             detail="User account is deactivated",
         )
 
-    # In a full JWT implementation, encode payload; here we generate a valid session token
     token = f"cos_{user.role.lower()}_{uuid.uuid4().hex}"
 
     return {
         "access_token": token,
         "token_type": "bearer",
-        "user": user,
+        "user": serialize_user_response(user, db),
     }
 
 
 @router.post("/auth/users", response_model=UserResponse)
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
+    from app.models import UserTenant
     existing = db.execute(
         select(User).where(User.email == payload.email)
     ).scalar_one_or_none()
@@ -151,9 +171,16 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
             detail="A user with this email already exists.",
         )
 
+    primary_tenant_id = payload.tenant_id
+    assigned_tenant_ids = payload.tenant_ids or []
+    if primary_tenant_id and primary_tenant_id not in assigned_tenant_ids:
+        assigned_tenant_ids.append(primary_tenant_id)
+    elif assigned_tenant_ids and not primary_tenant_id:
+        primary_tenant_id = assigned_tenant_ids[0]
+
     new_user = User(
         id=uuid.uuid4(),
-        tenant_id=payload.tenant_id,
+        tenant_id=primary_tenant_id,
         email=payload.email,
         hashed_password=hash_password(payload.password),
         full_name=payload.full_name,
@@ -162,9 +189,14 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
         created_at=datetime.now(timezone.utc),
     )
     db.add(new_user)
+    db.flush()
+
+    for tid in set(assigned_tenant_ids):
+        db.add(UserTenant(user_id=new_user.id, tenant_id=tid))
+
     db.commit()
     db.refresh(new_user)
-    return new_user
+    return serialize_user_response(new_user, db)
 
 
 @router.get("/auth/users", response_model=list[UserResponse])
@@ -172,10 +204,21 @@ def list_users(
     tenant_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
+    from app.models import UserTenant
     query = select(User).order_by(User.created_at.desc())
     if tenant_id:
-        query = query.where(User.tenant_id == tenant_id)
-    return db.execute(query).scalars().all()
+        # Include users where primary tenant matches OR assigned in user_tenants
+        query = (
+            select(User)
+            .outerjoin(UserTenant, User.id == UserTenant.user_id)
+            .where(
+                (User.tenant_id == tenant_id) | (UserTenant.tenant_id == tenant_id)
+            )
+            .distinct()
+            .order_by(User.created_at.desc())
+        )
+    users = db.execute(query).scalars().all()
+    return [serialize_user_response(u, db) for u in users]
 
 
 @router.put("/auth/users/{user_id}", response_model=UserResponse)
@@ -184,6 +227,7 @@ def update_user(
     payload: UserUpdate,
     db: Session = Depends(get_db),
 ):
+    from app.models import UserTenant
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(
@@ -208,10 +252,20 @@ def update_user(
     if payload.role is not None:
         user.role = payload.role.upper()
 
-    if payload.remove_tenant:
+    if payload.tenant_ids is not None:
+        # Replace all assigned municipalities
+        db.query(UserTenant).filter(UserTenant.user_id == user_id).delete()
+        for tid in set(payload.tenant_ids):
+            db.add(UserTenant(user_id=user.id, tenant_id=tid))
+        user.tenant_id = payload.tenant_ids[0] if payload.tenant_ids else None
+    elif payload.remove_tenant:
         user.tenant_id = None
+        db.query(UserTenant).filter(UserTenant.user_id == user_id).delete()
     elif payload.tenant_id is not None:
         user.tenant_id = payload.tenant_id
+        exists = db.query(UserTenant).filter(UserTenant.user_id == user_id, UserTenant.tenant_id == payload.tenant_id).first()
+        if not exists:
+            db.add(UserTenant(user_id=user.id, tenant_id=payload.tenant_id))
 
     if payload.password:
         user.hashed_password = hash_password(payload.password)
@@ -221,7 +275,7 @@ def update_user(
 
     db.commit()
     db.refresh(user)
-    return user
+    return serialize_user_response(user, db)
 
 
 # ---------------------------------------------------------

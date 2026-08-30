@@ -47,7 +47,34 @@ class Tenant(Base):
     )
     payments = relationship("Payment", back_populates="tenant")
     audit_events = relationship("AuditEvent", back_populates="tenant")
-    users = relationship("User", back_populates="tenant")
+    users = relationship("User", secondary="user_tenants", back_populates="tenants")
+
+
+class UserTenant(Base):
+    __tablename__ = "user_tenants"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
 
 
 class User(Base):
@@ -93,6 +120,11 @@ class User(Base):
 
     tenant = relationship(
         "Tenant",
+        foreign_keys=[tenant_id],
+    )
+    tenants = relationship(
+        "Tenant",
+        secondary="user_tenants",
         back_populates="users",
     )
 

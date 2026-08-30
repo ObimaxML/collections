@@ -16,6 +16,7 @@ class UserCreate(BaseModel):
     full_name: str
     role: str = "ADMIN"
     tenant_id: UUID | None = None
+    tenant_ids: list[UUID] | None = None
 
 
 class UserUpdate(BaseModel):
@@ -23,6 +24,7 @@ class UserUpdate(BaseModel):
     email: str | None = None
     role: str | None = None
     tenant_id: UUID | None = None
+    tenant_ids: list[UUID] | None = None
     remove_tenant: bool = False
     password: str | None = None
     is_active: bool | None = None
@@ -31,6 +33,7 @@ class UserUpdate(BaseModel):
 class UserResponse(BaseModel):
     id: UUID
     tenant_id: UUID | None
+    tenant_ids: list[UUID] = []
     email: str
     full_name: str
     role: str
