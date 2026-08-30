@@ -1975,9 +1975,11 @@ async def account_import_mapping(
 async def import_accounts_endpoint(
     tenant_id: UUID,
     actor: str,
+    mapping: str | None = None,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
+    import json
     content = await file.read()
     filename = (
         file.filename or ""
@@ -2019,12 +2021,20 @@ async def import_accounts_endpoint(
         orient="records"
     )
 
+    custom_mapping_dict = None
+    if mapping:
+        try:
+            custom_mapping_dict = json.loads(mapping)
+        except Exception:
+            pass
+
     try:
         result = import_accounts(
             db=db,
             tenant_id=tenant_id,
             rows=rows,
             actor=actor,
+            custom_mapping=custom_mapping_dict,
         )
     except ValueError as exc:
         raise HTTPException(

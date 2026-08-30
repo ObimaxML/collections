@@ -135,6 +135,12 @@ class Customer(Base):
         String(255),
         nullable=True,
     )
+    metadata_: Mapped[dict | None] = mapped_column(
+        "metadata",
+        JSON,
+        nullable=True,
+        default=dict,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -229,6 +235,12 @@ class MunicipalAccount(Base):
     last_payment_amount: Mapped[Decimal] = mapped_column(
         Numeric(14, 2),
         nullable=False,
+    )
+    metadata_: Mapped[dict | None] = mapped_column(
+        "metadata",
+        JSON,
+        nullable=True,
+        default=dict,
     )
 
     tenant = relationship(

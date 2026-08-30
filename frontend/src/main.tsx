@@ -506,7 +506,8 @@ function App() {
     const fd = new FormData();
     fd.append("file", file);
     try {
-      const res = await fetch(`${API}/imports/accounts?tenant_id=${selectedTenant}&actor=${currentUser?.full_name || "admin"}`, {
+      const mappingParam = encodeURIComponent(JSON.stringify(customColumnMapping));
+      const res = await fetch(`${API}/imports/accounts?tenant_id=${selectedTenant}&actor=${encodeURIComponent(currentUser?.full_name || "admin")}&mapping=${mappingParam}`, {
         method: "POST",
         body: fd,
       });
@@ -1446,6 +1447,31 @@ function App() {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Extra / Unmapped columns section */}
+                {(() => {
+                  const mappedValues = new Set(Object.values(customColumnMapping || importMappingData.mapping || {}));
+                  const unmappedCols = (importMappingData.columns || []).filter((c: string) => !mappedValues.has(c));
+                  if (unmappedCols.length === 0) return null;
+                  return (
+                    <div style={{ marginTop: "20px", padding: "14px 18px", borderRadius: "8px", background: "rgba(56, 189, 248, 0.08)", border: "1px solid rgba(56, 189, 248, 0.25)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                        <span style={{ fontSize: "16px" }}>📦</span>
+                        <strong style={{ color: "#38bdf8", fontSize: "13px" }}>Extra Custom Attributes Detected ({unmappedCols.length})</strong>
+                      </div>
+                      <p style={{ color: "#94a3b8", fontSize: "12px", margin: "0 0 10px 0" }}>
+                        The following columns are not mapped to standard core fields and will be automatically captured into the account's flexible <code>metadata</code> JSON bucket:
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                        {unmappedCols.map((c: string) => (
+                          <span key={c} style={{ padding: "3px 8px", borderRadius: "4px", background: "rgba(255,255,255,0.08)", color: "#e2e8f0", fontSize: "11px", fontFamily: "monospace" }}>
+                            + {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

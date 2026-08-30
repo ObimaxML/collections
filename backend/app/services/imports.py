@@ -320,6 +320,7 @@ def import_accounts(
     tenant_id,
     rows,
     actor="import",
+    custom_mapping=None,
 ):
     tenant = db.execute(
         select(Tenant)
@@ -341,13 +342,24 @@ def import_accounts(
         }
 
     columns = list(rows[0].keys())
-    mapping, missing = validate_columns(
+    auto_mapping, missing = validate_columns(
         columns
     )
-    if missing:
+    
+    # Merge custom mapping overrides if provided
+    mapping = dict(auto_mapping)
+    if custom_mapping and isinstance(custom_mapping, dict):
+        for k, v in custom_mapping.items():
+            if v and v in columns:
+                mapping[k] = v
+
+    if "account_number" not in mapping or not mapping["account_number"]:
         raise ValueError(
-            "Missing required columns: " + ", ".join(missing)
+            "Missing required column: account_number"
         )
+
+    # Calculate mapped source columns so we can capture unmapped extras
+    mapped_source_columns = set(mapping.values())
 
     created = 0
     updated = 0
@@ -568,6 +580,17 @@ def import_accounts(
                 )
             )
 
+            # Extract unmapped extra columns into a metadata dictionary
+            extra_metadata = {}
+            for col, val in row.items():
+                if col not in mapped_source_columns and val is not None and str(val).strip() != "":
+                    extra_metadata[col] = clean_value(val)
+
+            if customer and extra_metadata:
+                existing_meta = dict(customer.metadata_ or {})
+                existing_meta.update(extra_metadata)
+                customer.metadata_ = existing_meta
+
             if account is None:
                 account = MunicipalAccount(
                     id=uuid.uuid4(),
@@ -589,6 +612,7 @@ def import_accounts(
                     days_in_arrears=days_in_arrears,
                     last_payment_date=last_payment_date,
                     last_payment_amount=last_payment_amount,
+                    metadata_=extra_metadata,
                 )
                 db.add(account)
                 created += 1
@@ -609,6 +633,10 @@ def import_accounts(
                 account.days_in_arrears = days_in_arrears
                 account.last_payment_date = last_payment_date
                 account.last_payment_amount = last_payment_amount
+                if extra_metadata:
+                    existing_meta = dict(account.metadata_ or {})
+                    existing_meta.update(extra_metadata)
+                    account.metadata_ = existing_meta
                 updated += 1
 
             db.flush()
