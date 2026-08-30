@@ -1,10 +1,11 @@
 import uuid
-from uuid import UUID
+from uuid import UUID, uuid4
 from datetime import date, datetime, timezone
 
 import io
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,7 @@ from app.models import (
     Property,
     MunicipalAccount,
     CollectionCase,
+    CaseActivity,
     Promise,
     PaymentPlan,
     Payment,
@@ -86,6 +88,10 @@ from app.services.imports import (
 from app.services.case_engine import (
     generate_cases_for_tenant,
     generate_or_update_case_for_account,
+)
+from app.services.collection_strategy import (
+    calculate_priority,
+    recommended_action,
 )
 
 
@@ -877,92 +883,6 @@ def case_history(
 
 
 # ---------------------------------------------------------
-# Promise to Pay
-# ---------------------------------------------------------
-
-@router.post(
-    "/cases/{case_id}/promises",
-)
-def create_promise(
-    case_id: UUID,
-    tenant_id: UUID,
-    payload: PromiseCreate,
-    db: Session = Depends(get_db),
-):
-    case = db.execute(
-        select(CollectionCase)
-        .where(
-            CollectionCase.id == case_id,
-            CollectionCase.tenant_id == tenant_id,
-        )
-    ).scalar_one_or_none()
-
-    if not case:
-        raise HTTPException(
-            status_code=404,
-            detail="Collection case not found",
-        )
-
-    if payload.amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Promise amount must be greater than zero.",
-        )
-
-    # -----------------------------------------------------
-    # Create promise
-    # -----------------------------------------------------
-    promise = Promise(
-        id=uuid.uuid4(),
-        case_id=case.id,
-        amount=payload.amount,
-        due_date=payload.due_date,
-        status="PENDING",
-        created_at=datetime.now(timezone.utc),
-    )
-    db.add(promise)
-
-    # -----------------------------------------------------
-    # Update case
-    # -----------------------------------------------------
-    old_status = case.status
-    case.status = "PROMISE_TO_PAY"
-
-    # -----------------------------------------------------
-    # Audit
-    # -----------------------------------------------------
-    db.add(
-        AuditEvent(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            actor=payload.actor,
-            event_type="PROMISE_CREATED",
-            entity_type="promise",
-            entity_id=promise.id,
-            payload={
-                "case_id": str(case.id),
-                "amount": str(payload.amount),
-                "due_date": payload.due_date.isoformat(),
-                "old_case_status": old_status,
-                "new_case_status": "PROMISE_TO_PAY",
-            },
-            created_at=datetime.now(timezone.utc),
-        )
-    )
-
-    db.commit()
-    db.refresh(promise)
-
-    return {
-        "id": promise.id,
-        "case_id": promise.case_id,
-        "amount": promise.amount,
-        "due_date": promise.due_date,
-        "status": promise.status,
-    }
-
-
-# ---------------------------------------------------------
 # List Promises
 # ---------------------------------------------------------
 
@@ -970,305 +890,6 @@ def create_promise(
     "/cases/{case_id}/promises",
 )
 def get_promises(
-    case_id: UUID,
-    tenant_id: UUID,
-    db: Session = Depends(get_db),
-):
-    case = db.execute(
-        select(CollectionCase)
-        .where(
-            CollectionCase.id == case_id,
-            CollectionCase.tenant_id == tenant_id,
-        )
-    ).scalar_one_or_none()
-
-    if not case:
-        raise HTTPException(
-            status_code=404,
-            detail="Collection case not found",
-        )
-
-    promises = db.execute(
-        select(Promise)
-        .where(
-            Promise.case_id == case_id
-        )
-        .order_by(
-            Promise.due_date.desc()
-        )
-    ).scalars().all()
-
-    return [
-        {
-            "id": promise.id,
-            "case_id": promise.case_id,
-            "amount": promise.amount,
-            "due_date": promise.due_date,
-            "status": promise.status,
-            "created_at": promise.created_at,
-        }
-        for promise in promises
-    ]
-
-
-# ---------------------------------------------------------
-# Update Promise Status
-# ---------------------------------------------------------
-
-@router.patch(
-    "/promises/{promise_id}/status",
-)
-def update_promise_status(
-    promise_id: UUID,
-    tenant_id: UUID,
-    payload: PromiseStatusUpdate,
-    db: Session = Depends(get_db),
-):
-    promise = db.execute(
-        select(Promise)
-        .join(
-            CollectionCase,
-            CollectionCase.id == Promise.case_id,
-        )
-        .where(
-            Promise.id == promise_id,
-            CollectionCase.tenant_id == tenant_id,
-        )
-    ).scalar_one_or_none()
-
-    if not promise:
-        raise HTTPException(
-            status_code=404,
-            detail="Promise not found",
-        )
-
-    try:
-        new_status = validate_promise_status(
-            payload.status
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
-
-    old_status = promise.status
-    promise.status = new_status
-
-    # -----------------------------------------------------
-    # Update case based on PTP result
-    # -----------------------------------------------------
-    case = db.execute(
-        select(CollectionCase)
-        .where(
-            CollectionCase.id == promise.case_id
-        )
-    ).scalar_one()
-
-    if new_status == "KEPT":
-        case.status = "PAYING"
-    elif new_status == "BROKEN":
-        case.status = "BROKEN_PROMISE"
-    elif new_status == "CANCELLED":
-        case.status = "ENGAGED"
-
-    db.add(
-        AuditEvent(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            actor=payload.actor,
-            event_type="PROMISE_STATUS_CHANGED",
-            entity_type="promise",
-            entity_id=promise.id,
-            payload={
-                "old_status": old_status,
-                "new_status": new_status,
-                "reason": payload.reason,
-                "case_id": str(case.id),
-            },
-            created_at=datetime.now(timezone.utc),
-        )
-    )
-
-    db.commit()
-
-    return {
-        "promise_id": promise.id,
-        "old_status": old_status,
-        "new_status": new_status,
-        "case_status": case.status,
-    }
-
-
-# ---------------------------------------------------------
-# Create Payment Plan
-# ---------------------------------------------------------
-
-@router.post(
-    "/cases/{case_id}/payment-plans",
-)
-def create_payment_plan(
-    case_id: UUID,
-    tenant_id: UUID,
-    payload: PaymentPlanCreate,
-    db: Session = Depends(get_db),
-):
-    case = db.execute(
-        select(CollectionCase)
-        .where(
-            CollectionCase.id == case_id,
-            CollectionCase.tenant_id == tenant_id,
-        )
-    ).scalar_one_or_none()
-
-    if not case:
-        raise HTTPException(
-            status_code=404,
-            detail="Collection case not found",
-        )
-
-    account = db.execute(
-        select(MunicipalAccount)
-        .where(
-            MunicipalAccount.id == case.account_id
-        )
-    ).scalar_one_or_none()
-
-    if not account:
-        raise HTTPException(
-            status_code=404,
-            detail="Municipal account not found",
-        )
-
-    if payload.deposit_amount < 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Deposit cannot be negative.",
-        )
-
-    if payload.deposit_amount > account.arrears:
-        raise HTTPException(
-            status_code=400,
-            detail="Deposit cannot exceed arrears.",
-        )
-
-    if payload.installment_amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Installment amount must be greater than zero.",
-        )
-
-    if payload.number_of_installments <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Number of installments must be greater than zero.",
-        )
-
-    try:
-        frequency = validate_frequency(
-            payload.frequency
-        )
-    except ValueError as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=str(exc),
-        ) from exc
-
-    # -----------------------------------------------------
-    # Check existing active plan
-    # -----------------------------------------------------
-    existing_plan = db.execute(
-        select(PaymentPlan)
-        .where(
-            PaymentPlan.case_id == case_id,
-            PaymentPlan.status == "ACTIVE",
-        )
-    ).scalar_one_or_none()
-
-    if existing_plan:
-        raise HTTPException(
-            status_code=409,
-            detail="Case already has an active payment plan.",
-        )
-
-    # -----------------------------------------------------
-    # Create plan
-    # -----------------------------------------------------
-    plan = PaymentPlan(
-        id=uuid.uuid4(),
-        case_id=case.id,
-        deposit_amount=payload.deposit_amount,
-        installment_amount=payload.installment_amount,
-        frequency=frequency,
-        number_of_installments=payload.number_of_installments,
-        status="ACTIVE",
-        start_date=payload.start_date,
-    )
-    db.add(plan)
-
-    old_status = case.status
-    case.status = "PAYMENT_ARRANGEMENT"
-
-    # -----------------------------------------------------
-    # Audit
-    # -----------------------------------------------------
-    db.add(
-        AuditEvent(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            actor=payload.actor,
-            event_type="PAYMENT_PLAN_CREATED",
-            entity_type="payment_plan",
-            entity_id=plan.id,
-            payload={
-                "case_id": str(case.id),
-                "deposit_amount": str(
-                    payload.deposit_amount
-                ),
-                "installment_amount": str(
-                    payload.installment_amount
-                ),
-                "frequency": frequency,
-                "number_of_installments": (
-                    payload.number_of_installments
-                ),
-                "start_date": (
-                    payload.start_date.isoformat()
-                ),
-                "old_case_status": old_status,
-                "new_case_status": (
-                    "PAYMENT_ARRANGEMENT"
-                ),
-            },
-            created_at=datetime.now(timezone.utc),
-        )
-    )
-
-    db.commit()
-    db.refresh(plan)
-
-    return {
-        "id": plan.id,
-        "case_id": plan.case_id,
-        "deposit_amount": plan.deposit_amount,
-        "installment_amount": plan.installment_amount,
-        "frequency": plan.frequency,
-        "number_of_installments": (
-            plan.number_of_installments
-        ),
-        "status": plan.status,
-        "start_date": plan.start_date,
-    }
-
-
-# ---------------------------------------------------------
-# List Payment Plans
-# ---------------------------------------------------------
-
-@router.get(
-    "/cases/{case_id}/payment-plans",
-)
-def get_payment_plans(
     case_id: UUID,
     tenant_id: UUID,
     db: Session = Depends(get_db),
@@ -1486,112 +1107,6 @@ def payment_plan_calculator(
         "installment_amount": installment_amount,
         "number_of_installments": installments,
         "final_installment": final_installment,
-    }
-
-
-# ---------------------------------------------------------
-# Create Payment
-# ---------------------------------------------------------
-
-@router.post("/payments")
-def create_payment(
-    payload: PaymentCreate,
-    db: Session = Depends(get_db),
-):
-    # -----------------------------------------------------
-    # Validate tenant
-    # -----------------------------------------------------
-    tenant = db.execute(
-        select(Tenant)
-        .where(
-            Tenant.id == payload.tenant_id
-        )
-    ).scalar_one_or_none()
-
-    if not tenant:
-        raise HTTPException(
-            status_code=404,
-            detail="Tenant not found.",
-        )
-
-    # -----------------------------------------------------
-    # Validate amount
-    # -----------------------------------------------------
-    if payload.amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Payment amount must be greater than zero.",
-        )
-
-    # -----------------------------------------------------
-    # Validate account
-    # -----------------------------------------------------
-    account = db.execute(
-        select(MunicipalAccount)
-        .where(
-            MunicipalAccount.id == payload.account_id,
-            MunicipalAccount.tenant_id == payload.tenant_id,
-        )
-    ).scalar_one_or_none()
-
-    if not account:
-        raise HTTPException(
-            status_code=404,
-            detail="Municipal account not found.",
-        )
-
-    # -----------------------------------------------------
-    # Duplicate prevention
-    # -----------------------------------------------------
-    if payload.external_reference:
-        existing = db.execute(
-            select(Payment)
-            .where(
-                Payment.tenant_id == payload.tenant_id,
-                Payment.external_reference == payload.external_reference,
-            )
-        ).scalar_one_or_none()
-
-        if existing:
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "Payment already exists for "
-                    f"external reference "
-                    f"{payload.external_reference}."
-                ),
-            )
-
-    # -----------------------------------------------------
-    # Create payment
-    # -----------------------------------------------------
-    payment = Payment(
-        id=uuid.uuid4(),
-        tenant_id=payload.tenant_id,
-        account_id=payload.account_id,
-        amount=payload.amount,
-        payment_date=payload.payment_date,
-        external_reference=payload.external_reference,
-        reconciliation_status="UNRECONCILED",
-        created_at=datetime.now(timezone.utc),
-    )
-
-    db.add(payment)
-    db.commit()
-    db.refresh(payment)
-
-    return {
-        "id": payment.id,
-        "tenant_id": payment.tenant_id,
-        "account_id": payment.account_id,
-        "amount": payment.amount,
-        "payment_date": payment.payment_date,
-        "external_reference": (
-            payment.external_reference
-        ),
-        "reconciliation_status": (
-            payment.reconciliation_status
-        ),
     }
 
 
@@ -2397,14 +1912,14 @@ async def account_import_mapping(
 
     try:
         if filename.endswith(".csv"):
-            df = pd.read_csv(
+            df_full = pd.read_csv(
                 io.BytesIO(content),
-                nrows=5,
+                dtype=str,
             )
         elif filename.endswith(".xlsx"):
-            df = pd.read_excel(
+            df_full = pd.read_excel(
                 io.BytesIO(content),
-                nrows=5,
+                dtype=str,
             )
         else:
             raise HTTPException(
@@ -2414,22 +1929,45 @@ async def account_import_mapping(
                     "files are supported."
                 ),
             )
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(
             status_code=400,
             detail=f"Could not read file: {exc}",
         ) from exc
 
-    columns = list(df.columns)
+    if df_full.empty:
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is empty.",
+        )
+
+    columns = list(df_full.columns)
     mapping, missing = validate_columns(
         columns
     )
 
+    # Build preview rows (first 10)
+    preview_df = df_full.head(10).fillna("")
+    preview_rows = preview_df.to_dict(
+        orient="records"
+    )
+
+    # System fields for UI column mapping
+    system_fields = list(
+        build_column_mapping(columns).keys()
+    )
+
     return {
+        "filename": file.filename,
         "columns": columns,
         "mapping": mapping,
         "missing_required": missing,
         "valid": not missing,
+        "total_rows": len(df_full),
+        "preview_rows": preview_rows,
+        "system_fields": system_fields,
     }
 
 
@@ -2448,11 +1986,13 @@ async def import_accounts_endpoint(
     try:
         if filename.endswith(".csv"):
             df = pd.read_csv(
-                io.BytesIO(content)
+                io.BytesIO(content),
+                dtype=str,
             )
         elif filename.endswith(".xlsx"):
             df = pd.read_excel(
-                io.BytesIO(content)
+                io.BytesIO(content),
+                dtype=str,
             )
         else:
             raise HTTPException(
@@ -2525,3 +2065,921 @@ def generate_collection_cases_endpoint(
         ) from exc
 
     return result
+
+
+# ---------------------------------------------------------
+# Step 22: Collection Strategy & Prioritisation Engine
+# ---------------------------------------------------------
+
+@router.get("/accounts/{account_id}/strategy")
+def account_strategy(
+    account_id: str,
+    db: Session = Depends(get_db),
+):
+    account = (
+        db.query(MunicipalAccount)
+        .filter(
+            MunicipalAccount.id == account_id
+        )
+        .first()
+    )
+
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipal account not found.",
+        )
+
+    score, risk_band, strategy_code, reasons = (
+        calculate_priority(
+            arrears=Decimal(str(account.arrears)),
+            days_in_arrears=account.days_in_arrears,
+            balance=Decimal(str(account.balance)),
+        )
+    )
+
+    return {
+        "account_id": str(account.id),
+        "account_number": account.account_number,
+        "balance": float(account.balance),
+        "arrears": float(account.arrears),
+        "days_in_arrears": account.days_in_arrears,
+        "priority_score": score,
+        "risk_band": risk_band,
+        "strategy_code": strategy_code,
+        "recommended_action": recommended_action(
+            strategy_code
+        ),
+        "reasons": reasons,
+    }
+
+
+@router.get("/collection-queue")
+def collection_queue(
+    tenant_id: str,
+    db: Session = Depends(get_db),
+):
+    tenant = (
+        db.query(Tenant)
+        .filter(Tenant.id == tenant_id)
+        .first()
+    )
+
+    if not tenant:
+        raise HTTPException(
+            status_code=404,
+            detail="Tenant not found.",
+        )
+
+    accounts = (
+        db.query(MunicipalAccount)
+        .filter(
+            MunicipalAccount.tenant_id == tenant.id,
+            MunicipalAccount.arrears > 0,
+        )
+        .all()
+    )
+
+    queue = []
+
+    for account in accounts:
+        score, risk_band, strategy_code, reasons = (
+            calculate_priority(
+                arrears=Decimal(str(account.arrears)),
+                days_in_arrears=account.days_in_arrears,
+                balance=Decimal(str(account.balance)),
+            )
+        )
+
+        queue.append(
+            {
+                "account_id": str(account.id),
+                "account_number": account.account_number,
+                "balance": float(account.balance),
+                "arrears": float(account.arrears),
+                "days_in_arrears": account.days_in_arrears,
+                "priority_score": score,
+                "risk_band": risk_band,
+                "strategy_code": strategy_code,
+                "recommended_action": (
+                    recommended_action(strategy_code)
+                ),
+                "reasons": reasons,
+            }
+        )
+
+    queue.sort(
+        key=lambda item: (
+            item["priority_score"],
+            item["arrears"],
+            item["days_in_arrears"],
+        ),
+        reverse=True,
+    )
+
+    return {
+        "tenant_id": str(tenant.id),
+        "total_accounts": len(queue),
+        "queue": queue,
+    }
+
+
+@router.post("/cases/{case_id}/prioritise")
+def prioritise_case(
+    case_id: str,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    account = (
+        db.query(MunicipalAccount)
+        .filter(
+            MunicipalAccount.id == case.account_id
+        )
+        .first()
+    )
+
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipal account not found.",
+        )
+
+    score, risk_band, strategy_code, reasons = (
+        calculate_priority(
+            arrears=Decimal(str(account.arrears)),
+            days_in_arrears=account.days_in_arrears,
+            balance=Decimal(str(account.balance)),
+        )
+    )
+
+    case.priority = score
+    case.strategy_code = strategy_code
+
+    db.commit()
+    db.refresh(case)
+
+    return {
+        "case_id": str(case.id),
+        "account_id": str(account.id),
+        "priority": case.priority,
+        "risk_band": risk_band,
+        "strategy_code": case.strategy_code,
+        "recommended_action": recommended_action(
+            strategy_code
+        ),
+        "reasons": reasons,
+    }
+
+
+@router.get("/cases/{case_id}/strategy")
+def case_strategy(
+    case_id: str,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    account = (
+        db.query(MunicipalAccount)
+        .filter(
+            MunicipalAccount.id == case.account_id
+        )
+        .first()
+    )
+
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipal account not found.",
+        )
+
+    score, risk_band, strategy_code, reasons = (
+        calculate_priority(
+            arrears=Decimal(str(account.arrears)),
+            days_in_arrears=account.days_in_arrears,
+            balance=Decimal(str(account.balance)),
+        )
+    )
+
+    return {
+        "case_id": str(case.id),
+        "account_number": account.account_number,
+        "priority_score": score,
+        "risk_band": risk_band,
+        "strategy_code": strategy_code,
+        "recommended_action": recommended_action(
+            strategy_code
+        ),
+        "explanation": reasons,
+    }
+
+
+# ---------------------------------------------------------
+# Step 23: Collector Workbench & Case Management API
+# ---------------------------------------------------------
+
+class ContactAttemptRequest(BaseModel):
+    activity_type: str = "CONTACT_ATTEMPT"
+    outcome: str | None = None
+    notes: str | None = None
+    actor: str | None = None
+
+
+class CaseStatusRequest(BaseModel):
+    status: str
+    actor: str | None = None
+    notes: str | None = None
+
+
+class PromiseRequest(BaseModel):
+    amount: Decimal = Field(gt=0)
+    due_date: date
+    actor: str | None = None
+    notes: str | None = None
+
+
+class PaymentPlanRequest(BaseModel):
+    deposit_amount: Decimal = Field(ge=0)
+    installment_amount: Decimal = Field(gt=0)
+    frequency: str
+    number_of_installments: int = Field(gt=0)
+    start_date: date
+    actor: str | None = None
+
+
+class CaseAssignmentRequest(BaseModel):
+    assigned_to: str
+    actor: str | None = None
+
+
+CASE_STATES = [
+    "NEW",
+    "VALIDATED",
+    "CONTACT_ATTEMPTED",
+    "ENGAGED",
+    "PROMISE_TO_PAY",
+    "PAYMENT_ARRANGEMENT",
+    "PAYING",
+    "BROKEN_PROMISE",
+    "ESCALATED",
+    "DISPUTED",
+    "PAID",
+    "CLOSED",
+]
+
+CASE_TRANSITIONS = {
+    "NEW": {
+        "VALIDATED",
+        "CONTACT_ATTEMPTED",
+        "CLOSED",
+    },
+    "VALIDATED": {
+        "CONTACT_ATTEMPTED",
+        "ENGAGED",
+        "CLOSED",
+    },
+    "CONTACT_ATTEMPTED": {
+        "CONTACT_ATTEMPTED",
+        "ENGAGED",
+        "PROMISE_TO_PAY",
+        "PAYMENT_ARRANGEMENT",
+        "ESCALATED",
+        "DISPUTED",
+    },
+    "ENGAGED": {
+        "PROMISE_TO_PAY",
+        "PAYMENT_ARRANGEMENT",
+        "PAYING",
+        "DISPUTED",
+        "ESCALATED",
+    },
+    "PROMISE_TO_PAY": {
+        "PAYING",
+        "BROKEN_PROMISE",
+        "PAYMENT_ARRANGEMENT",
+        "ESCALATED",
+    },
+    "PAYMENT_ARRANGEMENT": {
+        "PAYING",
+        "BROKEN_PROMISE",
+        "ESCALATED",
+    },
+    "PAYING": {
+        "PAYING",
+        "BROKEN_PROMISE",
+        "PAID",
+        "ESCALATED",
+    },
+    "BROKEN_PROMISE": {
+        "CONTACT_ATTEMPTED",
+        "PROMISE_TO_PAY",
+        "PAYMENT_ARRANGEMENT",
+        "ESCALATED",
+    },
+    "ESCALATED": {
+        "CONTACT_ATTEMPTED",
+        "PAYMENT_ARRANGEMENT",
+        "PAID",
+        "CLOSED",
+    },
+    "DISPUTED": {
+        "CONTACT_ATTEMPTED",
+        "ESCALATED",
+        "CLOSED",
+    },
+    "PAID": {
+        "CLOSED",
+    },
+    "CLOSED": set(),
+}
+
+
+@router.get("/cases/{case_id}/workbench")
+def case_workbench(
+    case_id: str,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    account = (
+        db.query(MunicipalAccount)
+        .filter(
+            MunicipalAccount.id == case.account_id
+        )
+        .first()
+    )
+
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipal account not found.",
+        )
+
+    customer = None
+
+    if account.customer_id:
+        customer = (
+            db.query(Customer)
+            .filter(
+                Customer.id == account.customer_id
+            )
+            .first()
+        )
+
+    property_record = None
+
+    if account.property_id:
+        property_record = (
+            db.query(Property)
+            .filter(
+                Property.id == account.property_id
+            )
+            .first()
+        )
+
+    activities = (
+        db.query(CaseActivity)
+        .filter(
+            CaseActivity.case_id == case.id
+        )
+        .order_by(
+            CaseActivity.created_at.desc()
+        )
+        .all()
+    )
+
+    promises = (
+        db.query(Promise)
+        .filter(
+            Promise.case_id == case.id
+        )
+        .order_by(
+            Promise.due_date.desc()
+        )
+        .all()
+    )
+
+    payment_plans = (
+        db.query(PaymentPlan)
+        .filter(
+            PaymentPlan.case_id == case.id
+        )
+        .order_by(
+            PaymentPlan.start_date.desc()
+        )
+        .all()
+    )
+
+    payments = (
+        db.query(Payment)
+        .filter(
+            Payment.account_id == account.id
+        )
+        .order_by(
+            Payment.payment_date.desc()
+        )
+        .limit(20)
+        .all()
+    )
+
+    return {
+        "case": {
+            "id": str(case.id),
+            "status": case.status,
+            "priority": case.priority,
+            "strategy_code": case.strategy_code,
+            "assigned_to": case.assigned_to,
+            "opened_at": case.opened_at.isoformat() if case.opened_at else None,
+            "closed_at": (
+                case.closed_at.isoformat()
+                if case.closed_at
+                else None
+            ),
+        },
+        "customer": (
+            {
+                "id": str(customer.id),
+                "first_name": customer.first_name,
+                "last_name": customer.last_name,
+                "mobile": customer.mobile,
+                "email": customer.email,
+                "id_number": customer.id_number,
+            }
+            if customer
+            else None
+        ),
+        "property": (
+            {
+                "id": str(property_record.id),
+                "property_reference": (
+                    property_record.property_reference
+                ),
+                "address": property_record.address,
+            }
+            if property_record
+            else None
+        ),
+        "account": {
+            "id": str(account.id),
+            "account_number": account.account_number,
+            "account_status": account.account_status,
+            "balance": float(account.balance),
+            "arrears": float(account.arrears),
+            "days_in_arrears": account.days_in_arrears,
+            "last_payment_date": (
+                account.last_payment_date.isoformat()
+                if account.last_payment_date
+                else None
+            ),
+            "last_payment_amount": float(
+                account.last_payment_amount
+            ),
+        },
+        "activities": [
+            {
+                "id": str(activity.id),
+                "activity_type": activity.activity_type,
+                "outcome": activity.outcome,
+                "notes": activity.notes,
+                "actor": activity.actor,
+                "created_at": activity.created_at.isoformat(),
+            }
+            for activity in activities
+        ],
+        "promises": [
+            {
+                "id": str(promise.id),
+                "amount": float(promise.amount),
+                "due_date": promise.due_date.isoformat(),
+                "status": promise.status,
+                "created_at": promise.created_at.isoformat(),
+            }
+            for promise in promises
+        ],
+        "payment_plans": [
+            {
+                "id": str(plan.id),
+                "deposit_amount": float(
+                    plan.deposit_amount
+                ),
+                "installment_amount": float(
+                    plan.installment_amount
+                ),
+                "frequency": plan.frequency,
+                "number_of_installments": (
+                    plan.number_of_installments
+                ),
+                "status": plan.status,
+                "start_date": (
+                    plan.start_date.isoformat()
+                ),
+            }
+            for plan in payment_plans
+        ],
+        "recent_payments": [
+            {
+                "id": str(payment.id),
+                "amount": float(payment.amount),
+                "payment_date": (
+                    payment.payment_date.isoformat()
+                ),
+                "external_reference": (
+                    payment.external_reference
+                ),
+                "reconciliation_status": (
+                    payment.reconciliation_status
+                ),
+            }
+            for payment in payments
+        ],
+    }
+
+
+@router.post("/cases/{case_id}/activities")
+def create_case_activity(
+    case_id: str,
+    request: ContactAttemptRequest,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    activity = CaseActivity(
+        id=uuid4(),
+        case_id=case.id,
+        activity_type=request.activity_type,
+        outcome=request.outcome,
+        notes=request.notes,
+        actor=request.actor,
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(activity)
+
+    if case.status in {
+        "NEW",
+        "VALIDATED",
+    }:
+        case.status = "CONTACT_ATTEMPTED"
+
+    audit = AuditEvent(
+        id=uuid4(),
+        tenant_id=case.tenant_id,
+        actor=request.actor,
+        event_type="CASE_ACTIVITY_CREATED",
+        entity_type="collection_case",
+        entity_id=case.id,
+        payload={
+            "activity_type": request.activity_type,
+            "outcome": request.outcome,
+            "notes": request.notes,
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(audit)
+
+    db.commit()
+    db.refresh(activity)
+
+    return {
+        "id": str(activity.id),
+        "case_id": str(case.id),
+        "activity_type": activity.activity_type,
+        "outcome": activity.outcome,
+        "notes": activity.notes,
+        "actor": activity.actor,
+        "created_at": activity.created_at.isoformat(),
+        "case_status": case.status,
+    }
+
+
+@router.post("/cases/{case_id}/status")
+def change_case_status(
+    case_id: str,
+    request: CaseStatusRequest,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    new_status = request.status.upper()
+
+    if new_status not in CASE_STATES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid case status: {new_status}",
+        )
+
+    allowed = CASE_TRANSITIONS.get(
+        case.status,
+        set(),
+    )
+
+    if new_status not in allowed:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Invalid transition from "
+                f"{case.status} to {new_status}."
+            ),
+        )
+
+    old_status = case.status
+
+    case.status = new_status
+
+    if new_status in {"PAID", "CLOSED"}:
+        case.closed_at = datetime.now(timezone.utc)
+
+    elif old_status in {"PAID", "CLOSED"}:
+        case.closed_at = None
+
+    audit = AuditEvent(
+        id=uuid4(),
+        tenant_id=case.tenant_id,
+        actor=request.actor,
+        event_type="CASE_STATUS_CHANGED",
+        entity_type="collection_case",
+        entity_id=case.id,
+        payload={
+            "old_status": old_status,
+            "new_status": new_status,
+            "notes": request.notes,
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(audit)
+
+    db.commit()
+    db.refresh(case)
+
+    return {
+        "case_id": str(case.id),
+        "old_status": old_status,
+        "new_status": case.status,
+        "closed_at": (
+            case.closed_at.isoformat()
+            if case.closed_at
+            else None
+        ),
+    }
+
+
+@router.post("/cases/{case_id}/promises")
+def create_promise(
+    case_id: str,
+    request: PromiseRequest,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    if case.status in {"PAID", "CLOSED"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot create a promise on a closed case.",
+        )
+
+    promise = Promise(
+        id=uuid4(),
+        case_id=case.id,
+        amount=request.amount,
+        due_date=request.due_date,
+        status="ACTIVE",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(promise)
+
+    old_status = case.status
+
+    case.status = "PROMISE_TO_PAY"
+
+    audit = AuditEvent(
+        id=uuid4(),
+        tenant_id=case.tenant_id,
+        actor=request.actor,
+        event_type="PROMISE_CREATED",
+        entity_type="promise",
+        entity_id=promise.id,
+        payload={
+            "case_id": str(case.id),
+            "amount": float(request.amount),
+            "due_date": request.due_date.isoformat(),
+            "notes": request.notes,
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(audit)
+
+    db.commit()
+    db.refresh(promise)
+
+    return {
+        "id": str(promise.id),
+        "case_id": str(case.id),
+        "amount": float(promise.amount),
+        "due_date": promise.due_date.isoformat(),
+        "status": promise.status,
+        "case_status": case.status,
+        "previous_case_status": old_status,
+    }
+
+
+@router.post("/cases/{case_id}/payment-plans")
+def create_payment_plan(
+    case_id: str,
+    request: PaymentPlanRequest,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    if case.status in {"PAID", "CLOSED"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot create a payment plan on a closed case.",
+        )
+
+    plan = PaymentPlan(
+        id=uuid4(),
+        case_id=case.id,
+        deposit_amount=request.deposit_amount,
+        installment_amount=request.installment_amount,
+        frequency=request.frequency,
+        number_of_installments=(
+            request.number_of_installments
+        ),
+        status="ACTIVE",
+        start_date=request.start_date,
+    )
+
+    db.add(plan)
+
+    case.status = "PAYMENT_ARRANGEMENT"
+
+    audit = AuditEvent(
+        id=uuid4(),
+        tenant_id=case.tenant_id,
+        actor=request.actor,
+        event_type="PAYMENT_PLAN_CREATED",
+        entity_type="payment_plan",
+        entity_id=plan.id,
+        payload={
+            "case_id": str(case.id),
+            "deposit_amount": float(
+                request.deposit_amount
+            ),
+            "installment_amount": float(
+                request.installment_amount
+            ),
+            "frequency": request.frequency,
+            "number_of_installments": (
+                request.number_of_installments
+            ),
+            "start_date": (
+                request.start_date.isoformat()
+            ),
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(audit)
+
+    db.commit()
+    db.refresh(plan)
+
+    return {
+        "id": str(plan.id),
+        "case_id": str(case.id),
+        "deposit_amount": float(
+            plan.deposit_amount
+        ),
+        "installment_amount": float(
+            plan.installment_amount
+        ),
+        "frequency": plan.frequency,
+        "number_of_installments": (
+            plan.number_of_installments
+        ),
+        "status": plan.status,
+        "start_date": plan.start_date.isoformat(),
+        "case_status": case.status,
+    }
+
+
+@router.post("/cases/{case_id}/assign")
+def assign_case(
+    case_id: str,
+    request: CaseAssignmentRequest,
+    db: Session = Depends(get_db),
+):
+    case = (
+        db.query(CollectionCase)
+        .filter(CollectionCase.id == case_id)
+        .first()
+    )
+
+    if not case:
+        raise HTTPException(
+            status_code=404,
+            detail="Collection case not found.",
+        )
+
+    previous_assignee = case.assigned_to
+
+    case.assigned_to = request.assigned_to
+
+    audit = AuditEvent(
+        id=uuid4(),
+        tenant_id=case.tenant_id,
+        actor=request.actor,
+        event_type="CASE_ASSIGNED",
+        entity_type="collection_case",
+        entity_id=case.id,
+        payload={
+            "previous_assignee": previous_assignee,
+            "new_assignee": request.assigned_to,
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(audit)
+
+    db.commit()
+    db.refresh(case)
+
+    return {
+        "case_id": str(case.id),
+        "assigned_to": case.assigned_to,
+        "previous_assignee": previous_assignee,
+    }

@@ -1,0 +1,9 @@
+account_number,account_status,balance,arrears,days_in_arrears,first_name,last_name,id_number,mobile,email,property_reference,address
+ACC-JHB-1001,ACTIVE,18500.00,6200.00,90,Sipho,Nkosi,8501015800088,0821234567,sipho.nkosi@example.co.za,PROP-JHB-101,14 Vilakazi Street Orlando West Soweto
+ACC-JHB-1002,DELINQUENT,34200.50,15400.00,120,Nomvula,Dlamini,9004120800089,0839876543,nomvula.d@example.co.za,PROP-JHB-102,88 Oxford Road Rosebank Johannesburg
+ACC-JHB-1003,DEFAULT,92800.00,54100.00,180,Thabo,Mokoena,7809235800081,0715551234,thabo.mokoena@business.co.za,PROP-JHB-103,12 Commercial Road Sandton
+ACC-JHB-1004,ACTIVE,7400.00,2100.00,45,Lerato,Khumalo,9311050800082,0841112233,lerato.k@example.com,PROP-JHB-104,25 Fourth Avenue Parkhurst Johannesburg
+ACC-JHB-1005,DELINQUENT,48600.00,28900.00,150,Kagiso,Molefe,8206145800084,0827778899,kagiso.molefe@corp.co.za,PROP-JHB-105,102 Rivonia Road Morningside Sandton
+ACC-JHB-1006,ACTIVE,12100.00,3800.00,60,Anelisa,Zungu,9503180800086,0734445566,anelisa.zungu@mail.co.za,PROP-JHB-106,77 Main Reef Road Roodepoort
+ACC-JHB-1007,DEFAULT,115000.00,78400.00,210,Mandla,Ndlovu,7412025800083,0812223344,mandla.ndlovu@holdings.co.za,PROP-JHB-107,55 Grayston Drive Sandton
+ACC-JHB-1008,ACTIVE,5600.00,1400.00,30,Zanele,Sithole,9808200800085,0763339900,zanele.sithole@gmail.com,PROP-JHB-108,18 Jan Smuts Avenue Parktown Johannesburg

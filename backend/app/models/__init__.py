@@ -16,6 +16,9 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
+from app.models.contact_attempt import ContactAttempt
+from app.models.financial_ledger import FinancialTransaction
+from app.models.import_staging import ImportBatch, ImportRow
 
 
 class Tenant(Base):
@@ -312,6 +315,152 @@ class CollectionCase(Base):
         "PaymentPlan",
         back_populates="case",
     )
+    activities = relationship(
+        "CollectionActivity",
+        back_populates="case",
+        order_by="CollectionActivity.created_at.desc()",
+    )
+    contact_attempts = relationship(
+        "ContactAttempt",
+        back_populates="case",
+    )
+
+
+class CollectionActivity(Base):
+    __tablename__ = "collection_activities"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+    )
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id"),
+        nullable=False,
+        index=True,
+    )
+
+    case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("collection_cases.id"),
+        nullable=False,
+        index=True,
+    )
+
+    actor: Mapped[str] = mapped_column(
+        String(150),
+        nullable=False,
+    )
+
+    channel: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    outcome: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+    )
+
+    successful: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=False,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    next_action: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
+    next_action_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    tenant = relationship(
+        "Tenant",
+    )
+
+    case = relationship(
+        "CollectionCase",
+        back_populates="activities",
+    )
+
+
+class CaseActivity(Base):
+    __tablename__ = "case_activities"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    case_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("collection_cases.id"),
+        nullable=False,
+        index=True,
+    )
+
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id"),
+        nullable=True,
+        index=True,
+    )
+
+    activity_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        index=True,
+    )
+
+    channel: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+
+    outcome: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    actor: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=datetime.utcnow,
+        index=True,
+    )
+
+    case = relationship(
+        "CollectionCase",
+    )
+
+    tenant = relationship(
+        "Tenant",
+    )
 
 
 class Promise(Base):
@@ -347,6 +496,10 @@ class Promise(Base):
     case = relationship(
         "CollectionCase",
         back_populates="promises",
+    )
+    allocations = relationship(
+        "PaymentAllocation",
+        back_populates="promise",
     )
 
 
@@ -447,6 +600,58 @@ class Payment(Base):
         "MunicipalAccount",
         back_populates="payments",
     )
+    allocations = relationship(
+        "PaymentAllocation",
+        back_populates="payment",
+    )
+
+
+class PaymentAllocation(Base):
+    __tablename__ = "payment_allocations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+    )
+
+    payment_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("payments.id"),
+        nullable=False,
+        index=True,
+    )
+
+    promise_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("promises.id"),
+        nullable=True,
+        index=True,
+    )
+
+    amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        nullable=False,
+    )
+
+    allocation_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    payment = relationship(
+        "Payment",
+        back_populates="allocations",
+    )
+
+    promise = relationship(
+        "Promise",
+        back_populates="allocations",
+    )
 
 
 class AuditEvent(Base):
@@ -502,8 +707,15 @@ __all__ = [
     "Property",
     "MunicipalAccount",
     "CollectionCase",
+    "CollectionActivity",
+    "CaseActivity",
     "Promise",
     "PaymentPlan",
     "Payment",
+    "PaymentAllocation",
     "AuditEvent",
+    "ContactAttempt",
+    "FinancialTransaction",
+    "ImportBatch",
+    "ImportRow",
 ]

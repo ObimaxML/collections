@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-const API = "http://localhost:8000/api";
+const API = (import.meta as any).env?.VITE_API_URL || "/api";
 
 interface Tenant {
   id: string;
@@ -148,9 +148,12 @@ function App() {
   const [planInstallment, setPlanInstallment] = useState("2000");
   const [planFrequency, setPlanFrequency] = useState("MONTHLY");
 
-  // Import file
+  // Import file & Step 63 Wizard states
   const [file, setFile] = useState<File | null>(null);
   const [importResult, setImportResult] = useState<any>(null);
+  const [importMappingData, setImportMappingData] = useState<any>(null);
+  const [importStage, setImportStage] = useState<"upload" | "mapping" | "preview" | "result">("upload");
+  const [customColumnMapping, setCustomColumnMapping] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
   // Quick Payment form
@@ -158,16 +161,78 @@ function App() {
   const [paymentRef, setPaymentRef] = useState(`PAY-${Date.now().toString().slice(-4)}`);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
 
-  // Load tenants on start
+  // New Tenant Creation state
+  const [newTenantName, setNewTenantName] = useState("");
+  const [newTenantCode, setNewTenantCode] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Filter states
+  const [wqSearch, setWqSearch] = useState("");
+  const [wqStatusFilter, setWqStatusFilter] = useState("ALL");
+  const [wqStrategyFilter, setWqStrategyFilter] = useState("ALL");
+
+  const [accSearch, setAccSearch] = useState("");
+  const [accStatusFilter, setAccStatusFilter] = useState("ALL");
+  const [accMinArrears, setAccMinArrears] = useState("");
+
+  // Load tenants dynamically on start
+  const fetchTenants = () => {
+    fetch(`${API}/tenants`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setTenants(data);
+          setSelectedTenant(prev => prev || data[0].id);
+        } else {
+          setTenants([
+            { id: "9199c540-11dc-4ce0-bc70-922fccf25274", name: "City of Johannesburg", code: "JHB" },
+            { id: "e7a50839-7456-4b94-89f6-c3996cd123b6", name: "Demo Municipality", code: "DEMO" },
+          ]);
+          setSelectedTenant(prev => prev || "9199c540-11dc-4ce0-bc70-922fccf25274");
+        }
+      })
+      .catch(err => {
+        console.error("Could not fetch tenants:", err);
+        setTenants([
+          { id: "9199c540-11dc-4ce0-bc70-922fccf25274", name: "City of Johannesburg", code: "JHB" },
+          { id: "e7a50839-7456-4b94-89f6-c3996cd123b6", name: "Demo Municipality", code: "DEMO" },
+        ]);
+        setSelectedTenant(prev => prev || "9199c540-11dc-4ce0-bc70-922fccf25274");
+      });
+  };
+
   useEffect(() => {
-    // Default tenant or fetch
-    const defaultTenantId = "e7a50839-7456-4b94-89f6-c3996cd123b6";
-    setTenants([
-      { id: "e7a50839-7456-4b94-89f6-c3996cd123b6", name: "Demo Municipality", code: "DEMO" },
-      { id: "6eb315b0-7df2-449a-a0d7-bb6b24db6225", name: "Demo Municipality 2", code: "DEMO2" }
-    ]);
-    setSelectedTenant(defaultTenantId);
+    fetchTenants();
   }, []);
+
+  const handleCreateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTenantName || !newTenantCode) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/tenants`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTenantName,
+          code: newTenantCode,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Error onboarding municipality: ${data.detail}`);
+        return;
+      }
+      alert(`Municipality ${data.name} (${data.code}) onboarded successfully!`);
+      setNewTenantName("");
+      setNewTenantCode("");
+      fetchTenants();
+    } catch (err: any) {
+      alert("Could not reach backend API");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedTenant) return;
@@ -185,8 +250,39 @@ function App() {
     // 2. Work Queue
     fetch(`${API}/work-queue?tenant_id=${selectedTenant}`)
       .then(r => r.json())
-      .then(setWorkQueue)
-      .catch(console.error);
+      .then(data => {
+        if (Array.isArray(data)) {
+          setWorkQueue(data);
+        } else if (data && Array.isArray(data.items)) {
+          // Normalize Step 34 work queue response
+          const normalized = data.items.map((it: any) => ({
+            case_id: it.case_id,
+            account_id: it.account_id,
+            account_number: it.account_number,
+            customer_name: it.customer_name,
+            mobile: it.mobile,
+            arrears: it.arrears,
+            balance: it.balance,
+            days_in_arrears: it.days_in_arrears,
+            case_status: it.status,
+            case_priority: it.priority,
+            strategy_code: it.strategy_code,
+            assigned_to: it.assigned_to,
+            next_action: it.strategy_code ? `Execute ${it.strategy_code}` : "Contact Debtor",
+            priority_score: it.priority === 1 ? 95 : it.priority === 2 ? 75 : it.priority === 3 ? 50 : 25,
+            promise_due_date: null,
+            promise_amount: null,
+            promise_status: null,
+          }));
+          setWorkQueue(normalized);
+        } else {
+          setWorkQueue([]);
+        }
+      })
+      .catch(err => {
+        console.error("Failed to load work queue", err);
+        setWorkQueue([]);
+      });
 
     // 3. Accounts
     fetch(`${API}/accounts?tenant_id=${selectedTenant}`)
@@ -322,39 +418,35 @@ function App() {
     if (!account360) return;
     setLoading(true);
     try {
-      // 1. Create payment
+      // 1. Post & reconcile payment in one authoritative step
       const pRes = await fetch(`${API}/payments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tenant_id: selectedTenant,
-          account_id: account360.id,
+          account_number: account360.account_number,
           amount: Number(paymentAmount),
           payment_date: paymentDate,
           external_reference: paymentRef,
-          actor: "collector-001",
+          actor: currentUser?.email || "collector",
         }),
       });
       const paymentData = await pRes.json();
       if (!pRes.ok) {
-        alert(`Payment error: ${paymentData.detail}`);
+        let msg = paymentData.detail;
+        if (typeof msg === "object") {
+          msg = Array.isArray(msg) ? msg.map((e: any) => `${e.loc?.join(".") || ""}: ${e.msg}`).join("\n") : JSON.stringify(msg);
+        }
+        alert(`Payment error: ${msg || "Could not process payment"}`);
         return;
       }
 
-      // 2. Reconcile payment
-      const rRes = await fetch(`${API}/payments/${paymentData.id}/reconcile`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tenant_id: selectedTenant,
-          actor: "collector-001",
-        }),
-      });
-      const reconData = await rRes.json();
-      alert(`Payment of R ${reconData.amount} captured and reconciled!\nNew Arrears: R ${reconData.new_arrears}`);
+      alert(`✅ Payment of R ${Number(paymentAmount).toFixed(2)} posted successfully and arrears updated!`);
       setPaymentRef(`PAY-${Date.now().toString().slice(-4)}`);
       openAccountWorkbench(account360.id);
       refreshData();
+    } catch (err: any) {
+      alert(`Network error: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -381,19 +473,49 @@ function App() {
     }
   };
 
+  const handleInspectFile = async (selectedFile?: File | null) => {
+    const targetFile = selectedFile || file;
+    if (!targetFile) return;
+    setLoading(true);
+    const fd = new FormData();
+    fd.append("file", targetFile);
+    try {
+      const res = await fetch(`${API}/imports/accounts/mapping`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.detail || "Failed to inspect file.");
+        return;
+      }
+      const data = await res.json();
+      setImportMappingData(data);
+      setCustomColumnMapping(data.mapping || {});
+      setImportStage("mapping");
+    } catch (e: any) {
+      alert("Error inspecting file: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleImport = async () => {
     if (!file) return;
     setLoading(true);
     const fd = new FormData();
     fd.append("file", file);
     try {
-      const res = await fetch(`${API}/imports/accounts?tenant_id=${selectedTenant}&actor=admin`, {
+      const res = await fetch(`${API}/imports/accounts?tenant_id=${selectedTenant}&actor=${currentUser?.full_name || "admin"}`, {
         method: "POST",
         body: fd,
       });
       const data = await res.json();
       setImportResult(data);
+      setImportStage("result");
       refreshData();
+    } catch (e: any) {
+      alert("Error during import: " + e.message);
     } finally {
       setLoading(false);
     }
@@ -401,23 +523,67 @@ function App() {
 
   if (!currentUser) {
     return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-app)", padding: "20px" }}>
-        <div className="glass-panel" style={{ width: "440px", maxWidth: "100%", padding: "40px", borderRadius: "16px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(15, 23, 42, 0.85)" }}>
-          <div style={{ textAlign: "center", marginBottom: "28px" }}>
-            <div className="brand-icon" style={{ margin: "0 auto 16px", width: "52px", height: "52px", fontSize: "26px" }}>C</div>
-            <h2 style={{ fontFamily: "Outfit", color: "white", fontSize: "26px", marginBottom: "6px", fontWeight: 700 }}>CollectionsOS</h2>
-            <p className="muted" style={{ fontSize: "13.5px" }}>South Africa Municipal Debt Recovery Operating System</p>
+      <div className="login-screen">
+        <div className="login-card">
+          <div className="login-brand">
+            <div className="loan-emblem-wrapper">
+              <div className="loan-emblem-bg"></div>
+              <svg className="loan-svg-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* 1. Green Money Sack with South African Rand 'R' */}
+                <g className="rand-sack-group">
+                  {/* Sack Tie Top Crown */}
+                  <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a" stroke="#15803d" strokeWidth="2.5" strokeLinejoin="round"/>
+                  <rect x="42" y="16" width="16" height="6" rx="3" fill="#22c55e" stroke="#16a34a" strokeWidth="1.5"/>
+                  {/* Main Sack Body */}
+                  <path d="M50 20 C32 20, 22 36, 22 56 C22 72, 34 76, 50 76 C66 76, 78 72, 78 56 C78 36, 68 20, 50 20 Z" fill="#16a34a" stroke="#15803d" strokeWidth="3" strokeLinejoin="round"/>
+                  
+                  {/* South African Rand 'R' Symbol */}
+                  <text x="50" y="58" textAnchor="middle" fill="#ffffff" fontSize="32" fontWeight="900" fontFamily="Outfit, sans-serif" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.3))" }}>
+                    R
+                  </text>
+                </g>
+
+                {/* 2. Golden Rosette Badge / Certification Seal */}
+                <g className="rosette-badge-group">
+                  {/* Rosette Ribbons */}
+                  <path d="M14 55 L8 65 L16 63 L22 69 L20 57 Z" fill="#f59e0b"/>
+                  {/* Outer Orange Circle */}
+                  <circle cx="20" cy="46" r="16" fill="#f59e0b"/>
+                  {/* Inner White Ring */}
+                  <circle cx="20" cy="46" r="11" fill="#ffffff"/>
+                  {/* Center Golden Core */}
+                  <circle cx="20" cy="46" r="8" fill="#f59e0b"/>
+                </g>
+
+                {/* 3. Descending Debt Collection / Cash Flow Arrow */}
+                <g className="down-recovery-arrow">
+                  {/* Dotted Trail Indicator */}
+                  <circle cx="82" cy="20" r="2.8" fill="#f59e0b"/>
+                  <circle cx="88" cy="20" r="2.8" fill="#f59e0b"/>
+                  <path d="M82 26 L82 32 M88 26 L88 32" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
+                  {/* Downward Collection Arrow */}
+                  <path d="M74 36 L96 36 L85 52 Z" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" strokeLinejoin="round"/>
+                </g>
+
+                {/* 4. Supportive Debt Recovery Hand */}
+                <g className="collector-hand-group">
+                  {/* Cuff */}
+                  <rect x="0" y="74" width="10" height="24" rx="2" fill="#94a3b8"/>
+                  <rect x="10" y="73" width="10" height="26" rx="2" fill="#0f172a"/>
+                  {/* Hand Body & Extended Palm */}
+                  <path d="M20 83 C20 73, 30 65, 45 66 C58 67, 62 70, 62 74 C62 77, 54 77, 44 76 C40 76, 30 78, 25 84 L22 96 L68 96 C78 96, 88 90, 96 74 C97 73, 99 74, 98 76 C94 86, 82 98, 64 98 L20 98 Z" fill="#fca5a5" stroke="#ffffff" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+                </g>
+              </svg>
+            </div>
+            <h2>CollectionsOS</h2>
+            <p>South African Municipal Debt Recovery & Revenue Operating System</p>
           </div>
 
-          {loginError && (
-            <div style={{ background: "rgba(244, 63, 94, 0.15)", border: "1px solid rgba(244, 63, 94, 0.3)", color: "#fb7185", padding: "12px 14px", borderRadius: "8px", fontSize: "13px", marginBottom: "18px" }}>
-              ⚠️ {loginError}
-            </div>
-          )}
+          {loginError && <div className="login-error">{loginError}</div>}
 
-          <form onSubmit={handleLogin}>
-            <div className="form-group" style={{ marginBottom: "16px" }}>
-              <label style={{ color: "#94a3b8", fontSize: "12px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.5px" }}>Email Address</label>
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="form-group">
+              <label style={{ color: "#94a3b8", fontSize: "12px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.5px" }}>Work Email</label>
               <input
                 type="email"
                 value={loginEmail}
@@ -428,7 +594,7 @@ function App() {
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: "24px" }}>
+            <div className="form-group">
               <label style={{ color: "#94a3b8", fontSize: "12px", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.5px" }}>Password</label>
               <input
                 type="password"
@@ -481,48 +647,78 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* Mobile Top Header */}
+      <header className="mobile-header">
+        <div className="brand-section" style={{ margin: 0, padding: 0, alignItems: "center" }}>
+          <div className="brand-icon" style={{ width: "36px", height: "36px" }}>
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "26px", height: "26px" }}>
+              {/* Green Money Sack */}
+              <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a"/>
+              <rect x="42" y="16" width="16" height="6" rx="3" fill="#22c55e"/>
+              <path d="M50 20 C32 20, 22 36, 22 56 C22 72, 34 76, 50 76 C66 76, 78 72, 78 56 C78 36, 68 20, 50 20 Z" fill="#16a34a"/>
+              <text x="50" y="58" textAnchor="middle" fill="#ffffff" fontSize="32" fontWeight="900" fontFamily="Outfit, sans-serif">
+                R
+              </text>
+              {/* Rosette Medal */}
+              <circle cx="20" cy="46" r="14" fill="#f59e0b"/>
+              <circle cx="20" cy="46" r="9" fill="#ffffff"/>
+              <circle cx="20" cy="46" r="6" fill="#f59e0b"/>
+              {/* Collection Arrow */}
+              <path d="M74 36 L96 36 L85 52 Z" fill="#f59e0b"/>
+              {/* Recovery Hand */}
+              <path d="M20 83 C20 73, 30 65, 45 66 C58 67, 62 70, 62 74 C62 77, 54 77, 44 76 C40 76, 30 78, 25 84 L22 96 L68 96 C78 96, 88 90, 96 74 C97 73, 99 74, 98 76 C94 86, 82 98, 64 98 L20 98 Z" fill="#fca5a5"/>
+            </svg>
+          </div>
+          <div className="brand-info">
+            <h1 style={{ fontSize: "16px" }}>CollectionsOS</h1>
+          </div>
+        </div>
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle Menu"
+        >
+          {mobileMenuOpen ? "✕" : "☰"}
+        </button>
+      </header>
+
+      {/* Mobile Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="mobile-backdrop"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="brand-section">
-          <div className="brand-icon">C</div>
+          <div className="brand-icon" title="CollectionsOS - South Africa Municipal Debt Recovery OS" style={{ width: "42px", height: "42px" }}>
+            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "32px", height: "32px" }}>
+              {/* Green Money Sack */}
+              <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a"/>
+              <rect x="42" y="16" width="16" height="6" rx="3" fill="#22c55e"/>
+              <path d="M50 20 C32 20, 22 36, 22 56 C22 72, 34 76, 50 76 C66 76, 78 72, 78 56 C78 36, 68 20, 50 20 Z" fill="#16a34a"/>
+              <text x="50" y="58" textAnchor="middle" fill="#ffffff" fontSize="32" fontWeight="900" fontFamily="Outfit, sans-serif">
+                R
+              </text>
+              {/* Rosette Medal */}
+              <circle cx="20" cy="46" r="14" fill="#f59e0b"/>
+              <circle cx="20" cy="46" r="9" fill="#ffffff"/>
+              <circle cx="20" cy="46" r="6" fill="#f59e0b"/>
+              {/* Collection Arrow */}
+              <path d="M74 36 L96 36 L85 52 Z" fill="#f59e0b"/>
+              {/* Recovery Hand */}
+              <path d="M20 83 C20 73, 30 65, 45 66 C58 67, 62 70, 62 74 C62 77, 54 77, 44 76 C40 76, 30 78, 25 84 L22 96 L68 96 C78 96, 88 90, 96 74 C97 73, 99 74, 98 76 C94 86, 82 98, 64 98 L20 98 Z" fill="#fca5a5"/>
+            </svg>
+          </div>
           <div className="brand-info">
             <h1>CollectionsOS</h1>
             <span>{currentUser?.role ?? "ENTERPRISE"}</span>
           </div>
         </div>
 
-        {currentUser && (
-          <div style={{ padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", marginBottom: "20px", border: "1px solid var(--border-subtle)" }}>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "white" }}>{currentUser.full_name}</div>
-            <div style={{ fontSize: "11.5px", color: "var(--accent-sky)", marginBottom: "8px" }}>{currentUser.email}</div>
-            <button className="btn btn-secondary btn-sm" style={{ width: "100%", fontSize: "11px", padding: "4px" }} onClick={handleLogout}>
-              Sign Out
-            </button>
-          </div>
-        )}
-
-        <nav className="nav-group">
-          <div className={`nav-item ${view === "dashboard" ? "active" : ""}`} onClick={() => setView("dashboard")}>
-            📊 Dashboard
-          </div>
-          <div className={`nav-item ${view === "workqueue" ? "active" : ""}`} onClick={() => setView("workqueue")}>
-            🎯 Work Queue
-            <span className="nav-badge urgent">{workQueue.length}</span>
-          </div>
-          <div className={`nav-item ${view === "accounts" ? "active" : ""}`} onClick={() => setView("accounts")}>
-            📑 Debt Books & Accounts
-            <span className="nav-badge">{accounts.length}</span>
-          </div>
-          <div className={`nav-item ${view === "imports" ? "active" : ""}`} onClick={() => setView("imports")}>
-            📥 Import Engine
-          </div>
-          <div className={`nav-item ${view === "users" ? "active" : ""}`} onClick={() => setView("users")}>
-            👥 User Management & Roles
-            <span className="nav-badge">{usersList.length}</span>
-          </div>
-        </nav>
-
-        <div className="tenant-selector">
+        <div className="tenant-selector" style={{ marginBottom: "18px" }}>
           <label>Active Municipality</label>
           <select value={selectedTenant} onChange={e => setSelectedTenant(e.target.value)}>
             {tenants.map(t => (
@@ -530,6 +726,61 @@ function App() {
             ))}
           </select>
         </div>
+
+        <nav className="nav-group">
+          <div className={`nav-item ${view === "dashboard" ? "active" : ""}`} onClick={() => { setView("dashboard"); setMobileMenuOpen(false); }}>
+            📊 Dashboard
+          </div>
+          <div className={`nav-item ${view === "workqueue" ? "active" : ""}`} onClick={() => { setView("workqueue"); setMobileMenuOpen(false); }}>
+            🎯 Work Queue
+            <span className="nav-badge urgent">{workQueue.length}</span>
+          </div>
+          <div className={`nav-item ${view === "accounts" ? "active" : ""}`} onClick={() => { setView("accounts"); setMobileMenuOpen(false); }}>
+            📑 Debt Books & Accounts
+            <span className="nav-badge">{accounts.length}</span>
+          </div>
+          <div className={`nav-item ${view === "imports" ? "active" : ""}`} onClick={() => { setView("imports"); setMobileMenuOpen(false); }}>
+            📥 Import Engine
+          </div>
+          {currentUser?.role !== "COLLECTOR" && (
+            <div className={`nav-item ${view === "users" ? "active" : ""}`} onClick={() => { setView("users"); setMobileMenuOpen(false); }}>
+              👥 User Management & Roles
+              <span className="nav-badge">{usersList.length}</span>
+            </div>
+          )}
+        </nav>
+
+        {currentUser && (
+          <div style={{ marginTop: "auto", padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", border: "1px solid var(--border-subtle)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+              <div style={{ fontSize: "12.5px", fontWeight: 600, color: "white" }}>{currentUser.full_name}</div>
+              <button
+                className="btn btn-secondary btn-sm"
+                title="Sign Out"
+                aria-label="Sign Out"
+                style={{
+                  padding: "6px 8px",
+                  borderRadius: "8px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderColor: "rgba(244, 63, 94, 0.3)",
+                  color: "#fb7185",
+                  background: "rgba(244, 63, 94, 0.08)",
+                  transition: "all 0.2s ease",
+                }}
+                onClick={handleLogout}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+              </button>
+            </div>
+            <div style={{ fontSize: "11px", color: "var(--accent-sky)" }}>{currentUser.email}</div>
+          </div>
+        )}
       </aside>
 
       {/* Main Workspace */}
@@ -611,7 +862,8 @@ function App() {
                 <button className="btn btn-secondary btn-sm" onClick={() => setView("workqueue")}>View Full Queue</button>
               </div>
 
-              <div className="table-container">
+              {/* Desktop Table */}
+              <div className="table-container desktop-only">
                 <table>
                   <thead>
                     <tr>
@@ -645,225 +897,811 @@ function App() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
-        )}
 
-        {view === "workqueue" && (
-          <div className="glass-panel">
-            <div className="panel-header">
-              <div className="panel-title">
-                <h3>Collector Daily Work Queue ({workQueue.length} Accounts)</h3>
-                <p>Prioritized work order based on DPD, Arrears, PTP, and Broken Promises</p>
+              {/* Mobile / Tablet Adaptive Card List */}
+              <div className="mobile-card-list">
+                {workQueue.slice(0, 5).map(item => (
+                  <div key={item.case_id} className="mobile-item-card">
+                    <div className="mobile-card-header">
+                      <div className="mobile-card-title-group">
+                        <span className="mobile-score-badge">{item.priority_score}</span>
+                        <div>
+                          <div className="mobile-card-acc">{item.account_number}</div>
+                          <div className="mobile-card-debtor">{item.customer_name || "Debtor Record"}</div>
+                        </div>
+                      </div>
+                      <span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span>
+                    </div>
+
+                    <div className="mobile-card-body">
+                      <div className="mobile-stat">
+                        <label>Arrears</label>
+                        <span className="arrears-val">{money(item.arrears)}</span>
+                      </div>
+                      <div className="mobile-stat">
+                        <label>DPD (Aging)</label>
+                        <span>{item.days_in_arrears} Days</span>
+                      </div>
+                      <div className="mobile-stat" style={{ gridColumn: "span 2" }}>
+                        <label>Strategy / Next Action</label>
+                        <span style={{ color: "#38bdf8", fontWeight: 500 }}>{item.next_action}</span>
+                      </div>
+                    </div>
+
+                    <div className="mobile-card-actions">
+                      <button className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
+                        🚀 Work Case 360°
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Account</th>
-                    <th>Debtor Name</th>
-                    <th>Mobile</th>
-                    <th>Arrears</th>
-                    <th>DPD</th>
-                    <th>Strategy</th>
-                    <th>Status</th>
-                    <th>Recommended Next Action</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {workQueue.map(item => (
-                    <tr key={item.case_id}>
-                      <td><strong style={{ color: "#818cf8", fontSize: "15px" }}>{item.priority_score}</strong></td>
-                      <td><strong>{item.account_number}</strong></td>
-                      <td>{item.customer_name ?? "—"}</td>
-                      <td>{item.mobile ?? "—"}</td>
-                      <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
-                      <td>{item.days_in_arrears} DPD</td>
-                      <td><span style={{ fontSize: "12px", color: "#cbd5e1" }}>{item.strategy_code ?? "STANDARD"}</span></td>
-                      <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
-                      <td><strong style={{ color: "#38bdf8", fontSize: "12px" }}>{item.next_action}</strong></td>
-                      <td>
-                        <button className="btn btn-primary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
-                          Work Case
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         )}
 
-        {view === "accounts" && (
-          <div className="glass-panel">
-            <div className="panel-header">
-              <div className="panel-title">
-                <h3>Municipal Debt Book ({accounts.length} Accounts)</h3>
-                <p>Complete debtor ledger with balance, arrears, and collection statuses</p>
+        {view === "workqueue" && (() => {
+          const filteredWorkQueue = workQueue.filter(item => {
+            const matchesSearch = !wqSearch || 
+              (item.account_number && item.account_number.toLowerCase().includes(wqSearch.toLowerCase())) ||
+              (item.customer_name && item.customer_name.toLowerCase().includes(wqSearch.toLowerCase())) ||
+              (item.mobile && item.mobile.includes(wqSearch));
+            
+            const matchesStatus = wqStatusFilter === "ALL" || item.case_status === wqStatusFilter;
+            const matchesStrategy = wqStrategyFilter === "ALL" || item.strategy_code === wqStrategyFilter;
+
+            return matchesSearch && matchesStatus && matchesStrategy;
+          });
+
+          return (
+            <div className="glass-panel">
+              <div className="panel-header" style={{ flexWrap: "wrap", gap: "16px" }}>
+                <div className="panel-title">
+                  <h3>Collector Daily Work Queue ({filteredWorkQueue.length} / {workQueue.length} Accounts)</h3>
+                  <p>Prioritized work order based on DPD, Arrears, PTP, and Broken Promises</p>
+                </div>
               </div>
-            </div>
 
-            <div className="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Account Number</th>
-                    <th>Status</th>
-                    <th>Balance</th>
-                    <th>Arrears</th>
-                    <th>DPD</th>
-                    <th>Last Payment</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {accounts.map(acc => (
-                    <tr key={acc.id}>
-                      <td><strong>{acc.account_number}</strong></td>
-                      <td><span className="status-pill status-new">{acc.account_status}</span></td>
-                      <td>{money(acc.balance)}</td>
-                      <td style={{ color: "#f87171", fontWeight: 600 }}>{money(acc.arrears)}</td>
-                      <td>{acc.days_in_arrears} days</td>
-                      <td>{acc.last_payment_date ? `${acc.last_payment_date} (${money(acc.last_payment_amount)})` : "None"}</td>
-                      <td>
-                        <button className="table-action-btn" onClick={() => openAccountWorkbench(acc.id)}>
-                          Workbench
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {/* Work Queue Filter Toolbar */}
+              <div className="filter-toolbar">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search account, debtor, or mobile..."
+                    value={wqSearch}
+                    onChange={e => setWqSearch(e.target.value)}
+                    className="form-input"
+                  />
+                  {wqSearch && (
+                    <button className="clear-search-btn" onClick={() => setWqSearch("")}>✕</button>
+                  )}
+                </div>
+
+                <div className="filter-selects">
+                  <select
+                    value={wqStatusFilter}
+                    onChange={e => setWqStatusFilter(e.target.value)}
+                    className="form-select filter-select"
+                  >
+                    <option value="ALL">All Case Statuses</option>
+                    <option value="NEW">NEW</option>
+                    <option value="ENGAGED">ENGAGED</option>
+                    <option value="PROMISE_MADE">PROMISE_MADE</option>
+                    <option value="ARRANGEMENT_ACTIVE">ARRANGEMENT_ACTIVE</option>
+                    <option value="ESCALATED">ESCALATED</option>
+                  </select>
+
+                  <select
+                    value={wqStrategyFilter}
+                    onChange={e => setWqStrategyFilter(e.target.value)}
+                    className="form-select filter-select"
+                  >
+                    <option value="ALL">All Strategies</option>
+                    <option value="INTENSIVE_RECOVERY">INTENSIVE_RECOVERY</option>
+                    <option value="ACTIVE_RECOVERY">ACTIVE_RECOVERY</option>
+                    <option value="STANDARD_RECOVERY">STANDARD_RECOVERY</option>
+                    <option value="LIGHT_TOUCH">LIGHT_TOUCH</option>
+                  </select>
+
+                  {(wqSearch || wqStatusFilter !== "ALL" || wqStrategyFilter !== "ALL") && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setWqSearch("");
+                        setWqStatusFilter("ALL");
+                        setWqStrategyFilter("ALL");
+                      }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {filteredWorkQueue.length === 0 ? (
+                <div className="empty-filter-state">
+                  <p>No collection cases match the current filter criteria.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table */}
+                  <div className="table-container desktop-only">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Rank</th>
+                          <th>Account</th>
+                          <th>Debtor Name</th>
+                          <th>Mobile</th>
+                          <th>Arrears</th>
+                          <th>DPD</th>
+                          <th>Strategy</th>
+                          <th>Status</th>
+                          <th>Recommended Next Action</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredWorkQueue.map(item => (
+                          <tr key={item.case_id}>
+                            <td><strong style={{ color: "#818cf8", fontSize: "15px" }}>{item.priority_score}</strong></td>
+                            <td><strong>{item.account_number}</strong></td>
+                            <td>{item.customer_name ?? "—"}</td>
+                            <td>{formatPhone(item.mobile)}</td>
+                            <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
+                            <td>{item.days_in_arrears} DPD</td>
+                            <td><span style={{ fontSize: "12px", color: "#cbd5e1" }}>{item.strategy_code ?? "STANDARD"}</span></td>
+                            <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
+                            <td><strong style={{ color: "#38bdf8", fontSize: "12px" }}>{item.next_action}</strong></td>
+                            <td>
+                              <button className="btn btn-primary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
+                                Work Case
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile / Tablet Adaptive Card List */}
+                  <div className="mobile-card-list">
+                    {filteredWorkQueue.map(item => (
+                      <div key={item.case_id} className="mobile-item-card">
+                        <div className="mobile-card-header">
+                          <div className="mobile-card-title-group">
+                            <span className="mobile-score-badge">{item.priority_score}</span>
+                            <div>
+                              <div className="mobile-card-acc">{item.account_number}</div>
+                              <div className="mobile-card-debtor">{item.customer_name || "Debtor Record"}</div>
+                            </div>
+                          </div>
+                          <span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span>
+                        </div>
+
+                        <div className="mobile-card-body">
+                          <div className="mobile-stat">
+                            <label>Arrears</label>
+                            <span className="arrears-val">{money(item.arrears)}</span>
+                          </div>
+                          <div className="mobile-stat">
+                            <label>DPD / Mobile</label>
+                            <span>{item.days_in_arrears} DPD • {formatPhone(item.mobile)}</span>
+                          </div>
+                          <div className="mobile-stat" style={{ gridColumn: "span 2" }}>
+                            <label>Recommended Collector Action</label>
+                            <span style={{ color: "#38bdf8", fontWeight: 500 }}>{item.next_action}</span>
+                          </div>
+                        </div>
+
+                        <div className="mobile-card-actions">
+                          <button className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
+                            🎯 Work Debtor Case
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
+
+        {view === "accounts" && (() => {
+          const filteredAccounts = accounts.filter(acc => {
+            const matchesSearch = !accSearch ||
+              (acc.account_number && acc.account_number.toLowerCase().includes(accSearch.toLowerCase()));
+            
+            const matchesStatus = accStatusFilter === "ALL" || acc.account_status === accStatusFilter;
+            const matchesMinArrears = !accMinArrears || Number(acc.arrears) >= Number(accMinArrears);
+
+            return matchesSearch && matchesStatus && matchesMinArrears;
+          });
+
+          return (
+            <div className="glass-panel">
+              <div className="panel-header" style={{ flexWrap: "wrap", gap: "16px" }}>
+                <div className="panel-title">
+                  <h3>Municipal Debt Book ({filteredAccounts.length} / {accounts.length} Accounts)</h3>
+                  <p>Complete debtor ledger with balance, arrears, and collection statuses</p>
+                </div>
+              </div>
+
+              {/* Debt Book Filter Toolbar */}
+              <div className="filter-toolbar">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search account number..."
+                    value={accSearch}
+                    onChange={e => setAccSearch(e.target.value)}
+                    className="form-input"
+                  />
+                  {accSearch && (
+                    <button className="clear-search-btn" onClick={() => setAccSearch("")}>✕</button>
+                  )}
+                </div>
+
+                <div className="filter-selects">
+                  <select
+                    value={accStatusFilter}
+                    onChange={e => setAccStatusFilter(e.target.value)}
+                    className="form-select filter-select"
+                  >
+                    <option value="ALL">All Account Statuses</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="DELINQUENT">DELINQUENT</option>
+                    <option value="DEFAULT">DEFAULT</option>
+                    <option value="PAID">PAID</option>
+                  </select>
+
+                  <input
+                    type="number"
+                    placeholder="Min Arrears (R)"
+                    value={accMinArrears}
+                    onChange={e => setAccMinArrears(e.target.value)}
+                    className="form-input filter-input"
+                    style={{ width: "140px" }}
+                  />
+
+                  {(accSearch || accStatusFilter !== "ALL" || accMinArrears) && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        setAccSearch("");
+                        setAccStatusFilter("ALL");
+                        setAccMinArrears("");
+                      }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {filteredAccounts.length === 0 ? (
+                <div className="empty-filter-state">
+                  <p>No municipal accounts match the current filter criteria.</p>
+                </div>
+              ) : (
+                <>
+                  {/* Desktop Table */}
+                  <div className="table-container desktop-only">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Account Number</th>
+                          <th>Status</th>
+                          <th>Balance</th>
+                          <th>Arrears</th>
+                          <th>DPD</th>
+                          <th>Last Payment</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredAccounts.map(acc => (
+                          <tr key={acc.id}>
+                            <td><strong>{acc.account_number}</strong></td>
+                            <td><span className="status-pill status-new">{acc.account_status}</span></td>
+                            <td>{money(acc.balance)}</td>
+                            <td style={{ color: "#f87171", fontWeight: 600 }}>{money(acc.arrears)}</td>
+                            <td>{acc.days_in_arrears} days</td>
+                            <td>{acc.last_payment_date ? `${acc.last_payment_date} (${money(acc.last_payment_amount)})` : "None"}</td>
+                            <td>
+                              <button className="table-action-btn" onClick={() => openAccountWorkbench(acc.id)}>
+                                Workbench
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile / Tablet Adaptive Card List */}
+                  <div className="mobile-card-list">
+                    {filteredAccounts.map(acc => (
+                      <div key={acc.id} className="mobile-item-card">
+                        <div className="mobile-card-header">
+                          <div>
+                            <div className="mobile-card-acc">{acc.account_number}</div>
+                            <div className="mobile-card-debtor">Status: {acc.account_status}</div>
+                          </div>
+                          <span className="status-pill status-new">{acc.account_status}</span>
+                        </div>
+
+                        <div className="mobile-card-body">
+                          <div className="mobile-stat">
+                            <label>Total Balance</label>
+                            <span>{money(acc.balance)}</span>
+                          </div>
+                          <div className="mobile-stat">
+                            <label>Arrears</label>
+                            <span className="arrears-val">{money(acc.arrears)}</span>
+                          </div>
+                          <div className="mobile-stat">
+                            <label>Aging</label>
+                            <span>{acc.days_in_arrears} Days</span>
+                          </div>
+                          <div className="mobile-stat">
+                            <label>Last Payment</label>
+                            <span>{acc.last_payment_date ? money(acc.last_payment_amount) : "None"}</span>
+                          </div>
+                        </div>
+
+                        <div className="mobile-card-actions">
+                          <button className="btn btn-secondary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(acc.id)}>
+                            📑 View Account 360°
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {view === "imports" && (
           <div className="glass-panel">
             <div className="panel-header">
               <div className="panel-title">
-                <h3>Municipal Account Import Engine</h3>
-                <p>Safe ingestion with automated column mapping, customer upsert, and duplicate prevention</p>
+                <h3>📊 Municipal Account Import & Column Mapping Wizard</h3>
+                <p>Safe ingestion with automated column header detection, alias matching, row preview, and audit tracking</p>
               </div>
             </div>
 
-            <div style={{ maxWidth: "600px", padding: "20px 0" }}>
-              <div className="form-group">
-                <label>Select CSV or Excel (.xlsx) file</label>
-                <input type="file" accept=".csv,.xlsx" onChange={e => setFile(e.target.files?.[0] ?? null)} className="form-input" />
-              </div>
-              <button className="btn btn-primary" onClick={handleImport} disabled={!file || loading}>
-                {loading ? "Importing Data..." : "🚀 Ingest & Upsert Debt Book"}
+            {/* Step Wizard Header */}
+            <div style={{ display: "flex", gap: "12px", marginBottom: "24px", flexWrap: "wrap" }}>
+              <button
+                className={`btn btn-sm ${importStage === "upload" ? "btn-primary" : "btn-secondary"}`}
+                onClick={() => setImportStage("upload")}
+              >
+                1. Select File
               </button>
-
+              <button
+                className={`btn btn-sm ${importStage === "mapping" ? "btn-primary" : "btn-secondary"}`}
+                disabled={!importMappingData}
+                onClick={() => setImportStage("mapping")}
+              >
+                2. Column Mapping
+              </button>
+              <button
+                className={`btn btn-sm ${importStage === "preview" ? "btn-primary" : "btn-secondary"}`}
+                disabled={!importMappingData}
+                onClick={() => setImportStage("preview")}
+              >
+                3. Data Preview ({importMappingData?.total_rows || 0} rows)
+              </button>
               {importResult && (
-                <div style={{ marginTop: "24px" }} className="drawer-section">
-                  <div className="drawer-section-title">Import Summary Results</div>
-                  <div className="info-grid">
-                    <div className="info-item"><label>Total Rows</label><span className="info-value">{importResult.total_rows}</span></div>
-                    <div className="info-item"><label>Created Accounts</label><span className="info-value" style={{ color: "#34d399" }}>{importResult.created}</span></div>
-                    <div className="info-item"><label>Updated Accounts</label><span className="info-value" style={{ color: "#38bdf8" }}>{importResult.updated}</span></div>
-                    <div className="info-item"><label>Skipped / Errors</label><span className="info-value" style={{ color: "#fb7185" }}>{importResult.skipped}</span></div>
-                  </div>
-                </div>
+                <button
+                  className={`btn btn-sm ${importStage === "result" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setImportStage("result")}
+                >
+                  4. Ingestion Results
+                </button>
               )}
             </div>
-          </div>
-        )}
 
-        {view === "users" && (
-          <div>
-            {/* Create User Card */}
-            <div className="glass-panel" style={{ marginBottom: "28px" }}>
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>Provision New User & Role</h3>
-                  <p>Create SuperAdmins, Municipal Admins, Team Supervisors, and Debt Collectors</p>
+            {/* Stage 1: Upload */}
+            {importStage === "upload" && (
+              <div style={{ maxWidth: "680px", padding: "10px 0" }}>
+                <div style={{ padding: "32px", border: "2px dashed rgba(255,255,255,0.15)", borderRadius: "12px", textAlign: "center", background: "rgba(255,255,255,0.02)", marginBottom: "20px" }}>
+                  <div style={{ fontSize: "40px", marginBottom: "12px" }}>📁</div>
+                  <h4 style={{ marginBottom: "8px" }}>Upload Municipal Debt Book</h4>
+                  <p style={{ color: "#94a3b8", fontSize: "13px", marginBottom: "20px" }}>
+                    Select a <strong>.CSV</strong> or <strong>.XLSX</strong> file containing municipal accounts, balances, and contact details.
+                  </p>
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx"
+                    onChange={e => {
+                      const f = e.target.files?.[0] ?? null;
+                      setFile(f);
+                      if (f) handleInspectFile(f);
+                    }}
+                    className="form-input"
+                    style={{ maxWidth: "400px", margin: "0 auto 16px auto" }}
+                  />
+                  {file && (
+                    <div style={{ fontSize: "12px", color: "#38bdf8" }}>
+                      Selected: <strong>{file.name}</strong> ({(file.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => handleInspectFile()}
+                    disabled={!file || loading}
+                  >
+                    {loading ? "Inspecting File..." : "🔍 Inspect & Map Columns ➔"}
+                  </button>
                 </div>
               </div>
+            )}
 
-              <form onSubmit={handleCreateUser} style={{ maxWidth: "800px" }}>
-                <div className="info-grid" style={{ marginBottom: "16px" }}>
-                  <div className="form-group">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Sipho Sithole"
-                      value={newFullName}
-                      onChange={e => setNewFullName(e.target.value)}
-                      className="form-input"
-                      required
-                    />
+            {/* Stage 2: Column Mapping */}
+            {importStage === "mapping" && importMappingData && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <div>
+                    <h4 style={{ margin: 0 }}>Column Header Verification</h4>
+                    <p style={{ color: "#94a3b8", fontSize: "13px", margin: "4px 0 0 0" }}>
+                      File: <strong>{importMappingData.filename}</strong> • Total Rows: <strong>{importMappingData.total_rows}</strong>
+                    </p>
                   </div>
-                  <div className="form-group">
-                    <label>Work Email</label>
-                    <input
-                      type="email"
-                      placeholder="e.g. sipho@municipality.gov.za"
-                      value={newEmail}
-                      onChange={e => setNewEmail(e.target.value)}
-                      className="form-input"
-                      required
-                    />
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setImportStage("upload")}>
+                      ⬅ Back
+                    </button>
+                    <button className="btn btn-primary btn-sm" onClick={() => setImportStage("preview")}>
+                      Proceed to Preview ➔
+                    </button>
                   </div>
                 </div>
 
-                <div className="info-grid" style={{ marginBottom: "16px" }}>
-                  <div className="form-group">
-                    <label>Temporary Password</label>
-                    <input
-                      type="password"
-                      placeholder="••••••••"
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      className="form-input"
-                      required
-                    />
+                {importMappingData.missing_required && importMappingData.missing_required.length > 0 ? (
+                  <div style={{ padding: "14px 18px", background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.4)", borderRadius: "8px", color: "#fca5a5", marginBottom: "20px" }}>
+                    ⚠️ Missing mandatory columns: <strong>{importMappingData.missing_required.join(", ")}</strong>. Please verify your file headers.
                   </div>
-                  <div className="form-group">
-                    <label>User Role & Access Scope</label>
-                    <select
-                      value={newRole}
-                      onChange={e => setNewRole(e.target.value)}
-                      className="form-select"
-                    >
-                      <option value="SUPERADMIN">👑 SUPERADMIN (Global System Oversight)</option>
-                      <option value="ADMIN">🏛️ ADMIN (Municipality Administrator)</option>
-                      <option value="COLLECTOR">🎯 COLLECTOR (Work Queue & Debtor Engagement)</option>
-                      <option value="AUDITOR">📑 AUDITOR (Read-Only Financial Logs)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {newRole !== "SUPERADMIN" && (
-                  <div className="form-group" style={{ marginBottom: "20px" }}>
-                    <label>Assign to Municipality</label>
-                    <select
-                      value={newTenantId || selectedTenant}
-                      onChange={e => setNewTenantId(e.target.value)}
-                      className="form-select"
-                    >
-                      {tenants.map(t => (
-                        <option key={t.id} value={t.id}>
-                          {t.name} ({t.code})
-                        </option>
-                      ))}
-                    </select>
+                ) : (
+                  <div style={{ padding: "12px 16px", background: "rgba(34, 197, 94, 0.15)", border: "1px solid rgba(34, 197, 94, 0.4)", borderRadius: "8px", color: "#86efac", marginBottom: "20px" }}>
+                    ✅ All required system fields mapped successfully!
                   </div>
                 )}
 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? "Creating User..." : "➕ Create User Account"}
-                </button>
-              </form>
-            </div>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
+                    <thead>
+                      <tr style={{ background: "rgba(255,255,255,0.05)", borderBottom: "1px solid rgba(255,255,255,0.1)", textAlign: "left" }}>
+                        <th style={{ padding: "10px 14px" }}>System Field</th>
+                        <th style={{ padding: "10px 14px" }}>Requirement</th>
+                        <th style={{ padding: "10px 14px" }}>Mapped File Header</th>
+                        <th style={{ padding: "10px 14px" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { key: "account_number", label: "Account Number", required: true },
+                        { key: "account_status", label: "Account Status", required: false },
+                        { key: "balance", label: "Balance (ZAR)", required: false },
+                        { key: "arrears", label: "Arrears Amount (ZAR)", required: false },
+                        { key: "days_in_arrears", label: "Days in Arrears", required: false },
+                        { key: "first_name", label: "Customer First Name", required: false },
+                        { key: "last_name", label: "Customer Last Name", required: false },
+                        { key: "id_number", label: "SA ID Number", required: false },
+                        { key: "mobile", label: "Mobile Number", required: false },
+                        { key: "email", label: "Email Address", required: false },
+                        { key: "property_reference", label: "Property Ref / Stand No", required: false },
+                        { key: "address", label: "Street Address", required: false },
+                        { key: "last_payment_date", label: "Last Payment Date", required: false },
+                        { key: "last_payment_amount", label: "Last Payment Amount", required: false },
+                      ].map(field => {
+                        const mappedCol = customColumnMapping[field.key] || importMappingData.mapping[field.key];
+                        return (
+                          <tr key={field.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                            <td style={{ padding: "10px 14px", fontWeight: 600 }}>{field.label} <span style={{ color: "#64748b", fontSize: "11px" }}>({field.key})</span></td>
+                            <td style={{ padding: "10px 14px" }}>
+                              {field.required ? (
+                                <span style={{ padding: "2px 6px", borderRadius: "4px", background: "rgba(239, 68, 68, 0.2)", color: "#f87171", fontSize: "11px", fontWeight: 600 }}>MANDATORY</span>
+                              ) : (
+                                <span style={{ padding: "2px 6px", borderRadius: "4px", background: "rgba(148, 163, 184, 0.1)", color: "#94a3b8", fontSize: "11px" }}>OPTIONAL</span>
+                              )}
+                            </td>
+                            <td style={{ padding: "10px 14px" }}>
+                              <select
+                                className="form-input"
+                                style={{ padding: "4px 8px", fontSize: "12px" }}
+                                value={mappedCol || ""}
+                                onChange={e => {
+                                  setCustomColumnMapping({
+                                    ...customColumnMapping,
+                                    [field.key]: e.target.value,
+                                  });
+                                }}
+                              >
+                                <option value="">-- Not Mapped --</option>
+                                {importMappingData.columns.map((c: string) => (
+                                  <option key={c} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </td>
+                            <td style={{ padding: "10px 14px" }}>
+                              {mappedCol ? (
+                                <span style={{ color: "#34d399", fontWeight: 600 }}>✓ Mapped to "{mappedCol}"</span>
+                              ) : field.required ? (
+                                <span style={{ color: "#f87171", fontWeight: 600 }}>✗ Missing Required</span>
+                              ) : (
+                                <span style={{ color: "#64748b" }}>— Skipped</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
-            {/* Users Table */}
+            {/* Stage 3: Data Preview */}
+            {importStage === "preview" && importMappingData && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                  <div>
+                    <h4 style={{ margin: 0 }}>First 10 Rows Data Preview</h4>
+                    <p style={{ color: "#94a3b8", fontSize: "13px", margin: "4px 0 0 0" }}>
+                      Inspecting {importMappingData.preview_rows?.length || 0} sample rows from {importMappingData.total_rows} total rows
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setImportStage("mapping")}>
+                      ⬅ Edit Mapping
+                    </button>
+                    <button className="btn btn-primary" onClick={handleImport} disabled={loading}>
+                      {loading ? "Ingesting Data..." : "🚀 Confirm & Ingest Debt Book"}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: "auto", maxHeight: "400px", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                    <thead>
+                      <tr style={{ background: "rgba(255,255,255,0.08)", borderBottom: "1px solid rgba(255,255,255,0.1)", position: "sticky", top: 0 }}>
+                        <th style={{ padding: "8px 12px" }}>#</th>
+                        {importMappingData.columns.map((c: string) => (
+                          <th key={c} style={{ padding: "8px 12px", textAlign: "left", whiteSpace: "nowrap" }}>{c}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(importMappingData.preview_rows || []).map((r: any, idx: number) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                          <td style={{ padding: "8px 12px", color: "#64748b" }}>{idx + 1}</td>
+                          {importMappingData.columns.map((c: string) => (
+                            <td key={c} style={{ padding: "8px 12px", whiteSpace: "nowrap" }}>{r[c] !== undefined ? String(r[c]) : ""}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
+                  <button className="btn btn-primary" onClick={handleImport} disabled={loading} style={{ padding: "10px 24px" }}>
+                    {loading ? "Ingesting Data..." : `🚀 Ingest ${importMappingData.total_rows} Accounts into Database`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Stage 4: Results */}
+            {importStage === "result" && importResult && (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                  <div>
+                    <h4 style={{ margin: 0 }}>Ingestion Completed</h4>
+                    <p style={{ color: "#94a3b8", fontSize: "13px", margin: "4px 0 0 0" }}>
+                      Batch processed with audit event ID recorded
+                    </p>
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { setFile(null); setImportMappingData(null); setImportResult(null); setImportStage("upload"); }}>
+                    Upload Another File
+                  </button>
+                </div>
+
+                <div className="drawer-section">
+                  <div className="drawer-section-title">Summary Statistics</div>
+                  <div className="info-grid">
+                    <div className="info-item"><label>Total Rows</label><span className="info-value">{importResult.total_rows}</span></div>
+                    <div className="info-item"><label>Created Accounts</label><span className="info-value" style={{ color: "#34d399", fontWeight: 700 }}>{importResult.created}</span></div>
+                    <div className="info-item"><label>Updated Accounts</label><span className="info-value" style={{ color: "#38bdf8", fontWeight: 700 }}>{importResult.updated}</span></div>
+                    <div className="info-item"><label>Skipped / Errors</label><span className="info-value" style={{ color: "#fb7185", fontWeight: 700 }}>{importResult.skipped}</span></div>
+                  </div>
+                </div>
+
+                {importResult.errors && importResult.errors.length > 0 && (
+                  <div style={{ marginTop: "24px" }}>
+                    <h5 style={{ color: "#f87171", marginBottom: "12px" }}>⚠️ Detailed Error Log ({importResult.errors.length} issues)</h5>
+                    <div style={{ maxHeight: "250px", overflowY: "auto", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "8px", background: "rgba(239,68,68,0.05)" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+                        <thead>
+                          <tr style={{ background: "rgba(239,68,68,0.1)", textAlign: "left" }}>
+                            <th style={{ padding: "8px 12px" }}>Row</th>
+                            <th style={{ padding: "8px 12px" }}>Account Number</th>
+                            <th style={{ padding: "8px 12px" }}>Error Description</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {importResult.errors.map((err: any, i: number) => (
+                            <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                              <td style={{ padding: "8px 12px", color: "#fca5a5" }}>{err.row}</td>
+                              <td style={{ padding: "8px 12px", fontWeight: 600 }}>{err.account_number || "—"}</td>
+                              <td style={{ padding: "8px 12px", color: "#fca5a5" }}>{err.error}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {view === "users" && currentUser?.role !== "COLLECTOR" && (
+          <div>
+            {/* Onboard New Municipality Card - Restricted to SUPERADMIN */}
+            {currentUser?.role === "SUPERADMIN" && (
+              <div className="glass-panel" style={{ marginBottom: "28px" }}>
+                <div className="panel-header">
+                  <div className="panel-title">
+                    <h3>🏛️ Onboard New Municipality (Tenant)</h3>
+                    <p>Register a new South African municipality or institutional debt portfolio</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleCreateTenant} style={{ maxWidth: "800px" }}>
+                  <div className="info-grid" style={{ marginBottom: "16px" }}>
+                    <div className="form-group">
+                      <label>Municipality / Tenant Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. City of Johannesburg Metropolitan Municipality"
+                        value={newTenantName}
+                        onChange={e => setNewTenantName(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Municipal Code (Unique)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. JHB, EKU, TSH"
+                        value={newTenantCode}
+                        onChange={e => setNewTenantCode(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
+                    {loading ? "Registering..." : "🏛️ Onboard Municipality"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Create User Card - Restricted to ADMIN and SUPERADMIN */}
+            {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+              <div className="glass-panel" style={{ marginBottom: "28px" }}>
+                <div className="panel-header">
+                  <div className="panel-title">
+                    <h3>Provision New User & Role</h3>
+                    <p>Create SuperAdmins, Municipal Admins, Team Supervisors, and Debt Collectors</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleCreateUser} style={{ maxWidth: "800px" }}>
+                  <div className="info-grid" style={{ marginBottom: "16px" }}>
+                    <div className="form-group">
+                      <label>Full Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sipho Sithole"
+                        value={newFullName}
+                        onChange={e => setNewFullName(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Work Email</label>
+                      <input
+                        type="email"
+                        placeholder="e.g. sipho@municipality.gov.za"
+                        value={newEmail}
+                        onChange={e => setNewEmail(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="info-grid" style={{ marginBottom: "16px" }}>
+                    <div className="form-group">
+                      <label>Temporary Password</label>
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>User Role & Access Scope</label>
+                      <select
+                        value={newRole}
+                        onChange={e => setNewRole(e.target.value)}
+                        className="form-select"
+                        style={{
+                          background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                          borderColor: "#3b82f6",
+                          color: "#ffffff",
+                          fontWeight: 600,
+                          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+                        }}
+                      >
+                        <option value="SUPERADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>👑 SUPERADMIN (Global System Oversight)</option>
+                        <option value="ADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>🏛️ ADMIN (Municipality Administrator)</option>
+                        <option value="COLLECTOR" style={{ background: "#0f172a", color: "#ffffff" }}>🎯 COLLECTOR (Work Queue & Debtor Engagement)</option>
+                        <option value="AUDITOR" style={{ background: "#0f172a", color: "#ffffff" }}>📑 AUDITOR (Read-Only Financial Logs)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {newRole !== "SUPERADMIN" && (
+                    <div className="form-group" style={{ marginBottom: "20px" }}>
+                      <label>Assign to Municipality</label>
+                      <select
+                        value={newTenantId || selectedTenant}
+                        onChange={e => setNewTenantId(e.target.value)}
+                        className="form-select"
+                        style={{
+                          background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                          borderColor: "#3b82f6",
+                          color: "#ffffff",
+                          fontWeight: 600,
+                          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+                        }}
+                      >
+                        {tenants.map(t => (
+                          <option key={t.id} value={t.id} style={{ background: "#0f172a", color: "#ffffff" }}>
+                            {t.name} ({t.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? "Creating User..." : "➕ Create User Account"}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Users Table / Mobile Cards */}
             <div className="glass-panel">
               <div className="panel-header">
                 <div className="panel-title">
@@ -872,7 +1710,8 @@ function App() {
                 </div>
               </div>
 
-              <div className="table-container">
+              {/* Desktop Users Table */}
+              <div className="table-container desktop-only">
                 <table>
                   <thead>
                     <tr>
@@ -916,6 +1755,50 @@ function App() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile / Tablet Adaptive User Cards */}
+              <div className="mobile-card-list">
+                {usersList.map(u => (
+                  <div key={u.id} className="mobile-item-card">
+                    <div className="mobile-card-header">
+                      <div>
+                        <div className="mobile-card-acc">{u.full_name}</div>
+                        <div className="mobile-card-debtor" style={{ color: "#38bdf8" }}>{u.email}</div>
+                      </div>
+                      <span
+                        className={`status-pill ${
+                          u.role === "SUPERADMIN"
+                            ? "status-broken"
+                            : u.role === "ADMIN"
+                            ? "status-engaged"
+                            : "status-new"
+                        }`}
+                      >
+                        {u.role}
+                      </span>
+                    </div>
+
+                    <div className="mobile-card-body">
+                      <div className="mobile-stat" style={{ gridColumn: "span 2" }}>
+                        <label>Municipality Scope</label>
+                        <span>
+                          {u.tenant_id
+                            ? tenants.find(t => t.id === u.tenant_id)?.name ?? "Municipality User"
+                            : "🌐 Global All Municipalities"}
+                        </span>
+                      </div>
+                      <div className="mobile-stat">
+                        <label>Account Status</label>
+                        <span style={{ color: "#34d399", fontWeight: 600 }}>Active</span>
+                      </div>
+                      <div className="mobile-stat">
+                        <label>Created On</label>
+                        <span>{u.created_at?.split("T")[0]}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -947,7 +1830,7 @@ function App() {
                 </div>
                 <div className="info-item">
                   <label>Mobile Contact</label>
-                  <span className="info-value" style={{ color: "#38bdf8" }}>{account360.customer?.mobile ?? "—"}</span>
+                  <span className="info-value" style={{ color: "#38bdf8" }}>{formatPhone(account360.customer?.mobile)}</span>
                 </div>
                 <div className="info-item">
                   <label>Address</label>
@@ -1137,6 +2020,22 @@ function App() {
 
 function money(n: any) {
   return `R ${(Number(n) || 0).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatPhone(val: any) {
+  if (!val) return "—";
+  const str = String(val).trim();
+  const digits = str.replace(/\D/g, "");
+  if (digits.length === 9 && ["6", "7", "8", "9"].includes(digits[0])) {
+    return `0${digits}`;
+  }
+  if (digits.length === 11 && digits.startsWith("27")) {
+    return `0${digits.slice(2)}`;
+  }
+  if (digits.length === 10 && digits.startsWith("0")) {
+    return digits;
+  }
+  return str;
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

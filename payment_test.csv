@@ -1,0 +1,3 @@
+tenant_id,account_number,amount,payment_date,external_reference
+e7a50839-7456-4b94-89f6-c3996cd123b6,ACC-1001,500.00,2026-08-30,TEST-IMPORT-001
+e7a50839-7456-4b94-89f6-c3996cd123b6,ACC-1002,750.00,2026-08-30,TEST-IMPORT-002

@@ -127,7 +127,15 @@ def clean_value(value):
     if isinstance(value, float):
         if value != value:
             return None
-    value = str(value).strip()
+        if value.is_integer():
+            value = str(int(value))
+        else:
+            value = str(value)
+    elif isinstance(value, int):
+        value = str(value)
+    else:
+        value = str(value).strip()
+    
     if not value or value.lower() in {
         "nan",
         "none",
@@ -136,6 +144,25 @@ def clean_value(value):
     }:
         return None
     return value
+
+
+def format_mobile_number(value):
+    val = clean_value(value)
+    if not val:
+        return None
+    # Remove all spaces, dashes, parentheses
+    clean_digits = "".join(c for c in val if c.isdigit())
+    if not clean_digits:
+        return val
+    # South African standard: 9 digits without leading 0 -> prepend 0 (e.g. 841112233 -> 0841112233)
+    if len(clean_digits) == 9 and clean_digits.startswith(("6", "7", "8", "9")):
+        return f"0{clean_digits}"
+    # International +27 format (e.g. 27841112233 -> 0841112233)
+    if len(clean_digits) == 11 and clean_digits.startswith("27"):
+        return f"0{clean_digits[2:]}"
+    if len(clean_digits) == 10 and clean_digits.startswith("0"):
+        return clean_digits
+    return val
 
 
 def parse_decimal(value, default=Decimal("0.00")):
@@ -388,10 +415,12 @@ def import_accounts(
                 mapping,
                 "company_registration",
             )
-            mobile = row_value(
-                row,
-                mapping,
-                "mobile",
+            mobile = format_mobile_number(
+                row_value(
+                    row,
+                    mapping,
+                    "mobile",
+                )
             )
             email = row_value(
                 row,
