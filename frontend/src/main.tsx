@@ -770,7 +770,29 @@ function App() {
                   setLoginPassword("Admin@2026!");
                 }}
               >
-                🏛️ <strong>Municipality Admin</strong> (Collections Ops)
+                🏛️ <strong>Municipality Admin</strong> (Oversight & Review)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ width: "100%", justifyContent: "flex-start", padding: "8px 12px" }}
+                onClick={() => {
+                  setLoginEmail("collector@collectionsos.gov.za");
+                  setLoginPassword("Collector@2026!");
+                }}
+              >
+                🎯 <strong>Debt Collector</strong> (Work Queue & PTPs)
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{ width: "100%", justifyContent: "flex-start", padding: "8px 12px" }}
+                onClick={() => {
+                  setLoginEmail("auditor@collectionsos.gov.za");
+                  setLoginPassword("Auditor@2026!");
+                }}
+              >
+                📑 <strong>Auditor</strong> (Compliance & Read-Only Logs)
               </button>
             </div>
           </div>

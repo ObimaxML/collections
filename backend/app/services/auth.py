@@ -72,4 +72,42 @@ def seed_default_users(db: Session):
         )
         db.add(admin)
 
+    # 3. Debt Collector (Work Queue & Debtor Engagement)
+    collector_email = "collector@collectionsos.gov.za"
+    collector = db.execute(
+        select(User).where(User.email == collector_email)
+    ).scalar_one_or_none()
+
+    if not collector:
+        collector = User(
+            id=uuid.uuid4(),
+            tenant_id=demo_tenant_id,
+            email=collector_email,
+            hashed_password=hash_password("Collector@2026!"),
+            full_name="Senior Debt Collector",
+            role="COLLECTOR",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(collector)
+
+    # 4. Compliance Auditor (Read-Only Financial Logs)
+    auditor_email = "auditor@collectionsos.gov.za"
+    auditor = db.execute(
+        select(User).where(User.email == auditor_email)
+    ).scalar_one_or_none()
+
+    if not auditor:
+        auditor = User(
+            id=uuid.uuid4(),
+            tenant_id=demo_tenant_id,
+            email=auditor_email,
+            hashed_password=hash_password("Auditor@2026!"),
+            full_name="Internal Compliance Auditor",
+            role="AUDITOR",
+            is_active=True,
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(auditor)
+
     db.commit()
