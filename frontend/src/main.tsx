@@ -198,7 +198,17 @@ function App() {
         if (Array.isArray(data) && data.length > 0) {
           setTenants(data);
           setSelectedTenant(prev => {
+            const savedDefault = currentUser?.id ? localStorage.getItem(`cos_default_tenant_${currentUser.id}`) : null;
             const userAssigned = currentUser?.tenant_ids || (currentUser?.tenant_id ? [currentUser.tenant_id] : []);
+            
+            if (savedDefault && data.some(d => d.id === savedDefault)) {
+              if (currentUser?.role === "SUPERADMIN" || userAssigned.includes(savedDefault)) {
+                return savedDefault;
+              }
+            }
+            if (currentUser?.tenant_id && data.some(d => d.id === currentUser.tenant_id)) {
+              return currentUser.tenant_id;
+            }
             if (currentUser?.role !== "SUPERADMIN" && userAssigned.length > 0) {
               if (prev && userAssigned.includes(prev)) return prev;
               return userAssigned[0];
@@ -843,7 +853,43 @@ function App() {
         </div>
 
         <div className="tenant-selector" style={{ marginBottom: "18px" }}>
-          <label>Active Municipality ({accessibleTenants.length})</label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+            <label style={{ margin: 0 }}>Active Municipality ({accessibleTenants.length})</label>
+            {selectedTenant && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                style={{
+                  padding: "2px 8px",
+                  fontSize: "11px",
+                  borderColor: (currentUser?.tenant_id === selectedTenant || localStorage.getItem(`cos_default_tenant_${currentUser?.id}`) === selectedTenant) ? "rgba(34, 197, 94, 0.4)" : "rgba(255,255,255,0.15)",
+                  color: (currentUser?.tenant_id === selectedTenant || localStorage.getItem(`cos_default_tenant_${currentUser?.id}`) === selectedTenant) ? "#34d399" : "#94a3b8",
+                  background: (currentUser?.tenant_id === selectedTenant || localStorage.getItem(`cos_default_tenant_${currentUser?.id}`) === selectedTenant) ? "rgba(34, 197, 94, 0.1)" : "transparent",
+                }}
+                onClick={async () => {
+                  if (!currentUser || !selectedTenant) return;
+                  localStorage.setItem(`cos_default_tenant_${currentUser.id}`, selectedTenant);
+                  try {
+                    // Update user's primary default tenant in backend
+                    await fetch(`${API}/auth/users/${currentUser.id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ tenant_id: selectedTenant }),
+                    });
+                    const updated = { ...currentUser, tenant_id: selectedTenant };
+                    setCurrentUser(updated);
+                    localStorage.setItem("cos_user_v2", JSON.stringify(updated));
+                    alert(`⭐ Set "${tenants.find(t => t.id === selectedTenant)?.name}" as your default municipality!`);
+                  } catch (e) {
+                    alert(`Default saved locally!`);
+                  }
+                }}
+                title="Save this municipality as your default on login"
+              >
+                {(currentUser?.tenant_id === selectedTenant || localStorage.getItem(`cos_default_tenant_${currentUser?.id}`) === selectedTenant) ? "★ Default" : "☆ Set Default"}
+              </button>
+            )}
+          </div>
           <select value={selectedTenant} onChange={e => setSelectedTenant(e.target.value)}>
             {accessibleTenants.map(t => (
               <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
@@ -863,9 +909,11 @@ function App() {
             📑 Debt Books & Accounts
             <span className="nav-badge">{accounts.length}</span>
           </div>
-          <div className={`nav-item ${view === "imports" ? "active" : ""}`} onClick={() => { setView("imports"); setMobileMenuOpen(false); }}>
-            📥 Import Engine
-          </div>
+          {currentUser?.role !== "COLLECTOR" && (
+            <div className={`nav-item ${view === "imports" ? "active" : ""}`} onClick={() => { setView("imports"); setMobileMenuOpen(false); }}>
+              📥 Import Engine
+            </div>
+          )}
           {currentUser?.role !== "COLLECTOR" && (
             <div className={`nav-item ${view === "users" ? "active" : ""}`} onClick={() => { setView("users"); setMobileMenuOpen(false); }}>
               👥 User Management & Roles
@@ -1393,7 +1441,7 @@ function App() {
           );
         })()}
 
-        {view === "imports" && (
+        {view === "imports" && currentUser?.role !== "COLLECTOR" && (
           <div className="glass-panel">
             <div className="panel-header">
               <div className="panel-title">
