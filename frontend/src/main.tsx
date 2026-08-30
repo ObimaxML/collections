@@ -909,12 +909,12 @@ function App() {
             📑 Debt Books & Accounts
             <span className="nav-badge">{accounts.length}</span>
           </div>
-          {currentUser?.role !== "COLLECTOR" && (
+          {currentUser?.role === "SUPERADMIN" && (
             <div className={`nav-item ${view === "imports" ? "active" : ""}`} onClick={() => { setView("imports"); setMobileMenuOpen(false); }}>
               📥 Import Engine
             </div>
           )}
-          {currentUser?.role !== "COLLECTOR" && (
+          {currentUser?.role === "SUPERADMIN" && (
             <div className={`nav-item ${view === "users" ? "active" : ""}`} onClick={() => { setView("users"); setMobileMenuOpen(false); }}>
               👥 User Management & Roles
               <span className="nav-badge">{usersList.length}</span>
@@ -1473,7 +1473,7 @@ function App() {
           );
         })()}
 
-        {view === "imports" && currentUser?.role !== "COLLECTOR" && (
+        {view === "imports" && currentUser?.role === "SUPERADMIN" && (
           <div className="glass-panel">
             <div className="panel-header">
               <div className="panel-title">
@@ -1788,11 +1788,10 @@ function App() {
           </div>
         )}
 
-        {view === "users" && currentUser?.role !== "COLLECTOR" && (
+        {view === "users" && currentUser?.role === "SUPERADMIN" && (
           <div>
             {/* Onboard New Municipality Card - Restricted to SUPERADMIN */}
-            {currentUser?.role === "SUPERADMIN" && (
-              <div className="glass-panel" style={{ marginBottom: "28px" }}>
+            <div className="glass-panel" style={{ marginBottom: "28px" }}>
                 <div className="panel-header">
                   <div className="panel-title">
                     <h3>🏛️ Onboard New Municipality (Tenant)</h3>
@@ -1831,10 +1830,8 @@ function App() {
                   </button>
                 </form>
               </div>
-            )}
 
-            {/* Create User Card - Restricted to ADMIN and SUPERADMIN */}
-            {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+              {/* Create User Card - Restricted to SUPERADMIN */}
               <div className="glass-panel" style={{ marginBottom: "28px" }}>
                 <div className="panel-header">
                   <div className="panel-title">
@@ -1936,10 +1933,9 @@ function App() {
                   </button>
                 </form>
               </div>
-            )}
 
-            {/* Users Table / Mobile Cards */}
-            <div className="glass-panel">
+              {/* Users Table / Mobile Cards */}
+              <div className="glass-panel">
               <div className="panel-header">
                 <div className="panel-title">
                   <h3>Active System Users ({usersList.length})</h3>
