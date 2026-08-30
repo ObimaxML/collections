@@ -1045,7 +1045,8 @@ function App() {
                     <tr>
                       <th>Score</th>
                       <th>Account</th>
-                      <th>Debtor</th>
+                      <th>Debtor Name</th>
+                      <th>Mobile</th>
                       <th>Arrears</th>
                       <th>DPD</th>
                       <th>Status</th>
@@ -1058,7 +1059,8 @@ function App() {
                       <tr key={item.case_id}>
                         <td><strong style={{ color: "#818cf8" }}>{item.priority_score}</strong></td>
                         <td><strong>{item.account_number}</strong></td>
-                        <td>{item.customer_name ?? "—"}</td>
+                        <td><span style={{ fontWeight: 600, color: "#f8fafc" }}>{item.customer_name ?? "—"}</span></td>
+                        <td style={{ color: "#38bdf8" }}>{formatPhone(item.mobile)}</td>
                         <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
                         <td>{item.days_in_arrears} days</td>
                         <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
@@ -1222,8 +1224,16 @@ function App() {
                           <tr key={item.case_id}>
                             <td><strong style={{ color: "#818cf8", fontSize: "15px" }}>{item.priority_score}</strong></td>
                             <td><strong>{item.account_number}</strong></td>
-                            <td>{item.customer_name ?? "—"}</td>
-                            <td>{formatPhone(item.mobile)}</td>
+                            <td>
+                              <div style={{ fontWeight: 600, color: "#f8fafc", fontSize: "13.5px" }}>
+                                {item.customer_name || "—"}
+                              </div>
+                            </td>
+                            <td>
+                              <span style={{ color: "#38bdf8", fontWeight: 600, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                📱 {formatPhone(item.mobile)}
+                              </span>
+                            </td>
                             <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
                             <td>{item.days_in_arrears} DPD</td>
                             <td><span style={{ fontSize: "12px", color: "#cbd5e1" }}>{item.strategy_code ?? "STANDARD"}</span></td>
@@ -1249,7 +1259,9 @@ function App() {
                             <span className="mobile-score-badge">{item.priority_score}</span>
                             <div>
                               <div className="mobile-card-acc">{item.account_number}</div>
-                              <div className="mobile-card-debtor">{item.customer_name || "Debtor Record"}</div>
+                              <div className="mobile-card-debtor" style={{ fontWeight: 700, color: "#f8fafc", fontSize: "13.5px" }}>
+                                👤 {item.customer_name || "Debtor Record"}
+                              </div>
                             </div>
                           </div>
                           <span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span>
@@ -1257,22 +1269,30 @@ function App() {
 
                         <div className="mobile-card-body">
                           <div className="mobile-stat">
-                            <label>Arrears</label>
+                            <label>Debtor Mobile</label>
+                            <span style={{ color: "#38bdf8", fontWeight: 600 }}>📱 {formatPhone(item.mobile)}</span>
+                          </div>
+                          <div className="mobile-stat">
+                            <label>Arrears Balance</label>
                             <span className="arrears-val">{money(item.arrears)}</span>
                           </div>
                           <div className="mobile-stat">
-                            <label>DPD / Mobile</label>
-                            <span>{item.days_in_arrears} DPD • {formatPhone(item.mobile)}</span>
+                            <label>Aging (DPD)</label>
+                            <span>{item.days_in_arrears} Days in Arrears</span>
+                          </div>
+                          <div className="mobile-stat">
+                            <label>Account Strategy</label>
+                            <span>{item.strategy_code ?? "STANDARD"}</span>
                           </div>
                           <div className="mobile-stat" style={{ gridColumn: "span 2" }}>
-                            <label>Recommended Collector Action</label>
-                            <span style={{ color: "#38bdf8", fontWeight: 500 }}>{item.next_action}</span>
+                            <label>Recommended Action</label>
+                            <span style={{ color: "#38bdf8", fontWeight: 600 }}>{item.next_action}</span>
                           </div>
                         </div>
 
                         <div className="mobile-card-actions">
                           <button className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
-                            🎯 Work Debtor Case
+                            🎯 Work Debtor Case 360°
                           </button>
                         </div>
                       </div>
