@@ -28,6 +28,7 @@ from app.models import (
 from app.schemas import (
     UserLogin,
     UserCreate,
+    UserUpdate,
     UserResponse,
     TokenResponse,
     CustomerCreate,
@@ -175,6 +176,52 @@ def list_users(
     if tenant_id:
         query = query.where(User.tenant_id == tenant_id)
     return db.execute(query).scalars().all()
+
+
+@router.put("/auth/users/{user_id}", response_model=UserResponse)
+def update_user(
+    user_id: UUID,
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found.",
+        )
+
+    if payload.email and payload.email != user.email:
+        existing = db.execute(
+            select(User).where(User.email == payload.email, User.id != user_id)
+        ).scalar_one_or_none()
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="A user with this email already exists.",
+            )
+        user.email = payload.email
+
+    if payload.full_name is not None:
+        user.full_name = payload.full_name
+
+    if payload.role is not None:
+        user.role = payload.role.upper()
+
+    if payload.remove_tenant:
+        user.tenant_id = None
+    elif payload.tenant_id is not None:
+        user.tenant_id = payload.tenant_id
+
+    if payload.password:
+        user.hashed_password = hash_password(payload.password)
+
+    if payload.is_active is not None:
+        user.is_active = payload.is_active
+
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 # ---------------------------------------------------------

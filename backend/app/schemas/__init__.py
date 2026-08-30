@@ -18,6 +18,16 @@ class UserCreate(BaseModel):
     tenant_id: UUID | None = None
 
 
+class UserUpdate(BaseModel):
+    full_name: str | None = None
+    email: str | None = None
+    role: str | None = None
+    tenant_id: UUID | None = None
+    remove_tenant: bool = False
+    password: str | None = None
+    is_active: bool | None = None
+
+
 class UserResponse(BaseModel):
     id: UUID
     tenant_id: UUID | None

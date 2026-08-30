@@ -77,7 +77,7 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "users">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "users" | "settings">("dashboard");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -86,12 +86,27 @@ function App() {
   const [account360, setAccount360] = useState<Account360 | null>(null);
   const [drawerTab, setDrawerTab] = useState<"overview" | "contact" | "ptp" | "plan" | "payments">("overview");
 
-  // New User Creation form for SuperAdmin
+  // New User Creation form for SuperAdmin / Admin
   const [newFullName, setNewFullName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState("ADMIN");
+  const [newRole, setNewRole] = useState("COLLECTOR");
   const [newTenantId, setNewTenantId] = useState("");
+
+  // Edit User Modal state
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editFullName, setEditFullName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editRole, setEditRole] = useState("");
+  const [editTenantId, setEditTenantId] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editIsActive, setEditIsActive] = useState(true);
+
+  // Self Settings state
+  const [settingsFullName, setSettingsFullName] = useState("");
+  const [settingsEmail, setSettingsEmail] = useState("");
+  const [settingsPassword, setSettingsPassword] = useState("");
+  const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
 
   const [currentUser, setCurrentUser] = useState<any>(() => {
     try {
@@ -182,7 +197,12 @@ function App() {
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setTenants(data);
-          setSelectedTenant(prev => prev || data[0].id);
+          setSelectedTenant(prev => {
+            if (currentUser?.role === "COLLECTOR" || (currentUser?.role === "ADMIN" && currentUser?.tenant_id)) {
+              return currentUser.tenant_id || data[0].id;
+            }
+            return prev || data[0].id;
+          });
         } else {
           setTenants([
             { id: "9199c540-11dc-4ce0-bc70-922fccf25274", name: "City of Johannesburg", code: "JHB" },
@@ -309,7 +329,7 @@ function App() {
           email: newEmail,
           password: newPassword,
           role: newRole,
-          tenant_id: newTenantId || null,
+          tenant_id: (currentUser?.role === "ADMIN" ? (currentUser.tenant_id || selectedTenant) : newTenantId) || null,
         }),
       });
       const data = await res.json();
@@ -324,6 +344,99 @@ function App() {
       refreshData();
     } catch (err: any) {
       alert("Could not reach backend server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditFullName(user.full_name || "");
+    setEditEmail(user.email || "");
+    setEditRole(user.role || "COLLECTOR");
+    setEditTenantId(user.tenant_id || "");
+    setEditPassword("");
+    setEditIsActive(user.is_active !== false);
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setLoading(true);
+    try {
+      const payload: any = {
+        full_name: editFullName,
+        email: editEmail,
+        role: editRole,
+        is_active: editIsActive,
+      };
+      if (editPassword.trim()) {
+        payload.password = editPassword;
+      }
+      if (editTenantId) {
+        payload.tenant_id = editTenantId;
+        payload.remove_tenant = false;
+      } else {
+        payload.remove_tenant = true;
+      }
+
+      const res = await fetch(`${API}/auth/users/${editingUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Error updating user: ${data.detail}`);
+        return;
+      }
+      alert(`User ${data.full_name} updated successfully!`);
+      setEditingUser(null);
+      refreshData();
+      if (currentUser?.id === data.id) {
+        setCurrentUser(data);
+        localStorage.setItem("cos_user_v2", JSON.stringify(data));
+      }
+    } catch (err: any) {
+      alert("Could not reach backend server: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    if (settingsPassword && settingsPassword !== settingsConfirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+    setLoading(true);
+    try {
+      const payload: any = {
+        full_name: settingsFullName || currentUser.full_name,
+        email: settingsEmail || currentUser.email,
+      };
+      if (settingsPassword.trim()) {
+        payload.password = settingsPassword;
+      }
+      const res = await fetch(`${API}/auth/users/${currentUser.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Error saving settings: ${data.detail}`);
+        return;
+      }
+      alert("Profile updated successfully!");
+      setCurrentUser(data);
+      localStorage.setItem("cos_user_v2", JSON.stringify(data));
+      setSettingsPassword("");
+      setSettingsConfirmPassword("");
+    } catch (err: any) {
+      alert("Could not update profile: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -749,6 +862,9 @@ function App() {
               <span className="nav-badge">{usersList.length}</span>
             </div>
           )}
+          <div className={`nav-item ${view === "settings" ? "active" : ""}`} onClick={() => { setView("settings"); setMobileMenuOpen(false); setSettingsFullName(currentUser?.full_name || ""); setSettingsEmail(currentUser?.email || ""); }}>
+            ⚙️ Account Settings
+          </div>
         </nav>
 
         {currentUser && (
@@ -793,6 +909,7 @@ function App() {
               {view === "accounts" && "Municipal Debt Book & Accounts"}
               {view === "imports" && "Bulk Data Import & Upsert Engine"}
               {view === "users" && "System User Management & Role-Based Access Control"}
+              {view === "settings" && "Account & Profile Settings"}
             </h2>
             <p>
               {view === "dashboard" && "Real-time debt recovery, cash collections, and portfolio status"}
@@ -800,6 +917,7 @@ function App() {
               {view === "accounts" && "Direct access to debtor records, contact details, and account 360° views"}
               {view === "imports" && "Upload CSV / XLSX files with automated field mapping and duplicate protection"}
               {view === "users" && "Provision new administrative and collector accounts and configure permissions"}
+              {view === "settings" && "Update your personal details, email address, and account password"}
             </p>
           </div>
 
@@ -1746,6 +1864,7 @@ function App() {
                       <th>Municipality Scope</th>
                       <th>Status</th>
                       <th>Created At</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1772,9 +1891,20 @@ function App() {
                             : "🌐 Global All Municipalities"}
                         </td>
                         <td>
-                          <span className="status-pill status-paying">Active</span>
+                          <span className={`status-pill ${u.is_active !== false ? "status-paying" : "status-broken"}`}>
+                            {u.is_active !== false ? "Active" : "Deactivated"}
+                          </span>
                         </td>
                         <td style={{ color: "#94a3b8" }}>{u.created_at?.split("T")[0]}</td>
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: "4px 10px", fontSize: "12px" }}
+                            onClick={() => openEditUser(u)}
+                          >
+                            ✏️ Edit
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -1814,12 +1944,24 @@ function App() {
                       </div>
                       <div className="mobile-stat">
                         <label>Account Status</label>
-                        <span style={{ color: "#34d399", fontWeight: 600 }}>Active</span>
+                        <span style={{ color: u.is_active !== false ? "#34d399" : "#fb7185", fontWeight: 600 }}>
+                          {u.is_active !== false ? "Active" : "Deactivated"}
+                        </span>
                       </div>
                       <div className="mobile-stat">
                         <label>Created On</label>
                         <span>{u.created_at?.split("T")[0]}</span>
                       </div>
+                    </div>
+
+                    <div style={{ marginTop: "12px", display: "flex", justifyContent: "flex-end" }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ width: "100%", justifyContent: "center" }}
+                        onClick={() => openEditUser(u)}
+                      >
+                        ✏️ Edit User Details
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1827,7 +1969,199 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* SETTINGS VIEW - Available to ALL users */}
+        {view === "settings" && currentUser && (
+          <div className="glass-panel" style={{ maxWidth: "800px" }}>
+            <div className="panel-header">
+              <div className="panel-title">
+                <h3>⚙️ Personal Account & Security Settings</h3>
+                <p>Manage your account credentials, display name, and password</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveSettings}>
+              <div className="info-grid" style={{ marginBottom: "20px" }}>
+                <div className="form-group">
+                  <label>Your Full Name</label>
+                  <input
+                    type="text"
+                    value={settingsFullName}
+                    onChange={e => setSettingsFullName(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Your Work Email Address</label>
+                  <input
+                    type="email"
+                    value={settingsEmail}
+                    onChange={e => setSettingsEmail(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ padding: "16px 20px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: "24px" }}>
+                <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", color: "#f8fafc" }}>Change Security Password</h4>
+                <p style={{ color: "#94a3b8", fontSize: "12.5px", margin: "0 0 16px 0" }}>
+                  Leave blank if you do not wish to change your current password.
+                </p>
+
+                <div className="info-grid">
+                  <div className="form-group">
+                    <label>New Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={settingsPassword}
+                      onChange={e => setSettingsPassword(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Confirm New Password</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={settingsConfirmPassword}
+                      onChange={e => setSettingsConfirmPassword(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: "12.5px", color: "#94a3b8" }}>
+                  Assigned Role: <strong style={{ color: "#38bdf8" }}>{currentUser.role}</strong> • Scope: <strong style={{ color: "#ffffff" }}>{currentUser.tenant_id ? tenants.find(t => t.id === currentUser.tenant_id)?.name ?? "Municipality User" : "Global SuperAdmin"}</strong>
+                </div>
+                <button type="submit" className="btn btn-primary" disabled={loading} style={{ padding: "10px 24px" }}>
+                  {loading ? "Saving Changes..." : "💾 Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
       </main>
+
+      {/* EDIT USER MODAL (ADMIN & SUPERADMIN) */}
+      {editingUser && (
+        <div className="modal-backdrop" onClick={() => setEditingUser(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "92%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>✏️ Edit User & Municipality Scope</h3>
+                <p>Modify user details, role permissions, and assigned municipality</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setEditingUser(null)}>✕</button>
+            </div>
+
+            <form onSubmit={handleUpdateUser}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <input
+                    type="text"
+                    value={editFullName}
+                    onChange={e => setEditFullName(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={e => setEditEmail(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Role</label>
+                  <select
+                    value={editRole}
+                    onChange={e => setEditRole(e.target.value)}
+                    className="form-select"
+                    style={{
+                      background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                      borderColor: "#3b82f6",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                    }}
+                    disabled={currentUser?.role === "ADMIN" && editingUser.role === "SUPERADMIN"}
+                  >
+                    <option value="SUPERADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>👑 SUPERADMIN</option>
+                    <option value="ADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>🏛️ ADMIN</option>
+                    <option value="COLLECTOR" style={{ background: "#0f172a", color: "#ffffff" }}>🎯 COLLECTOR</option>
+                    <option value="AUDITOR" style={{ background: "#0f172a", color: "#ffffff" }}>📑 AUDITOR</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Assigned Municipality (Scope)</label>
+                  <select
+                    value={editTenantId}
+                    onChange={e => setEditTenantId(e.target.value)}
+                    className="form-select"
+                    style={{
+                      background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                      borderColor: "#3b82f6",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <option value="" style={{ background: "#0f172a", color: "#ffffff" }}>🌐 Global All Municipalities (SuperAdmin)</option>
+                    {tenants.map(t => (
+                      <option key={t.id} value={t.id} style={{ background: "#0f172a", color: "#ffffff" }}>
+                        {t.name} ({t.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Reset Password (optional)</label>
+                <input
+                  type="password"
+                  placeholder="Leave blank to keep existing password"
+                  value={editPassword}
+                  onChange={e => setEditPassword(e.target.value)}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "24px" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "10px", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={editIsActive}
+                    onChange={e => setEditIsActive(e.target.checked)}
+                    style={{ width: "18px", height: "18px" }}
+                  />
+                  <span>User Account Active (Uncheck to suspend/deactivate login access)</span>
+                </label>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingUser(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Saving..." : "💾 Update User"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* COLLECTOR 360 WORKBENCH DRAWER */}
       {selectedAccountId && account360 && (
