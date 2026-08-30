@@ -1240,9 +1240,15 @@ function App() {
                             <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
                             <td><strong style={{ color: "#38bdf8", fontSize: "12px" }}>{item.next_action}</strong></td>
                             <td>
-                              <button className="btn btn-primary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
-                                Work Case
-                              </button>
+                              {currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR" ? (
+                                <button className="btn btn-secondary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
+                                  👁️ View Case
+                                </button>
+                              ) : (
+                                <button className="btn btn-primary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
+                                  🎯 Work Case
+                                </button>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -1291,9 +1297,15 @@ function App() {
                         </div>
 
                         <div className="mobile-card-actions">
-                          <button className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
-                            🎯 Work Debtor Case 360°
-                          </button>
+                          {currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR" ? (
+                            <button className="btn btn-secondary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
+                              👁️ View Case 360° (Read-Only)
+                            </button>
+                          ) : (
+                            <button className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
+                              🎯 Work Debtor Case 360°
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2339,12 +2351,22 @@ function App() {
 
             {/* Workbench Actions Tabs */}
             <div className="tabs">
-              <div className={`tab ${drawerTab === "overview" ? "active" : ""}`} onClick={() => setDrawerTab("overview")}>Timeline</div>
-              <div className={`tab ${drawerTab === "contact" ? "active" : ""}`} onClick={() => setDrawerTab("contact")}>Log Contact</div>
-              <div className={`tab ${drawerTab === "ptp" ? "active" : ""}`} onClick={() => setDrawerTab("ptp")}>Create PTP</div>
-              <div className={`tab ${drawerTab === "plan" ? "active" : ""}`} onClick={() => setDrawerTab("plan")}>Payment Plan</div>
+              <div className={`tab ${drawerTab === "overview" ? "active" : ""}`} onClick={() => setDrawerTab("overview")}>Timeline & Audit</div>
+              {currentUser?.role !== "ADMIN" && currentUser?.role !== "AUDITOR" && (
+                <>
+                  <div className={`tab ${drawerTab === "contact" ? "active" : ""}`} onClick={() => setDrawerTab("contact")}>Log Contact</div>
+                  <div className={`tab ${drawerTab === "ptp" ? "active" : ""}`} onClick={() => setDrawerTab("ptp")}>Create PTP</div>
+                  <div className={`tab ${drawerTab === "plan" ? "active" : ""}`} onClick={() => setDrawerTab("plan")}>Payment Plan</div>
+                </>
+              )}
               <div className={`tab ${drawerTab === "payments" ? "active" : ""}`} onClick={() => setDrawerTab("payments")}>Payments ({account360.payments.length})</div>
             </div>
+
+            {(currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR") && (
+              <div style={{ margin: "0 0 16px 0", padding: "10px 14px", background: "rgba(56, 189, 248, 0.1)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", color: "#38bdf8", fontSize: "12.5px" }}>
+                🔒 <strong>{currentUser.role} View-Only Mode:</strong> You have oversight access to view all case details, promises, and payment logs without performing collector case mutations.
+              </div>
+            )}
 
             {drawerTab === "overview" && (
               <div className="drawer-section">
@@ -2450,24 +2472,28 @@ function App() {
 
             {drawerTab === "payments" && (
               <div className="drawer-section">
-                <div className="drawer-section-title">💵 Capture & Post Reconciled Payment</div>
-                <div className="info-grid" style={{ marginBottom: "16px" }}>
-                  <div className="form-group">
-                    <label>Payment Amount (ZAR)</label>
-                    <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="form-input" />
-                  </div>
-                  <div className="form-group">
-                    <label>External Reference / Bank Ref</label>
-                    <input type="text" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} className="form-input" />
-                  </div>
-                </div>
-                <div className="form-group" style={{ marginBottom: "16px" }}>
-                  <label>Payment Date</label>
-                  <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className="form-input" />
-                </div>
-                <button className="btn btn-success" onClick={captureAndReconcilePayment} disabled={loading || !paymentAmount} style={{ marginBottom: "24px" }}>
-                  ✓ Post & Reconcile Payment (Reduce Arrears)
-                </button>
+                {currentUser?.role !== "ADMIN" && currentUser?.role !== "AUDITOR" && (
+                  <>
+                    <div className="drawer-section-title">💵 Capture & Post Reconciled Payment</div>
+                    <div className="info-grid" style={{ marginBottom: "16px" }}>
+                      <div className="form-group">
+                        <label>Payment Amount (ZAR)</label>
+                        <input type="number" value={paymentAmount} onChange={e => setPaymentAmount(e.target.value)} className="form-input" />
+                      </div>
+                      <div className="form-group">
+                        <label>External Reference / Bank Ref</label>
+                        <input type="text" value={paymentRef} onChange={e => setPaymentRef(e.target.value)} className="form-input" />
+                      </div>
+                    </div>
+                    <div className="form-group" style={{ marginBottom: "16px" }}>
+                      <label>Payment Date</label>
+                      <input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} className="form-input" />
+                    </div>
+                    <button className="btn btn-success" onClick={captureAndReconcilePayment} disabled={loading || !paymentAmount} style={{ marginBottom: "24px" }}>
+                      ✓ Post & Reconcile Payment (Reduce Arrears)
+                    </button>
+                  </>
+                )}
 
                 <div className="drawer-section-title">Account Payment History ({account360.payments.length})</div>
                 {account360.payments.length === 0 ? (
