@@ -753,8 +753,8 @@ function App() {
 
         {currentUser && (
           <div style={{ marginTop: "auto", padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", border: "1px solid var(--border-subtle)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-              <div style={{ fontSize: "12.5px", fontWeight: 600, color: "white" }}>{currentUser.full_name}</div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: "13px", fontWeight: 600, color: "white" }}>{currentUser.full_name}</div>
               <button
                 className="btn btn-secondary btn-sm"
                 title="Sign Out"
@@ -779,7 +779,6 @@ function App() {
                 </svg>
               </button>
             </div>
-            <div style={{ fontSize: "11px", color: "var(--accent-sky)" }}>{currentUser.email}</div>
           </div>
         )}
       </aside>
