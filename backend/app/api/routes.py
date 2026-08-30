@@ -417,7 +417,7 @@ def workflow_states():
         "CONTACT_ATTEMPTED",
         "ENGAGED",
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "PAYING",
         "BROKEN_PROMISE",
         "ESCALATED",
@@ -839,7 +839,7 @@ CASE_TRANSITIONS = {
     },
     "ENGAGED": {
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "DISPUTED",
         "ESCALATED",
     },
@@ -848,7 +848,7 @@ CASE_TRANSITIONS = {
         "BROKEN_PROMISE",
         "ESCALATED",
     },
-    "PAYMENT_ARRANGEMENT": {
+    "ARRANGEMENT": {
         "PAYING",
         "BROKEN_PROMISE",
         "ESCALATED",
@@ -860,12 +860,12 @@ CASE_TRANSITIONS = {
     },
     "BROKEN_PROMISE": {
         "ENGAGED",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
     },
     "ESCALATED": {
         "ENGAGED",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "DISPUTED",
         "CLOSED",
     },
@@ -1403,7 +1403,7 @@ def reconcile_payment(
             case.status = "PAYING"
         elif payment_plan_updated:
             case.status = (
-                "PAYMENT_ARRANGEMENT"
+                "ARRANGEMENT"
             )
         else:
             case.status = "PAYING"
@@ -2449,7 +2449,7 @@ CASE_STATES = [
     "CONTACT_ATTEMPTED",
     "ENGAGED",
     "PROMISE_TO_PAY",
-    "PAYMENT_ARRANGEMENT",
+    "ARRANGEMENT",
     "PAYING",
     "BROKEN_PROMISE",
     "ESCALATED",
@@ -2473,13 +2473,13 @@ CASE_TRANSITIONS = {
         "CONTACT_ATTEMPTED",
         "ENGAGED",
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
         "DISPUTED",
     },
     "ENGAGED": {
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "PAYING",
         "DISPUTED",
         "ESCALATED",
@@ -2487,10 +2487,10 @@ CASE_TRANSITIONS = {
     "PROMISE_TO_PAY": {
         "PAYING",
         "BROKEN_PROMISE",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
     },
-    "PAYMENT_ARRANGEMENT": {
+    "ARRANGEMENT": {
         "PAYING",
         "BROKEN_PROMISE",
         "ESCALATED",
@@ -2504,12 +2504,12 @@ CASE_TRANSITIONS = {
     "BROKEN_PROMISE": {
         "CONTACT_ATTEMPTED",
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
     },
     "ESCALATED": {
         "CONTACT_ATTEMPTED",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "PAID",
         "CLOSED",
     },
@@ -2996,7 +2996,7 @@ def create_payment_plan(
 
     db.add(plan)
 
-    case.status = "PAYMENT_ARRANGEMENT"
+    case.status = "ARRANGEMENT"
 
     audit = AuditEvent(
         id=uuid4(),

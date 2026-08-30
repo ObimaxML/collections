@@ -19,13 +19,13 @@ ALLOWED_TRANSITIONS = {
     "CONTACT_ATTEMPTED": {
         "ENGAGED",
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
         "DISPUTED",
     },
     "ENGAGED": {
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
         "DISPUTED",
     },
@@ -35,7 +35,7 @@ ALLOWED_TRANSITIONS = {
         "ESCALATED",
         "DISPUTED",
     },
-    "PAYMENT_ARRANGEMENT": {
+    "ARRANGEMENT": {
         "PAYING",
         "BROKEN_PROMISE",
         "ESCALATED",
@@ -50,14 +50,14 @@ ALLOWED_TRANSITIONS = {
         "CONTACT_ATTEMPTED",
         "ENGAGED",
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "ESCALATED",
         "DISPUTED",
     },
     "ESCALATED": {
         "ENGAGED",
         "PROMISE_TO_PAY",
-        "PAYMENT_ARRANGEMENT",
+        "ARRANGEMENT",
         "DISPUTED",
         "PAID",
         "CLOSED",

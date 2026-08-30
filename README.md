@@ -63,7 +63,7 @@ A multi-tenant SaaS application purpose-built for South African municipal debt c
 
 ### Workflow 4: Promise-to-Pay (PTP) & Payment Arrangements
 1. **Promise Creation**: Collector records customer commitment date & amount (`POST /api/cases/{case_id}/promises`). Case transitions to `PROMISE_TO_PAY`.
-2. **Payment Arrangements**: Structured deposit and installment agreement created (`POST /api/payment-plans`). Case transitions to `PAYMENT_ARRANGEMENT`.
+2. **Payment Arrangements**: Structured deposit and installment agreement created (`POST /api/payment-plans`). Case transitions to `ARRANGEMENT`.
 
 ---
 
@@ -118,7 +118,7 @@ A multi-tenant SaaS application purpose-built for South African municipal debt c
 - `GET /api/work-queue`: Prioritized queue of collection cases across all accounts.
 - `GET /api/work-queue/my-queue`: Collector-specific prioritized workload.
 - `GET /api/cases/{case_id}`: 360-degree case overview (Account, Customer, Property, Activities, Contact Attempts, Promises).
-- `POST /api/cases/{case_id}/transition`: State machine transition (`NEW`, `CONTACT_ATTEMPTED`, `ENGAGED`, `PROMISE_TO_PAY`, `PAYMENT_ARRANGEMENT`, `PAYING`, `PAID`, `BROKEN_PROMISE`, `CLOSED`).
+- `POST /api/cases/{case_id}/transition`: State machine transition (`NEW`, `CONTACT_ATTEMPTED`, `ENGAGED`, `PROMISE_TO_PAY`, `ARRANGEMENT`, `PAYING`, `PAID`, `BROKEN_PROMISE`, `CLOSED`).
 - `POST /api/cases/{case_id}/assign`: Assign/reassign collector ownership to a case.
 
 ### 3. Collector Activities & Contact Attempts

@@ -158,7 +158,7 @@ def determine_next_action(case: CollectionCase, promise=None) -> str:
         return "SECURE_PROMISE"
     if case.status == "PROMISE_TO_PAY":
         return "MONITOR_PROMISE"
-    if case.status == "PAYMENT_ARRANGEMENT":
+    if case.status == "ARRANGEMENT":
         return "MONITOR_PAYMENT_PLAN"
     if case.status == "PAYING":
         return "MONITOR_PAYMENTS"

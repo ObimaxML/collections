@@ -89,7 +89,7 @@ def create_payment_plan(
 
     previous_status = case.status
 
-    case.status = "PAYMENT_ARRANGEMENT"
+    case.status = "ARRANGEMENT"
 
     audit_event = AuditEvent(
         id=uuid.uuid4(),
