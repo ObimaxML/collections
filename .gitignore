@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+node_modules/
+dist/
+.vscode/
+.idea/
+.pytest_cache/
+coverage/
+*.log

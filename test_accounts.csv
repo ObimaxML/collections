@@ -1,0 +1,4 @@
+account_number,account_status,balance,arrears,days_in_arrears,first_name,last_name,id_number,mobile,property_reference,address,last_payment_date,last_payment_amount
+ACC-1001,ACTIVE,15000,5000,90,John,Smith,8001015009087,0821234567,PROP-1001,10 Main Street Soweto,2026-08-15,500
+ACC-1002,ACTIVE,25000,12000,180,Jane,Molefe,7902025009088,0831234567,PROP-1002,20 Main Street Soweto,2026-08-10,750
+ACC-1003,ACTIVE,8000,2500,60,Peter,Ndlovu,8503035009089,0841234567,PROP-1003,30 Main Street Soweto,2026-08-20,300

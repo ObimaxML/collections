@@ -1,0 +1,6 @@
+account_number,first_name,last_name,id_number,mobile,email,property_reference,address,balance,arrears,days_in_arrears,last_payment_date,last_payment_amount,account_status
+MUN001,Thabo,Mokoena,8001015009087,0825551001,thabo@example.test,P1001,12 Example Street Soweto,12500,9500,90,2026-07-15,500,ACTIVE
+MUN002,Naledi,Dlamini,7905050123088,0825551002,naledi@example.test,P1002,18 Example Street Soweto,42000,38000,180,2026-05-20,1000,ACTIVE
+MUN003,Peter,Naidoo,7502025011089,0825551003,peter@example.test,P1003,44 Example Avenue,8750,6500,60,2026-08-01,750,ACTIVE
+MUN004,Nomsa,Mthembu,8507070345082,0825551004,nomsa@example.test,P1004,77 Example Road,185000,170000,365,2025-08-15,5000,ACTIVE
+MUN005,David,Jacobs,7209095012081,0825551005,david@example.test,P1005,91 Example Road,2300,1200,35,2026-08-10,300,ACTIVE
