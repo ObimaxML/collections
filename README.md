@@ -49,6 +49,29 @@ CollectionsOS is architected to support two distinct commercial and operating de
    - Municipal collectors, team leads, and admins use the workbench, work queues, PTP tracking, and column ingestion engine directly.
    - **Commercial Structure**: Fixed monthly subscription licensing fee based on tier (`STARTER`, `PROFESSIONAL`, `ENTERPRISE`).
 
+#### 💎 SaaS Tier Pricing & Feature Roadmap Matrix
+
+| Feature / Dimension | **Starter** | **Professional** | **Enterprise** |
+| :--- | :--- | :--- | :--- |
+| **Monthly Price** | **R18,000 – R30,000** / mo | **R55,000 – R95,000** / mo | **R140,000 – R250,000+** / mo |
+| **Target Customer** | Small local municipality / single-town debt book | Medium municipality or large local | Metro municipalities, multi-client collection agencies |
+| **Municipal Accounts**| Up to ~25,000 | Up to ~100,000 | **Unlimited** |
+| **Collector Users** | 5 included (R1,500/extra user) | 15 included (R1,200/extra user) | Unlimited / volume pricing |
+| **Core Collections (Phase 1)** | ✅ Included — debt book import, case state machine, work queue & priority scoring, PTP & payment plans, ledger, reconciliation engine, dashboard, audit trail | ✅ Included | ✅ Included |
+| **Communications (Phase 2)** | Manual contact logging only | SMS, WhatsApp & email channels, communication templates, scheduled workflows, agent call logging | ✅ Included (Full Omnichannel Suite) |
+| **Debtor Self-Service (Phase 2)** | — | Debtor portal, statement generation, payment gateway (PayFast/Ozow/Peach) | ✅ Included + custom branding |
+| **Security & Access (Phase 2)** | JWT auth & RBAC | JWT auth & RBAC | ✅ Included + SSO-ready |
+| **Enterprise Tooling (Phase 3)** | — | — | Object storage, third-party/billing system API integrations, policy configuration, BI dashboards, SLA monitoring, compliance tooling, observability, DR & automated backups |
+| **Intelligence (Phase 4)** | — | Optional add-on (R15,000–R25,000/mo) | Included — contactability scoring, payment propensity, next-best-action, AI assistant, recovery forecasting |
+| **Hosting Infrastructure** | Hetzner JHB (shared infra) | Hetzner JHB dedicated node | AWS Cape Town, Multi-AZ, SLA-backed |
+| **Support & SLA** | Email, business hours | Priority support, named CSM | 24/7 SLA, dedicated account manager, quarterly reviews |
+| **Onboarding & Migration** | R40,000 – R75,000 (once-off) | R100,000 – R180,000 (once-off) | R200,000 – R350,000 (includes billing-system integration & historical data migration) |
+
+> 💡 **Commercial Notes & Margin Protection**:
+> - **Message Metering**: SMS (~R0.25–R0.50) and WhatsApp Business API conversation fees are passed through at cost plus a margin or sold as prepaid bundles to preserve SaaS margins.
+> - **Contract Prepayment**: 10–15% discount for annual prepayment with CPI escalation. Contingency hybrid (40–50% discounted base + 1–3% recovery fee) available for price-sensitive councils.
+> - **ARR Payback**: 10 Professional clients @ R75k/mo = **R9,000,000 ARR**, achieving build payback within Year 1.
+
 ### 🛡️ South African POPIA Compliance Framework (Protection of Personal Information Act)
 
 CollectionsOS adheres to the 8 Conditions for Lawful Processing under the South African **Protection of Personal Information Act (POPIA No. 4 of 2013)**:

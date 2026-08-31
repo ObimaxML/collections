@@ -86,7 +86,8 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "users" | "settings">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "users" | "saas_tiers" | "settings">("dashboard");
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
@@ -252,6 +253,21 @@ function App() {
 
   useEffect(() => {
     fetchTenants();
+
+    // Check if opened as standalone edit window: ?edit_tenant_id=XYZ
+    const params = new URLSearchParams(window.location.search);
+    const editTenantId = params.get("edit_tenant_id");
+    if (editTenantId) {
+      fetch(`${API}/tenants`)
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const target = data.find(t => t.id === editTenantId);
+            if (target) setEditingTenant(target);
+          }
+        })
+        .catch(console.error);
+    }
   }, []);
 
   const handleCreateTenant = async (e: React.FormEvent) => {
@@ -990,6 +1006,11 @@ function App() {
             <div className={`nav-item ${view === "users" ? "active" : ""}`} onClick={() => { setView("users"); setMobileMenuOpen(false); }}>
               👥 User Management & Roles
               <span className="nav-badge">{usersList.length}</span>
+            </div>
+          )}
+          {currentUser?.role === "SUPERADMIN" && (
+            <div className={`nav-item ${view === "saas_tiers" ? "active" : ""}`} onClick={() => { setView("saas_tiers"); setMobileMenuOpen(false); }}>
+              💎 SaaS Pricing & Tiers
             </div>
           )}
           <div className={`nav-item ${view === "settings" ? "active" : ""}`} onClick={() => { setView("settings"); setMobileMenuOpen(false); setSettingsFullName(currentUser?.full_name || ""); setSettingsEmail(currentUser?.email || ""); }}>
@@ -1992,11 +2013,19 @@ function App() {
 
               {/* Municipalities Portfolio Management Table */}
               <div className="glass-panel" style={{ marginBottom: "28px" }}>
-                <div className="panel-header">
+                <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div className="panel-title">
                     <h3>🏛️ Municipal Clients & SaaS Portfolios ({tenants.length})</h3>
                     <p>Manage subscription tiers, engagement models (Internal SaaS vs Molmos Managed), and billing terms</p>
                   </div>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))", borderColor: "#a855f7", color: "#e9d5ff", fontWeight: 600 }}
+                    onClick={() => setView("saas_tiers")}
+                  >
+                    💎 View SaaS Tier Matrix & Pricing
+                  </button>
                 </div>
 
                 <div className="table-container">
@@ -2049,9 +2078,15 @@ function App() {
                             <button
                               className="btn btn-secondary btn-sm"
                               style={{ padding: "4px 10px", fontSize: "12px" }}
-                              onClick={() => setEditingTenant(t)}
+                              onClick={() => {
+                                const editUrl = `${window.location.origin}${window.location.pathname}?edit_tenant_id=${t.id}`;
+                                const win = window.open(editUrl, `EditTenant_${t.id}`, "width=700,height=750,left=200,top=100,resizable=yes,scrollbars=yes");
+                                if (!win || win.closed || typeof win.closed === "undefined") {
+                                  setEditingTenant(t);
+                                }
+                              }}
                             >
-                              ⚙️ Edit Terms
+                              ⚙️ Edit Terms ↗
                             </button>
                           </td>
                         </tr>
@@ -2327,6 +2362,236 @@ function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* SAAS PRICING & TIER STRUCTURE VIEW (SUPERADMIN ONLY) */}
+        {view === "saas_tiers" && currentUser?.role === "SUPERADMIN" && (
+          <div className="view-content" style={{ animation: "fadeIn 0.2s ease" }}>
+            <div className="glass-panel" style={{ marginBottom: "24px" }}>
+              <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px" }}>
+                <div className="panel-title">
+                  <h2 style={{ fontSize: "22px", margin: "0 0 6px 0", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
+                    💎 SaaS Commercial Tiers & Phased Feature Matrix
+                  </h2>
+                  <p style={{ margin: 0, color: "#94a3b8", fontSize: "13.5px" }}>
+                    Recommended tier structure mapped cleanly onto CollectionsOS phases and South African municipal market benchmarks.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setView("users")}
+                  style={{ fontSize: "12px" }}
+                >
+                  ← Back to Portfolios
+                </button>
+              </div>
+
+              {/* Strategic Summary Banner */}
+              <div style={{ padding: "14px 18px", borderRadius: "8px", background: "rgba(99, 102, 241, 0.08)", border: "1px solid rgba(99, 102, 241, 0.2)", marginBottom: "24px", fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
+                <strong style={{ color: "#818cf8" }}>💡 Strategic Overview:</strong> The tier boundaries follow the platform's build phases deliberately. <strong>Starter</strong> sells Phase 1 core operations immediately to generate near-term revenue. <strong>Professional</strong> provides automation & debtor portals for mid-sized municipalities. <strong>Enterprise</strong> unlocks billing integrations, SLAs, DR, and compliance tooling for Metros and Agencies.
+              </div>
+
+              {/* Tier Comparison Cards Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px", marginBottom: "28px" }}>
+                
+                {/* Starter Card */}
+                <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(56, 189, 248, 0.3)", borderRadius: "12px", padding: "20px", position: "relative", display: "flex", flexDirection: "column" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#38bdf8", padding: "3px 8px", background: "rgba(56, 189, 248, 0.15)", borderRadius: "4px" }}>
+                      STARTER TIER
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#94a3b8" }}>Phase 1 Ready</span>
+                  </div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#f8fafc", marginBottom: "4px" }}>
+                    R 18,000 – R 30,000
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#94a3b8" }}> / month</span>
+                  </div>
+                  <p style={{ fontSize: "12.5px", color: "#94a3b8", marginBottom: "16px" }}>Small local municipality / single-town debt book</p>
+                  
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "14px", marginTop: "auto", fontSize: "12.5px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>📁 <strong>Accounts:</strong> Up to ~25,000</div>
+                    <div>👥 <strong>Collectors:</strong> 5 included (R1,500/extra user)</div>
+                    <div>🚀 <strong>Onboarding:</strong> R40,000 – R75,000 (once-off)</div>
+                    <div>🌐 <strong>Infra:</strong> Hetzner JHB (Shared Infra)</div>
+                    <div>🎧 <strong>Support:</strong> Email, standard business hours</div>
+                  </div>
+                </div>
+
+                {/* Professional Card */}
+                <div style={{ background: "linear-gradient(180deg, rgba(99, 102, 241, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%)", border: "1px solid rgba(129, 140, 248, 0.5)", borderRadius: "12px", padding: "20px", position: "relative", display: "flex", flexDirection: "column", boxShadow: "0 8px 24px rgba(99, 102, 241, 0.15)" }}>
+                  <div style={{ position: "absolute", top: "-10px", right: "20px", background: "linear-gradient(135deg, #6366f1, #8b5cf6)", color: "#ffffff", padding: "2px 10px", borderRadius: "12px", fontSize: "11px", fontWeight: 700, letterSpacing: "0.5px" }}>
+                    MOST POPULAR
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#a5b4fc", padding: "3px 8px", background: "rgba(99, 102, 241, 0.25)", borderRadius: "4px" }}>
+                      PROFESSIONAL TIER
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#a5b4fc" }}>Core Margin Driver</span>
+                  </div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#f8fafc", marginBottom: "4px" }}>
+                    R 55,000 – R 95,000
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#94a3b8" }}> / month</span>
+                  </div>
+                  <p style={{ fontSize: "12.5px", color: "#94a3b8", marginBottom: "16px" }}>Medium municipality or large local district</p>
+                  
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "14px", marginTop: "auto", fontSize: "12.5px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>📁 <strong>Accounts:</strong> Up to ~100,000</div>
+                    <div>👥 <strong>Collectors:</strong> 15 included (R1,200/extra user)</div>
+                    <div>🚀 <strong>Onboarding:</strong> R100,000 – R180,000 (once-off)</div>
+                    <div>🌐 <strong>Infra:</strong> Hetzner JHB (Dedicated)</div>
+                    <div>🎧 <strong>Support:</strong> Priority support + named CSM</div>
+                  </div>
+                </div>
+
+                {/* Enterprise Card */}
+                <div style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(234, 179, 8, 0.4)", borderRadius: "12px", padding: "20px", position: "relative", display: "flex", flexDirection: "column" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#facc15", padding: "3px 8px", background: "rgba(234, 179, 8, 0.15)", borderRadius: "4px" }}>
+                      ENTERPRISE TIER
+                    </span>
+                    <span style={{ fontSize: "11px", color: "#fde047" }}>Metro & Agency Scale</span>
+                  </div>
+                  <div style={{ fontSize: "24px", fontWeight: 800, color: "#f8fafc", marginBottom: "4px" }}>
+                    R 140,000 – R 250,000+
+                    <span style={{ fontSize: "13px", fontWeight: 500, color: "#94a3b8" }}> / month</span>
+                  </div>
+                  <p style={{ fontSize: "12.5px", color: "#94a3b8", marginBottom: "16px" }}>Metro municipalities, multi-client debt agencies</p>
+                  
+                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "14px", marginTop: "auto", fontSize: "12.5px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>📁 <strong>Accounts:</strong> Unlimited Volume</div>
+                    <div>👥 <strong>Collectors:</strong> Unlimited / Volume Pricing</div>
+                    <div>🚀 <strong>Onboarding:</strong> R200,000 – R350,000+ (includes billing integration)</div>
+                    <div>🌐 <strong>Infra:</strong> AWS Cape Town (Multi-AZ, SLA-backed)</div>
+                    <div>🎧 <strong>Support:</strong> 24/7 SLA + Dedicated Account Mgr</div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Master Feature & Roadmap Matrix Table */}
+              <h3 style={{ fontSize: "17px", color: "#f8fafc", marginBottom: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+                📊 Master Feature & Phased Capability Breakdown
+              </h3>
+              <div className="table-container" style={{ marginBottom: "28px" }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ minWidth: "220px" }}>Capability Dimension</th>
+                      <th style={{ minWidth: "200px" }}>Starter Tier</th>
+                      <th style={{ minWidth: "220px" }}>Professional Tier</th>
+                      <th style={{ minWidth: "240px" }}>Enterprise Tier</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Monthly Price</strong></td>
+                      <td><span style={{ color: "#38bdf8", fontWeight: 700 }}>R18,000 – R30,000</span></td>
+                      <td><span style={{ color: "#818cf8", fontWeight: 700 }}>R55,000 – R95,000</span></td>
+                      <td><span style={{ color: "#facc15", fontWeight: 700 }}>R140,000 – R250,000+</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Target Customer</strong></td>
+                      <td>Small local municipality / single-town debt book</td>
+                      <td>Medium municipality or large local district</td>
+                      <td>Metro municipalities, multi-client debt collection agencies</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Municipal Accounts</strong></td>
+                      <td>Up to ~25,000 accounts</td>
+                      <td>Up to ~100,000 accounts</td>
+                      <td><span className="status-pill status-paying">Unlimited</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Collector Users</strong></td>
+                      <td>5 included (R1,500 / extra user)</td>
+                      <td>15 included (R1,200 / extra user)</td>
+                      <td><span className="status-pill status-paying">Unlimited / Volume</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Core Collections (Phase 1)</strong></td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> — Debt book import, case state machine, work queue & priority scoring, PTP & payment plans, ledger, reconciliation engine, dashboard, audit trail</td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> (All Core Features)</td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> (All Core Features)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Communications (Phase 2)</strong></td>
+                      <td><span style={{ color: "#94a3b8" }}>Manual contact logging only</span></td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> — SMS, WhatsApp & Email channels, templates, scheduled workflows, agent call logging</td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> (Full Omnichannel Suite)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Debtor Self-Service (Phase 2)</strong></td>
+                      <td><span style={{ color: "#64748b" }}>—</span></td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> — Debtor portal, statement generation, payment gateways (PayFast, Ozow, Peach Payments)</td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> + Custom White-Label Municipal Branding</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Security & Access (Phase 2)</strong></td>
+                      <td>JWT Auth & Role-Based Access Control (RBAC)</td>
+                      <td>JWT Auth & Role-Based Access Control (RBAC)</td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> + SSO / Active Directory Integration</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Enterprise Tooling (Phase 3)</strong></td>
+                      <td><span style={{ color: "#64748b" }}>—</span></td>
+                      <td><span style={{ color: "#64748b" }}>—</span></td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> — S3 Object storage, billing system API integration, policy configuration, BI dashboards, SLA monitoring, compliance tooling, observability, DR & automated backups</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Intelligence & AI (Phase 4)</strong></td>
+                      <td><span style={{ color: "#64748b" }}>—</span></td>
+                      <td><span style={{ color: "#fbbf24" }}>Optional Add-on</span> (R15,000 – R25,000/mo)</td>
+                      <td><span style={{ color: "#34d399", fontWeight: 600 }}>✅ Included</span> — Contactability scoring, payment propensity, next-best-action, AI assistant, recovery forecasting</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Hosting Infrastructure</strong></td>
+                      <td>Hetzner JHB (Shared Infra)</td>
+                      <td>Hetzner JHB Dedicated Node</td>
+                      <td>AWS Cape Town (Multi-AZ, SLA-Backed)</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Support & SLA</strong></td>
+                      <td>Email, standard business hours</td>
+                      <td>Priority support, named CSM</td>
+                      <td>24/7 SLA, dedicated account manager, quarterly reviews</td>
+                    </tr>
+                    <tr>
+                      <td><strong>Onboarding & Migration</strong></td>
+                      <td>R40,000 – R75,000 (once-off)</td>
+                      <td>R100,000 – R180,000 (once-off)</td>
+                      <td>R200,000 – R350,000+ (includes billing-system integration & historical data migration)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Commercial Notes & Operational Strategy */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+                <div style={{ padding: "16px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <h4 style={{ margin: "0 0 8px 0", color: "#38bdf8", fontSize: "14px" }}>📱 Usage & Message Pass-Through</h4>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8", lineHeight: "1.5" }}>
+                    Meter message costs separately: SMS (~R0.25–R0.50 each) and WhatsApp Business API conversation fees should be passed through at cost plus a small margin or sold as prepaid bundles to protect software subscription margins.
+                  </p>
+                </div>
+
+                <div style={{ padding: "16px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <h4 style={{ margin: "0 0 8px 0", color: "#a855f7", fontSize: "14px" }}>📑 Municipal Contract Mechanics</h4>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8", lineHeight: "1.5" }}>
+                    Offer 10–15% discount for annual prepayment. For price-sensitive councils, utilize the contingency hybrid: a 40–50% reduced base fee plus 1–3% recovery commission to clear procurement thresholds easily.
+                  </p>
+                </div>
+
+                <div style={{ padding: "16px", borderRadius: "8px", background: "rgba(255, 255, 255, 0.02)", border: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <h4 style={{ margin: "0 0 8px 0", color: "#34d399", fontSize: "14px" }}>📈 ARR & Payback Economics</h4>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8", lineHeight: "1.5" }}>
+                    Ten Professional-tier municipal clients at ~R75,000/month generates R9,000,000 ARR, recovering the full build investment within the first operating year prior to onboarding fees.
+                  </p>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
