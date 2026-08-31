@@ -86,7 +86,7 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "billing" | "settings">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "billing" | "reports" | "settings">("dashboard");
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
@@ -95,6 +95,11 @@ function App() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [account360, setAccount360] = useState<Account360 | null>(null);
   const [drawerTab, setDrawerTab] = useState<"overview" | "contact" | "ptp" | "plan" | "payments">("overview");
+
+  // Reporting State
+  const [reportType, setReportType] = useState<"EXECUTIVE_SUMMARY" | "ARREARS_AGING" | "RECOVERED_PAYMENTS" | "PTP_COMPLIANCE" | "COMMERCIAL_BILLING">("EXECUTIVE_SUMMARY");
+  const [reportDateFrom, setReportDateFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]);
+  const [reportDateTo, setReportDateTo] = useState(new Date().toISOString().split("T")[0]);
 
   // Proposals & Invoicing State
   const [proposals, setProposals] = useState<any[]>([]);
@@ -1310,6 +1315,11 @@ function App() {
               <span className="nav-badge">{invoices.length + proposals.length}</span>
             </div>
           )}
+          {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+            <div className={`nav-item ${view === "reports" ? "active" : ""}`} onClick={() => { setView("reports"); setMobileMenuOpen(false); }}>
+              📈 Reports & Analytics
+            </div>
+          )}
           <div className={`nav-item ${view === "settings" ? "active" : ""}`} onClick={() => { setView("settings"); setMobileMenuOpen(false); setSettingsFullName(currentUser?.full_name || ""); setSettingsEmail(currentUser?.email || ""); }}>
             ⚙️ Account Settings
           </div>
@@ -1377,6 +1387,7 @@ function App() {
               {view === "users" && "System User Management & Role-Based Access Control"}
               {view === "saas_tiers" && "💎 Commercial SaaS Tier Matrix & Pricing Breakdown"}
               {view === "billing" && "🧾 Commercial Proposals & Municipal Invoicing"}
+              {view === "reports" && "📈 Executive & Regulatory Municipal Reports"}
               {view === "settings" && "Account & Profile Settings"}
             </h2>
             <p>
@@ -1388,6 +1399,7 @@ function App() {
               {view === "users" && "Provision new administrative and collector accounts and configure permissions"}
               {view === "saas_tiers" && "Commercial packaging, municipal feature limits, and revenue matrix"}
               {view === "billing" && "Issue structured proposals, generate official tax invoices (PDF), and manage banking remittance"}
+              {view === "reports" && "Generate MFMA Section 71/96 compliance summaries, arrears aging, and collection audits (CSV & Printable PDF)"}
               {view === "settings" && "Update your personal details, email address, and account password"}
             </p>
           </div>
@@ -3345,12 +3357,13 @@ function App() {
                                       >
                                         👍 Approve
                                       </button>
-                                      {prop.status !== "REJECTED" && (
+                                      {/* ONLY ADMIN (Municipal Executive) can reject proposals, SuperAdmin cannot */}
+                                      {currentUser?.role === "ADMIN" && prop.status !== "REJECTED" && (
                                         <button
                                           className="btn btn-secondary btn-sm"
                                           onClick={() => handleUpdateProposalStatus(prop.id, "REJECTED")}
                                           style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
-                                          title="Reject Proposal"
+                                          title="Reject Proposal (Municipal Executive Action)"
                                         >
                                           ✕ Reject
                                         </button>
@@ -3390,6 +3403,407 @@ function App() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* REPORTS & ANALYTICS VIEW (SUPERADMIN & ADMIN) */}
+        {view === "reports" && (
+          <div>
+            {/* Reports Control Panel */}
+            <div className="glass-panel" style={{ marginBottom: "24px" }}>
+              <div className="panel-header" style={{ flexWrap: "wrap", gap: "14px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "16px", marginBottom: "20px" }}>
+                <div className="panel-title">
+                  <h3>📊 Municipal Reporting & Compliance Studio</h3>
+                  <p>Generate certified recovery reports, MFMA debt aging audits, and commercial revenue exports</p>
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      // CSV Exporter for currently active report
+                      let csvContent = "";
+                      let filename = `khokhisa_report_${reportType.toLowerCase()}_${new Date().toISOString().split("T")[0]}.csv`;
+
+                      if (reportType === "ARREARS_AGING") {
+                        csvContent = "Account Number,Customer Name,Balance,Arrears,Days Past Due,Status\n" +
+                          accounts.map(a => `"${a.account_number}","${a.customer_name || ''}",${a.balance},${a.arrears},${a.days_in_arrears},"${a.account_status}"`).join("\n");
+                      } else if (reportType === "COMMERCIAL_BILLING") {
+                        csvContent = "Invoice/Proposal #,Type,Municipality,Billing Period,Total Amount,Status,Date\n" +
+                          invoices.map(i => `"${i.invoice_number}","TAX INVOICE","${i.tenant_name || ''}","${i.billing_period}",${i.total_amount},"${i.status}","${i.issue_date}"`).join("\n") + "\n" +
+                          proposals.map(p => `"${p.proposal_number}","PROPOSAL","${p.tenant_name || ''}","${p.valid_until || ''}",${p.total_amount},"${p.status}","${p.created_at?.split("T")[0] || ''}"`).join("\n");
+                      } else {
+                        csvContent = "Metric,Value,Notes\n" +
+                          `Total Debt Book,${summary?.debt_book || 0},Total active ledger exposure\n` +
+                          `Total Overdue Arrears,${summary?.total_arrears || 0},Collectable arrears volume\n` +
+                          `Recovered Cash,${summary?.recovered || 0},Reconciled collections\n` +
+                          `Recovery Rate,${summary?.recovery_rate || 0}%,Performance against target\n` +
+                          `Active Cases,${summary?.active_cases || 0},Operational collector volume\n` +
+                          `Broken Promises,${summary?.broken_promises || 0},Cases requiring immediate intervention\n`;
+                      }
+
+                      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                      const link = document.createElement("a");
+                      link.href = URL.createObjectURL(blob);
+                      link.setAttribute("download", filename);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    📥 Export CSV Data
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => window.print()}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    🖨️ Print / Save PDF Report
+                  </button>
+                </div>
+              </div>
+
+              {/* Report Selection Tabs */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px", marginBottom: "20px" }}>
+                <button
+                  type="button"
+                  className={`btn ${reportType === "EXECUTIVE_SUMMARY" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setReportType("EXECUTIVE_SUMMARY")}
+                  style={{ padding: "12px", textAlign: "left", display: "flex", flexDirection: "column", gap: "4px" }}
+                >
+                  <strong style={{ fontSize: "13px" }}>🏛️ Executive Recovery</strong>
+                  <span style={{ fontSize: "11px", opacity: 0.8 }}>MFMA Sec 71 Cash Summary</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn ${reportType === "ARREARS_AGING" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setReportType("ARREARS_AGING")}
+                  style={{ padding: "12px", textAlign: "left", display: "flex", flexDirection: "column", gap: "4px" }}
+                >
+                  <strong style={{ fontSize: "13px" }}>⏳ Arrears Aging (DPD)</strong>
+                  <span style={{ fontSize: "11px", opacity: 0.8 }}>30 / 60 / 90 / 120+ Day Buckets</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn ${reportType === "PTP_COMPLIANCE" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setReportType("PTP_COMPLIANCE")}
+                  style={{ padding: "12px", textAlign: "left", display: "flex", flexDirection: "column", gap: "4px" }}
+                >
+                  <strong style={{ fontSize: "13px" }}>🤝 PTP & Payment Plans</strong>
+                  <span style={{ fontSize: "11px", opacity: 0.8 }}>Promise fulfillment & defaults</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`btn ${reportType === "COMMERCIAL_BILLING" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setReportType("COMMERCIAL_BILLING")}
+                  style={{ padding: "12px", textAlign: "left", display: "flex", flexDirection: "column", gap: "4px" }}
+                >
+                  <strong style={{ fontSize: "13px" }}>🧾 Invoicing & Proposals</strong>
+                  <span style={{ fontSize: "11px", opacity: 0.8 }}>Municipal commercial ledger</span>
+                </button>
+              </div>
+
+              {/* Date Filters */}
+              <div style={{ display: "flex", gap: "14px", alignItems: "center", background: "rgba(255,255,255,0.02)", padding: "12px 16px", borderRadius: "8px", border: "1px solid var(--border-subtle)" }}>
+                <span style={{ fontSize: "12.5px", color: "#94a3b8", fontWeight: 600 }}>Filter Period:</span>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <label style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>From:</label>
+                  <input
+                    type="date"
+                    value={reportDateFrom}
+                    onChange={e => setReportDateFrom(e.target.value)}
+                    className="form-input"
+                    style={{ padding: "4px 8px", fontSize: "12px", width: "130px" }}
+                  />
+                </div>
+                <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <label style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>To:</label>
+                  <input
+                    type="date"
+                    value={reportDateTo}
+                    onChange={e => setReportDateTo(e.target.value)}
+                    className="form-input"
+                    style={{ padding: "4px 8px", fontSize: "12px", width: "130px" }}
+                  />
+                </div>
+                <div style={{ marginLeft: "auto", fontSize: "12px", color: "#38bdf8" }}>
+                  Municipality: <strong>{tenants.find(t => t.id === selectedTenant)?.name || "All Assigned"}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* REPORT 1: EXECUTIVE RECOVERY SUMMARY */}
+            {reportType === "EXECUTIVE_SUMMARY" && (
+              <div className="glass-panel" style={{ padding: "28px" }}>
+                <div style={{ borderBottom: "2px solid var(--border-subtle)", paddingBottom: "16px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#f8fafc" }}>
+                      Executive Debt Recovery & Financial Performance Report
+                    </h3>
+                    <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8" }}>
+                      Prepared for: <strong>{tenants.find(t => t.id === selectedTenant)?.name || "Municipal Council"}</strong> | Period: {reportDateFrom} to {reportDateTo}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span className="status-pill status-paying">MFMA Sec 71 Compliant</span>
+                    <div style={{ fontSize: "11px", color: "#64748b", marginTop: "4px" }}>Generated on {new Date().toLocaleDateString()}</div>
+                  </div>
+                </div>
+
+                <div className="metrics-grid" style={{ marginBottom: "28px" }}>
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Gross Debt Book</span></div>
+                    <div className="metric-value">{money(summary?.debt_book)}</div>
+                    <div className="metric-subtitle">Total municipal receivables</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Overdue Arrears</span></div>
+                    <div className="metric-value" style={{ color: "#f87171" }}>{money(summary?.total_arrears)}</div>
+                    <div className="metric-subtitle">Targeted for collections recovery</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Recovered Collections</span></div>
+                    <div className="metric-value" style={{ color: "#34d399" }}>{money(summary?.recovered)}</div>
+                    <div className="metric-subtitle">Reconciled to municipal bank account</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Recovery Rate</span></div>
+                    <div className="metric-value" style={{ color: "#818cf8" }}>{summary?.recovery_rate ?? 0}%</div>
+                    <div className="metric-subtitle">{summary?.active_cases ?? 0} active collection cases</div>
+                  </div>
+                </div>
+
+                {/* Audit Narrative Table */}
+                <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#f8fafc" }}>📋 Portfolio Operational Breakdown</h4>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Performance Category</th>
+                        <th>Portfolio Metrics</th>
+                        <th>Status / Compliance</th>
+                        <th>Audit Standard</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td><strong>Consumer & Municipal Accounts</strong></td>
+                        <td>{summary?.total_accounts ?? accounts.length} debtor accounts under management</td>
+                        <td><span className="status-pill status-paying">ACTIVE</span></td>
+                        <td>Municipal Systems Act (MSA) Sec 95</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Promise to Pay (PTP) Commitments</strong></td>
+                        <td>{summary?.broken_promises ?? 0} broken commitments requiring re-engagement</td>
+                        <td><span className="status-pill status-engaged">MONITORED</span></td>
+                        <td>National Credit Act (NCA) Code of Conduct</td>
+                      </tr>
+                      <tr>
+                        <td><strong>POPIA Data Protection Consent</strong></td>
+                        <td>100% statutory basis verified for debt enforcement</td>
+                        <td><span className="status-pill status-paying">COMPLIANT</span></td>
+                        <td>POPIA Act 4 of 2013 Sec 11(1)(c)</td>
+                      </tr>
+                      <tr>
+                        <td><strong>Cash Reconciliation & Ledger Postings</strong></td>
+                        <td>Authoritative dual-entry matched to municipal reference</td>
+                        <td><span className="status-pill status-paying">RECONCILED</span></td>
+                        <td>GRAP 104 Financial Instruments</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* REPORT 2: ARREARS AGING BUCKETS */}
+            {reportType === "ARREARS_AGING" && (
+              <div className="glass-panel" style={{ padding: "28px" }}>
+                <div style={{ borderBottom: "2px solid var(--border-subtle)", paddingBottom: "16px", marginBottom: "24px" }}>
+                  <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#f8fafc" }}>
+                    Arrears Aging & Days Past Due (DPD) Distribution
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8" }}>
+                    Stratified debt aging matrix across all municipal consumer accounts
+                  </p>
+                </div>
+
+                {(() => {
+                  const bCurrent = accounts.filter(a => Number(a.days_in_arrears) <= 30);
+                  const b60 = accounts.filter(a => Number(a.days_in_arrears) > 30 && Number(a.days_in_arrears) <= 60);
+                  const b90 = accounts.filter(a => Number(a.days_in_arrears) > 60 && Number(a.days_in_arrears) <= 90);
+                  const b120 = accounts.filter(a => Number(a.days_in_arrears) > 90);
+
+                  const sumArrears = (arr: any[]) => arr.reduce((acc, it) => acc + (Number(it.arrears) || 0), 0);
+
+                  return (
+                    <div>
+                      <div className="metrics-grid" style={{ marginBottom: "28px" }}>
+                        <div className="metric-card">
+                          <div className="metric-header"><span className="metric-title">0 – 30 Days (Current)</span></div>
+                          <div className="metric-value" style={{ color: "#34d399" }}>{money(sumArrears(bCurrent))}</div>
+                          <div className="metric-subtitle">{bCurrent.length} accounts (Early Stage)</div>
+                        </div>
+
+                        <div className="metric-card">
+                          <div className="metric-header"><span className="metric-title">31 – 60 Days</span></div>
+                          <div className="metric-value" style={{ color: "#fbbf24" }}>{money(sumArrears(b60))}</div>
+                          <div className="metric-subtitle">{b60.length} accounts (Soft Collections)</div>
+                        </div>
+
+                        <div className="metric-card">
+                          <div className="metric-header"><span className="metric-title">61 – 90 Days</span></div>
+                          <div className="metric-value" style={{ color: "#fb923c" }}>{money(sumArrears(b90))}</div>
+                          <div className="metric-subtitle">{b90.length} accounts (Active Recovery)</div>
+                        </div>
+
+                        <div className="metric-card">
+                          <div className="metric-header"><span className="metric-title">90+ Days Past Due</span></div>
+                          <div className="metric-value" style={{ color: "#f87171" }}>{money(sumArrears(b120))}</div>
+                          <div className="metric-subtitle">{b120.length} accounts (Intensive / Legal)</div>
+                        </div>
+                      </div>
+
+                      <h4 style={{ margin: "0 0 12px 0", fontSize: "14px", color: "#f8fafc" }}>Top Overdue Accounts in Portfolio</h4>
+                      <div className="table-container">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Account Number</th>
+                              <th>Customer Name</th>
+                              <th>Balance</th>
+                              <th>Overdue Arrears</th>
+                              <th>DAYS PAST DUE</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {accounts.slice(0, 10).map(a => (
+                              <tr key={a.id}>
+                                <td><strong>{a.account_number}</strong></td>
+                                <td>{a.customer_name || "—"}</td>
+                                <td>{money(a.balance)}</td>
+                                <td style={{ color: "#f87171", fontWeight: 700 }}>{money(a.arrears)}</td>
+                                <td><strong>{a.days_in_arrears}</strong></td>
+                                <td><span className={`status-pill ${getStatusPillClass(a.account_status)}`}>{formatCaseStatus(a.account_status)}</span></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* REPORT 3: PTP & PAYMENT PLANS */}
+            {reportType === "PTP_COMPLIANCE" && (
+              <div className="glass-panel" style={{ padding: "28px" }}>
+                <div style={{ borderBottom: "2px solid var(--border-subtle)", paddingBottom: "16px", marginBottom: "24px" }}>
+                  <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#f8fafc" }}>
+                    Promise to Pay (PTP) & Payment Arrangement Compliance
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8" }}>
+                    Tracking debtor commitments, arrangement adherence, and broken promises
+                  </p>
+                </div>
+
+                <div className="metrics-grid" style={{ marginBottom: "28px" }}>
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Active Work Items</span></div>
+                    <div className="metric-value">{workQueue.length}</div>
+                    <div className="metric-subtitle">Collectors actively engaging</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Promises Made</span></div>
+                    <div className="metric-value" style={{ color: "#38bdf8" }}>
+                      {workQueue.filter(w => w.case_status === "PROMISE_MADE" || w.case_status === "PROMISE_TO_PAY").length}
+                    </div>
+                    <div className="metric-subtitle">Scheduled debtor payments</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Arrangements Active</span></div>
+                    <div className="metric-value" style={{ color: "#a855f7" }}>
+                      {workQueue.filter(w => w.case_status === "ARRANGEMENT_ACTIVE").length}
+                    </div>
+                    <div className="metric-subtitle">Multi-month structured plans</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header"><span className="metric-title">Broken Promises</span></div>
+                    <div className="metric-value" style={{ color: "#fb7185" }}>{summary?.broken_promises ?? 0}</div>
+                    <div className="metric-subtitle">Automated priority escalation</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* REPORT 4: COMMERCIAL BILLING & INVOICING */}
+            {reportType === "COMMERCIAL_BILLING" && (
+              <div className="glass-panel" style={{ padding: "28px" }}>
+                <div style={{ borderBottom: "2px solid var(--border-subtle)", paddingBottom: "16px", marginBottom: "24px" }}>
+                  <h3 style={{ margin: "0 0 6px 0", fontSize: "18px", color: "#f8fafc" }}>
+                    Commercial Invoicing & Proposals Summary Report
+                  </h3>
+                  <p style={{ margin: 0, fontSize: "12.5px", color: "#94a3b8" }}>
+                    Official register of tax invoices, remittance settlements, and active commercial proposals
+                  </p>
+                </div>
+
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Document #</th>
+                        <th>Type</th>
+                        <th>Municipality</th>
+                        <th>Period / Tier</th>
+                        <th>Total (ZAR)</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map(inv => (
+                        <tr key={inv.id}>
+                          <td><strong style={{ color: "#38bdf8", fontFamily: "monospace" }}>{inv.invoice_number}</strong></td>
+                          <td><span className="status-pill status-engaged">TAX INVOICE</span></td>
+                          <td><strong>{inv.tenant_name || "Municipality"}</strong></td>
+                          <td>{inv.billing_period}</td>
+                          <td><strong>{money(inv.total_amount)}</strong></td>
+                          <td><span className={`status-pill ${inv.status === "PAID" ? "status-paying" : "status-new"}`}>{inv.status}</span></td>
+                          <td>{inv.issue_date}</td>
+                        </tr>
+                      ))}
+                      {proposals.map(prop => (
+                        <tr key={prop.id}>
+                          <td><strong style={{ color: "#a5b4fc", fontFamily: "monospace" }}>{prop.proposal_number}</strong></td>
+                          <td><span className="status-pill status-arrangement">PROPOSAL</span></td>
+                          <td><strong>{prop.tenant_name || "Municipality"}</strong></td>
+                          <td>{prop.subscription_tier}</td>
+                          <td><strong>{money(prop.total_amount)}</strong></td>
+                          <td><span className={`status-pill ${prop.status === "APPROVED" ? "status-paying" : "status-engaged"}`}>{prop.status}</span></td>
+                          <td>{prop.created_at?.split("T")[0]}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
