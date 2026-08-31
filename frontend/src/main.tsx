@@ -1079,6 +1079,10 @@ function App() {
 
   const handleImport = async () => {
     if (!file) return;
+    if (!selectedTenant || selectedTenant === "GLOBAL") {
+      alert("⚠️ Please select a specific target municipality (e.g. Ba-Phalaborwa Municipality) from the top-left dropdown or import screen before ingesting a debt book.");
+      return;
+    }
     setLoading(true);
     const fd = new FormData();
     fd.append("file", file);
@@ -1096,14 +1100,24 @@ function App() {
         throw new Error(`Server returned non-JSON response (${res.status} ${res.statusText}): ${text.slice(0, 120)}`);
       }
       if (!res.ok) {
-        alert(data.detail || "Failed to complete import.");
+        let errorMsg = "Failed to complete import.";
+        if (typeof data.detail === "string") {
+          errorMsg = data.detail;
+        } else if (Array.isArray(data.detail)) {
+          errorMsg = data.detail.map((d: any) => d.msg || JSON.stringify(d)).join("; ");
+        } else if (typeof data.detail === "object" && data.detail !== null) {
+          errorMsg = JSON.stringify(data.detail);
+        } else if (data.message) {
+          errorMsg = data.message;
+        }
+        alert("Import Error: " + errorMsg);
         return;
       }
       setImportResult(data);
       setImportStage("result");
       refreshData();
     } catch (e: any) {
-      alert("Error during import: " + e.message);
+      alert("Error during import: " + (e.message || String(e)));
     } finally {
       setLoading(false);
     }
@@ -2034,6 +2048,21 @@ function App() {
                   <p style={{ color: "#94a3b8", fontSize: "13px", marginBottom: "20px" }}>
                     Select a <strong>.CSV</strong> or <strong>.XLSX</strong> file containing municipal accounts, balances, and contact details.
                   </p>
+
+                  <div style={{ maxWidth: "400px", margin: "0 auto 16px auto", textAlign: "left" }}>
+                    <label style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "4px", display: "block" }}>🎯 Target Municipality / Portfolio:</label>
+                    <select
+                      value={selectedTenant === "GLOBAL" ? (tenants[0]?.id || "") : selectedTenant}
+                      onChange={e => setSelectedTenant(e.target.value)}
+                      className="form-select"
+                      style={{ width: "100%", padding: "8px 12px", fontSize: "13px", fontWeight: 600 }}
+                    >
+                      {tenants.map(t => (
+                        <option key={t.id} value={t.id}>🏛️ {t.name} ({t.code})</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <input
                     type="file"
                     accept=".csv,.xlsx"
