@@ -229,6 +229,7 @@ function App() {
   // PTP form
   const [ptpAmount, setPtpAmount] = useState("");
   const [ptpDueDate, setPtpDueDate] = useState("");
+  const [ptpChannel, setPtpChannel] = useState("EFT");
 
   // Plan form
   const [planDeposit, setPlanDeposit] = useState("1000");
@@ -747,18 +748,25 @@ function App() {
     if (!account360?.active_case?.id) return;
     setLoading(true);
     try {
+      const agentName = currentUser?.full_name || currentUser?.email || "Collector";
+      const accRef = account360?.account_number || "N/A";
       await fetch(`${API}/cases/${account360.active_case.id}/promises?tenant_id=${selectedTenant}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: Number(ptpAmount),
           due_date: ptpDueDate || new Date(Date.now() + 7 * 86400000).toISOString().split("T")[0],
-          actor: "collector-001",
+          actor: agentName,
+          channel: ptpChannel,
+          reference: accRef,
+          notes: `channel: ${ptpChannel} | ref: ${accRef} | captured_by: ${agentName} | captured_at: ${new Date().toLocaleString()} | status: OPEN`,
         }),
       });
       openAccountWorkbench(account360.id);
       refreshData();
-      alert("Promise to Pay created successfully!");
+      alert(`✅ Promise to Pay of ${money(Number(ptpAmount))} logged for ref: ${accRef}!`);
+      setPtpAmount("");
+      setPtpDueDate("");
     } finally {
       setLoading(false);
     }
@@ -4732,8 +4740,31 @@ function App() {
                 <div className="timeline">
                   {account360.promises.map(p => (
                     <div key={p.id} className="timeline-item">
-                      <div className="timeline-date">{p.created_at?.split("T")[0]} • Promise to Pay</div>
-                      <div className="timeline-content">PTP of <strong>{money(p.amount)}</strong> due {p.due_date} (<span style={{ color: p.status === "KEPT" ? "#34d399" : p.status === "BROKEN" ? "#f87171" : "#fbbf24" }}>{p.status}</span>)</div>
+                      <div className="timeline-date">
+                        {p.captured_at ? new Date(p.captured_at).toLocaleString() : (p.created_at?.split("T")[0] || "Today")} • Promise to Pay (PTP)
+                      </div>
+                      <div className="timeline-content">
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                          <span style={{ fontSize: "14px", fontWeight: 700, color: "#f8fafc" }}>
+                            PTP: {money(p.amount)} due {p.due_date}
+                          </span>
+                          <span style={{
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            background: (p.status === "KEPT" ? "rgba(16, 185, 129, 0.15)" : p.status === "BROKEN" ? "rgba(244, 63, 94, 0.15)" : "rgba(56, 189, 248, 0.15)"),
+                            color: (p.status === "KEPT" ? "#34d399" : p.status === "BROKEN" ? "#f87171" : "#38bdf8"),
+                            border: `1px solid ${p.status === "KEPT" ? "rgba(16, 185, 129, 0.3)" : p.status === "BROKEN" ? "rgba(244, 63, 94, 0.3)" : "rgba(56, 189, 248, 0.3)"}`
+                          }}>
+                            status: {p.status || "OPEN"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "11.5px", color: "#94a3b8", lineHeight: "1.5", background: "rgba(255,255,255,0.02)", padding: "6px 8px", borderRadius: "6px", border: "1px solid var(--border-subtle)", marginTop: "4px" }}>
+                          <span>channel: <strong style={{ color: "#38bdf8" }}>{p.channel || "EFT"}</strong></span> | <span>ref: <strong style={{ color: "#f8fafc" }}>{p.reference || account360.account_number}</strong></span><br />
+                          <span>captured_by: <strong style={{ color: "#f8fafc" }}>{p.captured_by || "Collector"}</strong></span> | <span>captured_at: <strong style={{ color: "#94a3b8" }}>{p.captured_at ? new Date(p.captured_at).toLocaleString() : (p.created_at || "Recent")}</strong></span> | <span>status: <strong style={{ color: "#34d399" }}>{p.status || "OPEN"}</strong></span>
+                        </div>
+                      </div>
                     </div>
                   ))}
                   {account360.payments.map(pm => (
@@ -4788,16 +4819,32 @@ function App() {
 
             {drawerTab === "ptp" && (
               <div className="drawer-section">
-                <div className="drawer-section-title">Capture Promise to Pay</div>
+                <div className="drawer-section-title">Capture Promise to Pay (PTP)</div>
                 <div className="form-group">
                   <label>Promised Amount (ZAR)</label>
-                  <input type="number" value={ptpAmount} onChange={e => setPtpAmount(e.target.value)} className="form-input" />
+                  <input type="number" placeholder="e.g. 2500" value={ptpAmount} onChange={e => setPtpAmount(e.target.value)} className="form-input" />
                 </div>
                 <div className="form-group">
                   <label>Commitment Due Date</label>
                   <input type="date" value={ptpDueDate} onChange={e => setPtpDueDate(e.target.value)} className="form-input" />
                 </div>
-                <button className="btn btn-primary" onClick={createPtp} disabled={loading}>
+                <div className="form-group">
+                  <label>Payment Channel</label>
+                  <select value={ptpChannel} onChange={e => setPtpChannel(e.target.value)} className="form-select">
+                    <option value="EFT">Electronic Funds Transfer (EFT)</option>
+                    <option value="DEBIT_ORDER">Debit Order</option>
+                    <option value="EASYPAY">EasyPay / Pay@ / Retail Outlet</option>
+                    <option value="DIRECT_DEPOSIT">Direct Bank Deposit / Branch</option>
+                    <option value="CARD_PAYMENT">Debit / Credit Card</option>
+                    <option value="CASH">Municipal Cashier</option>
+                  </select>
+                </div>
+                <div style={{ marginBottom: "16px", padding: "10px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px", border: "1px solid var(--border-subtle)", fontSize: "12px", color: "#94a3b8" }}>
+                  <div><strong>Account Ref:</strong> <span style={{ color: "#38bdf8" }}>{account360.account_number}</span></div>
+                  <div><strong>Captured By:</strong> <span style={{ color: "#f8fafc" }}>{currentUser?.full_name || currentUser?.email || "Collector"}</span></div>
+                  <div><strong>Initial Status:</strong> <span style={{ color: "#34d399", fontWeight: 700 }}>OPEN</span></div>
+                </div>
+                <button className="btn btn-primary" onClick={createPtp} disabled={loading || !ptpAmount}>
                   Commit Promise to Pay
                 </button>
               </div>

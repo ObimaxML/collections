@@ -764,17 +764,42 @@ def get_account_360(
             .where(Promise.case_id.in_(case_ids))
             .order_by(Promise.due_date.desc())
         ).scalars().all()
-        promises_list = [
-            {
+
+        # Retrieve any audit logs associated with these promises
+        promise_ids = [p.id for p in promises]
+        audit_logs_map = {}
+        if promise_ids:
+            audits = db.execute(
+                select(AuditEvent).where(
+                    AuditEvent.entity_id.in_(promise_ids),
+                    AuditEvent.event_type == "PROMISE_CREATED"
+                )
+            ).scalars().all()
+            for a in audits:
+                audit_logs_map[a.entity_id] = a
+
+        promises_list = []
+        for p in promises:
+            audit = audit_logs_map.get(p.id)
+            payload = audit.payload if audit and isinstance(audit.payload, dict) else {}
+            channel = payload.get("channel") or "EFT"
+            ref = payload.get("reference") or account.account_number
+            captured_by = payload.get("captured_by") or (audit.actor if audit else None) or "Collector"
+            captured_at = payload.get("captured_at") or (p.created_at.isoformat() if p.created_at else None)
+            display_status = "OPEN" if p.status in ["ACTIVE", "PENDING"] else p.status
+
+            promises_list.append({
                 "id": str(p.id),
                 "case_id": str(p.case_id),
                 "amount": float(p.amount),
                 "due_date": p.due_date.isoformat(),
-                "status": p.status,
+                "status": display_status,
                 "created_at": p.created_at.isoformat() if p.created_at else None,
-            }
-            for p in promises
-        ]
+                "channel": channel,
+                "reference": ref,
+                "captured_by": captured_by,
+                "captured_at": captured_at,
+            })
 
         plans = db.execute(
             select(PaymentPlan)
@@ -2549,6 +2574,8 @@ class PromiseRequest(BaseModel):
     amount: Decimal = Field(gt=0)
     due_date: date
     actor: str | None = None
+    channel: str | None = "EFT"
+    reference: str | None = None
     notes: str | None = None
 
 
@@ -3033,13 +3060,24 @@ def create_promise(
             detail="Cannot create a promise on a closed case.",
         )
 
+    ref_account = None
+    if case.account_id:
+        acc_obj = db.get(MunicipalAccount, case.account_id)
+        if acc_obj:
+            ref_account = acc_obj.account_number
+
+    captured_at = datetime.now(timezone.utc)
+    channel = request.channel or "EFT"
+    reference = request.reference or ref_account or "N/A"
+    captured_by = request.actor or "System Collector"
+
     promise = Promise(
         id=uuid4(),
         case_id=case.id,
         amount=request.amount,
         due_date=request.due_date,
         status="ACTIVE",
-        created_at=datetime.now(timezone.utc),
+        created_at=captured_at,
     )
 
     db.add(promise)
@@ -3051,17 +3089,23 @@ def create_promise(
     audit = AuditEvent(
         id=uuid4(),
         tenant_id=case.tenant_id,
-        actor=request.actor,
+        actor=captured_by,
         event_type="PROMISE_CREATED",
         entity_type="promise",
         entity_id=promise.id,
         payload={
             "case_id": str(case.id),
+            "account_number": ref_account,
+            "channel": channel,
+            "reference": reference,
             "amount": float(request.amount),
             "due_date": request.due_date.isoformat(),
+            "captured_by": captured_by,
+            "captured_at": captured_at.isoformat(),
+            "status": "OPEN",
             "notes": request.notes,
         },
-        created_at=datetime.now(timezone.utc),
+        created_at=captured_at,
     )
 
     db.add(audit)
@@ -3074,7 +3118,11 @@ def create_promise(
         "case_id": str(case.id),
         "amount": float(promise.amount),
         "due_date": promise.due_date.isoformat(),
-        "status": promise.status,
+        "status": "OPEN",
+        "channel": channel,
+        "reference": reference,
+        "captured_by": captured_by,
+        "captured_at": captured_at.isoformat(),
         "case_status": case.status,
         "previous_case_status": old_status,
     }
