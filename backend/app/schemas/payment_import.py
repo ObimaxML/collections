@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class PaymentImportMapping(BaseModel):
@@ -21,3 +21,20 @@ class PaymentImportMappingResponse(BaseModel):
     mapping_details: list[dict] | None = None
     unmapped_columns: list[str]
     available_targets: list[str]
+
+
+class PaymentImportApproval(BaseModel):
+    approved: bool = Field(
+        ...,
+        description="Explicit operator approval",
+    )
+
+    approved_by: str = Field(
+        min_length=1,
+        max_length=150,
+    )
+
+    confirmation: str = Field(
+        min_length=1,
+        max_length=100,
+    )
