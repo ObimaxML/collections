@@ -86,7 +86,7 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "users" | "saas_tiers" | "settings">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "settings">("dashboard");
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
@@ -1003,6 +1003,12 @@ function App() {
             </div>
           )}
           {currentUser?.role === "SUPERADMIN" && (
+            <div className={`nav-item ${view === "onboarding" ? "active" : ""}`} onClick={() => { setView("onboarding"); setMobileMenuOpen(false); }}>
+              🏛️ Onboarding & Portfolios
+              <span className="nav-badge">{tenants.length}</span>
+            </div>
+          )}
+          {currentUser?.role === "SUPERADMIN" && (
             <div className={`nav-item ${view === "users" ? "active" : ""}`} onClick={() => { setView("users"); setMobileMenuOpen(false); }}>
               👥 User Management & Roles
               <span className="nav-badge">{usersList.length}</span>
@@ -1881,243 +1887,331 @@ function App() {
           </div>
         )}
 
-        {view === "users" && currentUser?.role === "SUPERADMIN" && (
-          <div>
-            {/* Onboard New Municipality Card - Restricted to SUPERADMIN */}
+        {/* ONBOARDING & MUNICIPAL PORTFOLIOS VIEW (SUPERADMIN ONLY) */}
+        {view === "onboarding" && currentUser?.role === "SUPERADMIN" && (
+          <div className="view-content" style={{ animation: "fadeIn 0.2s ease" }}>
+            
+            {/* Commercial Revenue Pipeline & Potential Projections */}
+            {(() => {
+              const activeTenants = tenants.filter(t => t.subscription_status === "ACTIVE" || !t.subscription_status);
+              const saasTenants = tenants.filter(t => t.engagement_model === "SAAS_SELF_SERVICE");
+              const managedTenants = tenants.filter(t => t.engagement_model === "MANAGED_SERVICE");
+
+              const monthlySaasMRR = saasTenants.reduce((acc, t) => acc + (Number(t.monthly_subscription_fee) || 0), 0);
+              const projectedSaasARR = monthlySaasMRR * 12;
+
+              // Managed recovery potential: Average monthly book collected (or estimated active accounts)
+              const totalLedgerBalance = summary?.outstanding || summary?.debt_book || 0;
+              const estimatedMonthlyRecoveryPool = totalLedgerBalance * 0.05; // 5% recovery velocity benchmark
+              const avgManagedCommission = managedTenants.length > 0 
+                ? managedTenants.reduce((acc, t) => acc + (Number(t.commission_rate) || 10), 0) / managedTenants.length 
+                : 10;
+              const estManagedMonthlyCommission = (estimatedMonthlyRecoveryPool * (avgManagedCommission / 100));
+              const estManagedAnnualCommission = estManagedMonthlyCommission * 12;
+
+              const totalProjectedAnnualRevenue = projectedSaasARR + estManagedAnnualCommission;
+
+              return (
+                <div style={{ marginBottom: "28px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h2 style={{ fontSize: "22px", margin: "0 0 4px 0", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
+                        📈 Commercial Revenue & Portfolio Analytics
+                      </h2>
+                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "13px" }}>
+                        Live financial projections based on active municipal subscriptions, licensing tiers, and managed collection commissions.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))", borderColor: "#a855f7", color: "#e9d5ff", fontWeight: 600 }}
+                      onClick={() => setView("saas_tiers")}
+                    >
+                      💎 View SaaS Tier Matrix & Pricing
+                    </button>
+                  </div>
+
+                  {/* Revenue Analytics Cards */}
+                  <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "12px" }}>
+                    
+                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(59, 130, 246, 0.3)" }}>
+                      <div className="stat-label" style={{ color: "#60a5fa" }}>💻 SaaS MRR (Monthly Recurring)</div>
+                      <div className="stat-value" style={{ color: "#f8fafc", fontSize: "24px" }}>
+                        R {monthlySaasMRR.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
+                        From <strong>{saasTenants.length}</strong> active SaaS municipal clients
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(99, 102, 241, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(99, 102, 241, 0.3)" }}>
+                      <div className="stat-label" style={{ color: "#a5b4fc" }}>🚀 SaaS Projected ARR</div>
+                      <div className="stat-value" style={{ color: "#a5b4fc", fontSize: "24px" }}>
+                        R {projectedSaasARR.toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
+                        Annualized contracted software licenses
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(16, 185, 129, 0.3)" }}>
+                      <div className="stat-label" style={{ color: "#34d399" }}>🛡️ Managed Agency ARR (Est.)</div>
+                      <div className="stat-value" style={{ color: "#34d399", fontSize: "24px" }}>
+                        R {Math.round(estManagedAnnualCommission).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
+                        Based on ~{avgManagedCommission.toFixed(1)}% recovery commission on books
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(234, 179, 8, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(234, 179, 8, 0.3)" }}>
+                      <div className="stat-label" style={{ color: "#facc15" }}>👑 Total Potential Annual Revenue</div>
+                      <div className="stat-value" style={{ color: "#fef08a", fontSize: "24px" }}>
+                        R {Math.round(totalProjectedAnnualRevenue).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
+                        Combined SaaS ARR + Managed Agency Fees
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Onboard New Municipality Card */}
             <div className="glass-panel" style={{ marginBottom: "28px" }}>
-                <div className="panel-header">
-                  <div className="panel-title">
-                    <h3>🏛️ Onboard New Municipality & Engagement Model</h3>
-                    <p>Register a South African municipality for either <strong>Molmos Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleCreateTenant} style={{ maxWidth: "880px" }}>
-                  <div className="info-grid" style={{ marginBottom: "16px" }}>
-                    <div className="form-group">
-                      <label>Municipality / Portfolio Name</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. City of Johannesburg Metropolitan Municipality"
-                        value={newTenantName}
-                        onChange={e => setNewTenantName(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Municipal Code (Unique Identifier)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. JHB, EKU, TSH"
-                        value={newTenantCode}
-                        onChange={e => setNewTenantCode(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="info-grid" style={{ marginBottom: "16px" }}>
-                    <div className="form-group">
-                      <label>💼 Engagement & Operating Model</label>
-                      <select
-                        value={newTenantModel}
-                        onChange={e => setNewTenantModel(e.target.value as any)}
-                        className="form-select"
-                        style={{
-                          background: newTenantModel === "MANAGED_SERVICE" ? "linear-gradient(135deg, #065f46, #047857)" : "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                          borderColor: newTenantModel === "MANAGED_SERVICE" ? "#10b981" : "#3b82f6",
-                          color: "#ffffff",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Molmos Managed Service (Outsourced Agency Debt Recovery)</option>
-                        <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 SaaS Subscription (Municipality Uses System Internally)</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Subscription Tier</label>
-                      <select
-                        value={newTenantTier}
-                        onChange={e => setNewTenantTier(e.target.value)}
-                        className="form-select"
-                      >
-                        <option value="ENTERPRISE">Enterprise (Full Feature Suite & Multi-Channel)</option>
-                        <option value="PROFESSIONAL">Professional (Standard Analytics & Work Queue)</option>
-                        <option value="STARTER">Starter Tier</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {newTenantModel === "MANAGED_SERVICE" ? (
-                    <div className="info-grid" style={{ marginBottom: "20px", padding: "12px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)", borderRadius: "8px" }}>
-                      <div className="form-group">
-                        <label style={{ color: "#34d399" }}>Molmos Recovery Commission Rate (%)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          placeholder="e.g. 10.00"
-                          value={newTenantCommission}
-                          onChange={e => setNewTenantCommission(e.target.value)}
-                          className="form-input"
-                          required
-                        />
-                        <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based recovery fee retained by Molmos upon debt collection.</small>
-                      </div>
-                      <div className="form-group">
-                        <label>Billing & Contract Contact Email</label>
-                        <input
-                          type="email"
-                          placeholder="revenue.cfo@municipality.gov.za"
-                          value={newTenantBillingEmail}
-                          onChange={e => setNewTenantBillingEmail(e.target.value)}
-                          className="form-input"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="info-grid" style={{ marginBottom: "20px", padding: "12px", background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: "8px" }}>
-                      <div className="form-group">
-                        <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
-                        <input
-                          type="number"
-                          step="100"
-                          placeholder="e.g. 45000"
-                          value={newTenantMonthlyFee}
-                          onChange={e => setNewTenantMonthlyFee(e.target.value)}
-                          className="form-input"
-                          required
-                        />
-                        <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
-                      </div>
-                      <div className="form-group">
-                        <label>Billing & Invoice Email</label>
-                        <input
-                          type="email"
-                          placeholder="it.procurement@municipality.gov.za"
-                          value={newTenantBillingEmail}
-                          onChange={e => setNewTenantBillingEmail(e.target.value)}
-                          className="form-input"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
-                    {loading ? "Registering..." : "🏛️ Onboard Municipality & Activate Contract"}
-                  </button>
-                </form>
-              </div>
-
-              {/* Municipalities Portfolio Management Table */}
-              <div className="glass-panel" style={{ marginBottom: "28px" }}>
-                <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div className="panel-title">
-                    <h3>🏛️ Municipal Clients & SaaS Portfolios ({tenants.length})</h3>
-                    <p>Manage subscription tiers, engagement models (Internal SaaS vs Molmos Managed), and billing terms</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    style={{ background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))", borderColor: "#a855f7", color: "#e9d5ff", fontWeight: 600 }}
-                    onClick={() => setView("saas_tiers")}
-                  >
-                    💎 View SaaS Tier Matrix & Pricing
-                  </button>
-                </div>
-
-                <div className="table-container">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Municipality Name</th>
-                        <th>Code</th>
-                        <th>Engagement Model</th>
-                        <th>Subscription Tier</th>
-                        <th>Pricing / Commercial Terms</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: "right" }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tenants.map(t => (
-                        <tr key={t.id}>
-                          <td><strong>{t.name}</strong></td>
-                          <td><span className="status-pill status-new">{t.code}</span></td>
-                          <td>
-                            {t.engagement_model === "MANAGED_SERVICE" ? (
-                              <span style={{ padding: "4px 8px", borderRadius: "4px", background: "rgba(16, 185, 129, 0.15)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.3)", fontWeight: 600, fontSize: "11.5px" }}>
-                                🛡️ Molmos Managed Agency
-                              </span>
-                            ) : (
-                              <span style={{ padding: "4px 8px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.3)", fontWeight: 600, fontSize: "11.5px" }}>
-                                💻 SaaS Municipal Subscription
-                              </span>
-                            )}
-                          </td>
-                          <td><strong style={{ color: "#e2e8f0", fontSize: "12px" }}>{t.subscription_tier || "ENTERPRISE"}</strong></td>
-                          <td>
-                            {t.engagement_model === "MANAGED_SERVICE" ? (
-                              <span style={{ color: "#34d399", fontWeight: 600 }}>
-                                {t.commission_rate ? `${t.commission_rate}% Commission` : "10% Commission"}
-                              </span>
-                            ) : (
-                              <span style={{ color: "#60a5fa", fontWeight: 600 }}>
-                                {t.monthly_subscription_fee ? `R ${Number(t.monthly_subscription_fee).toLocaleString()} / mo` : "Standard SaaS"}
-                              </span>
-                            )}
-                          </td>
-                          <td>
-                            <span className={`status-pill ${t.subscription_status === "ACTIVE" ? "status-paying" : "status-broken"}`}>
-                              {t.subscription_status || "ACTIVE"}
-                            </span>
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            <button
-                              className="btn btn-secondary btn-sm"
-                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
-                              onClick={() => setEditingTenant(t)}
-                            >
-                              ⚙️ Edit Terms
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              <div className="panel-header">
+                <div className="panel-title">
+                  <h3>🏛️ Onboard New Municipality & Engagement Model</h3>
+                  <p>Register a South African municipality for either <strong>Molmos Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
                 </div>
               </div>
 
-              {/* Create User Card - Restricted to SUPERADMIN */}
-              <div className="glass-panel" style={{ marginBottom: "28px" }}>
-                <div className="panel-header">
-                  <div className="panel-title">
-                    <h3>Provision New User & Role</h3>
-                    <p>Create SuperAdmins, Municipal Admins, Team Supervisors, and Debt Collectors</p>
+              <form onSubmit={handleCreateTenant} style={{ maxWidth: "880px" }}>
+                <div className="info-grid" style={{ marginBottom: "16px" }}>
+                  <div className="form-group">
+                    <label>Municipality / Portfolio Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. City of Johannesburg Metropolitan Municipality"
+                      value={newTenantName}
+                      onChange={e => setNewTenantName(e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Municipal Code (Unique Identifier)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. JHB, EKU, TSH"
+                      value={newTenantCode}
+                      onChange={e => setNewTenantCode(e.target.value)}
+                      className="form-input"
+                      required
+                    />
                   </div>
                 </div>
 
-                <form onSubmit={handleCreateUser} style={{ maxWidth: "800px" }}>
-                  <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="info-grid" style={{ marginBottom: "16px" }}>
+                  <div className="form-group">
+                    <label>💼 Engagement & Operating Model</label>
+                    <select
+                      value={newTenantModel}
+                      onChange={e => setNewTenantModel(e.target.value as any)}
+                      className="form-select"
+                      style={{
+                        background: newTenantModel === "MANAGED_SERVICE" ? "linear-gradient(135deg, #065f46, #047857)" : "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                        borderColor: newTenantModel === "MANAGED_SERVICE" ? "#10b981" : "#3b82f6",
+                        color: "#ffffff",
+                        fontWeight: 600,
+                      }}
+                    >
+                      <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Molmos Managed Service (Outsourced Agency Debt Recovery)</option>
+                      <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 SaaS Subscription (Municipality Uses System Internally)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Subscription Tier</label>
+                    <select
+                      value={newTenantTier}
+                      onChange={e => setNewTenantTier(e.target.value)}
+                      className="form-select"
+                    >
+                      <option value="ENTERPRISE">Enterprise (Full Feature Suite & Multi-Channel)</option>
+                      <option value="PROFESSIONAL">Professional (Standard Analytics & Work Queue)</option>
+                      <option value="STARTER">Starter Tier</option>
+                    </select>
+                  </div>
+                </div>
+
+                {newTenantModel === "MANAGED_SERVICE" ? (
+                  <div className="info-grid" style={{ marginBottom: "20px", padding: "12px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)", borderRadius: "8px" }}>
                     <div className="form-group">
-                      <label>Full Name</label>
+                      <label style={{ color: "#34d399" }}>Molmos Recovery Commission Rate (%)</label>
                       <input
-                        type="text"
-                        placeholder="e.g. Sipho Sithole"
-                        value={newFullName}
-                        onChange={e => setNewFullName(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        placeholder="e.g. 10.00"
+                        value={newTenantCommission}
+                        onChange={e => setNewTenantCommission(e.target.value)}
                         className="form-input"
                         required
                       />
+                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based recovery fee retained by Molmos upon debt collection.</small>
                     </div>
                     <div className="form-group">
-                      <label>Work Email</label>
+                      <label>Billing & Contract Contact Email</label>
                       <input
                         type="email"
-                        placeholder="e.g. sipho@municipality.gov.za"
-                        value={newEmail}
+                        placeholder="revenue.cfo@municipality.gov.za"
+                        value={newTenantBillingEmail}
+                        onChange={e => setNewTenantBillingEmail(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="info-grid" style={{ marginBottom: "20px", padding: "12px", background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: "8px" }}>
+                    <div className="form-group">
+                      <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
+                      <input
+                        type="number"
+                        step="100"
+                        placeholder="e.g. 45000"
+                        value={newTenantMonthlyFee}
+                        onChange={e => setNewTenantMonthlyFee(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
+                    </div>
+                    <div className="form-group">
+                      <label>Billing & Invoice Email</label>
+                      <input
+                        type="email"
+                        placeholder="it.procurement@municipality.gov.za"
+                        value={newTenantBillingEmail}
+                        onChange={e => setNewTenantBillingEmail(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
+                  {loading ? "Registering..." : "🏛️ Onboard Municipality & Activate Contract"}
+                </button>
+              </form>
+            </div>
+
+            {/* Municipalities Portfolio Management Table */}
+            <div className="glass-panel" style={{ marginBottom: "28px" }}>
+              <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div className="panel-title">
+                  <h3>🏛️ Municipal Clients & SaaS Portfolios ({tenants.length})</h3>
+                  <p>Manage subscription tiers, engagement models (Internal SaaS vs Molmos Managed), and billing terms</p>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Municipality Name</th>
+                      <th>Code</th>
+                      <th>Engagement Model</th>
+                      <th>Subscription Tier</th>
+                      <th>Pricing / Commercial Terms</th>
+                      <th>Status</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tenants.map(t => (
+                      <tr key={t.id}>
+                        <td><strong>{t.name}</strong></td>
+                        <td><span className="status-pill status-new">{t.code}</span></td>
+                        <td>
+                          {t.engagement_model === "MANAGED_SERVICE" ? (
+                            <span style={{ padding: "4px 8px", borderRadius: "4px", background: "rgba(16, 185, 129, 0.15)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.3)", fontWeight: 600, fontSize: "11.5px" }}>
+                              🛡️ Molmos Managed Agency
+                            </span>
+                          ) : (
+                            <span style={{ padding: "4px 8px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.3)", fontWeight: 600, fontSize: "11.5px" }}>
+                              💻 SaaS Municipal Subscription
+                            </span>
+                          )}
+                        </td>
+                        <td><strong style={{ color: "#e2e8f0", fontSize: "12px" }}>{t.subscription_tier || "ENTERPRISE"}</strong></td>
+                        <td>
+                          {t.engagement_model === "MANAGED_SERVICE" ? (
+                            <span style={{ color: "#34d399", fontWeight: 600 }}>
+                              {t.commission_rate ? `${t.commission_rate}% Commission` : "10% Commission"}
+                            </span>
+                          ) : (
+                            <span style={{ color: "#60a5fa", fontWeight: 600 }}>
+                              {t.monthly_subscription_fee ? `R ${Number(t.monthly_subscription_fee).toLocaleString()} / mo` : "Standard SaaS"}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          <span className={`status-pill ${t.subscription_status === "ACTIVE" ? "status-paying" : "status-broken"}`}>
+                            {t.subscription_status || "ACTIVE"}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
+                            onClick={() => setEditingTenant(t)}
+                          >
+                            ⚙️ Edit Terms
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* USER MANAGEMENT & ROLES VIEW */}
+        {view === "users" && currentUser?.role === "SUPERADMIN" && (
+          <div>
+            {/* Create User Card - Restricted to SUPERADMIN */}
+            <div className="glass-panel" style={{ marginBottom: "28px" }}>
+              <div className="panel-header">
+                <div className="panel-title">
+                  <h3>👥 Provision New User & Role</h3>
+                  <p>Create SuperAdmins, Municipal Admins, Team Supervisors, and Debt Collectors</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleCreateUser} style={{ maxWidth: "800px" }}>
+                <div className="info-grid" style={{ marginBottom: "16px" }}>
+                  <div className="form-group">
+                    <label>Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sipho Sithole"
+                      value={newFullName}
+                      onChange={e => setNewFullName(e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Work Email</label>
+                    <input
+                      type="email"
+                      placeholder="e.g. sipho@municipality.gov.za"
+                      value={newEmail}
                         onChange={e => setNewEmail(e.target.value)}
                         className="form-input"
                         required
@@ -2376,10 +2470,10 @@ function App() {
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
-                  onClick={() => setView("users")}
+                  onClick={() => setView("onboarding")}
                   style={{ fontSize: "12px" }}
                 >
-                  ← Back to Portfolios
+                  ← Back to Onboarding & Portfolios
                 </button>
               </div>
 
