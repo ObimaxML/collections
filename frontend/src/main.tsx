@@ -213,12 +213,13 @@ function App() {
     }
   };
 
+  const [showLogoutBanner, setShowLogoutBanner] = useState(false);
+
   const handleLogout = () => {
-    if (window.confirm("Are you sure you want to sign out and log out of Khokhisa Debt Recovery OS?")) {
-      localStorage.removeItem("cos_user_v2");
-      localStorage.removeItem("cos_user");
-      setCurrentUser(null);
-    }
+    localStorage.removeItem("cos_user_v2");
+    localStorage.removeItem("cos_user");
+    setCurrentUser(null);
+    setShowLogoutBanner(false);
   };
   const [contactOutcome, setContactOutcome] = useState("CUSTOMER_ENGAGED");
   const [contactChannel, setContactChannel] = useState("PHONE");
@@ -1340,10 +1341,10 @@ function App() {
             🔄
           </button>
 
-          {/* Logout Button with no background border */}
+          {/* Logout Button with no background border (Arrow icon) */}
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setShowLogoutBanner(true)}
             title="Sign Out / Logout"
             style={{
               background: "transparent",
@@ -1358,7 +1359,11 @@ function App() {
               color: "#fb7185",
             }}
           >
-            🚪
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
           </button>
 
           {/* Hamburger Menu Button */}
@@ -1381,6 +1386,67 @@ function App() {
           </button>
         </div>
       </header>
+
+      {/* In-App Logout Confirmation Banner */}
+      {showLogoutBanner && (
+        <div style={{
+          position: "sticky",
+          top: "0",
+          zIndex: 100,
+          background: "linear-gradient(135deg, rgba(225, 29, 72, 0.95), rgba(159, 18, 57, 0.98))",
+          color: "#ffffff",
+          padding: "12px 18px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          boxShadow: "0 6px 20px rgba(0, 0, 0, 0.4)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+          animation: "fadeIn 0.2s ease-out",
+          flexWrap: "wrap",
+          gap: "10px"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13.5px", fontWeight: 600 }}>
+            <span style={{ fontSize: "18px" }}>⚠️</span>
+            <span>Are you sure you want to sign out of <strong>Khokhisa</strong>?</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto" }}>
+            <button
+              type="button"
+              onClick={() => setShowLogoutBanner(false)}
+              style={{
+                background: "rgba(255, 255, 255, 0.15)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "#ffffff",
+                padding: "6px 14px",
+                borderRadius: "6px",
+                fontSize: "12.5px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              style={{
+                background: "#ffffff",
+                border: "none",
+                color: "#be123c",
+                padding: "6px 14px",
+                borderRadius: "6px",
+                fontSize: "12.5px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+              }}
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Backdrop Overlay */}
       {mobileMenuOpen && (
@@ -1545,7 +1611,7 @@ function App() {
                   background: "rgba(244, 63, 94, 0.08)",
                   transition: "all 0.2s ease",
                 }}
-                onClick={handleLogout}
+                onClick={() => setShowLogoutBanner(true)}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
