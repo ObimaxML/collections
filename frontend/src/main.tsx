@@ -2077,16 +2077,10 @@ function App() {
                           <td style={{ textAlign: "right" }}>
                             <button
                               className="btn btn-secondary btn-sm"
-                              style={{ padding: "4px 10px", fontSize: "12px" }}
-                              onClick={() => {
-                                const editUrl = `${window.location.origin}${window.location.pathname}?edit_tenant_id=${t.id}`;
-                                const win = window.open(editUrl, `EditTenant_${t.id}`, "width=700,height=750,left=200,top=100,resizable=yes,scrollbars=yes");
-                                if (!win || win.closed || typeof win.closed === "undefined") {
-                                  setEditingTenant(t);
-                                }
-                              }}
+                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
+                              onClick={() => setEditingTenant(t)}
                             >
-                              ⚙️ Edit Terms ↗
+                              ⚙️ Edit Terms
                             </button>
                           </td>
                         </tr>
@@ -2794,16 +2788,24 @@ function App() {
         </div>
       )}
 
-      {/* Edit Municipality & Commercial Terms Modal */}
+      {/* Edit Municipality & Commercial Terms Dialog Box */}
       {editingTenant && (
-        <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: "600px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-              <h3 style={{ margin: 0, color: "#f8fafc" }}>⚙️ Municipality & SaaS Commercial Terms</h3>
+        <div className="modal-backdrop" onClick={() => setEditingTenant(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "620px", width: "94%", margin: "auto", animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "14px" }}>
+              <div className="panel-title">
+                <h3 style={{ margin: 0, color: "#f8fafc", fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  ⚙️ Municipality & SaaS Commercial Terms
+                </h3>
+                <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                  Adjust engagement model, tier pricing, commission rates, and contract status
+                </p>
+              </div>
               <button
                 type="button"
+                className="btn btn-secondary btn-sm"
                 onClick={() => setEditingTenant(null)}
-                style={{ background: "none", border: "none", color: "#94a3b8", fontSize: "20px", cursor: "pointer" }}
+                style={{ padding: "4px 10px", fontSize: "14px" }}
               >
                 ✕
               </button>
