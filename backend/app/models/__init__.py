@@ -30,6 +30,43 @@ class Tenant(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     code: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    engagement_model: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="MANAGED_SERVICE",
+    )  # MANAGED_SERVICE, SAAS_SELF_SERVICE
+    subscription_tier: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="ENTERPRISE",
+    )  # STARTER, PROFESSIONAL, ENTERPRISE, OUTSOURCED_COMMISSION
+    commission_rate: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=5, scale=2),
+        nullable=True,
+        default=Decimal("10.00"),
+    )
+    monthly_subscription_fee: Mapped[Decimal | None] = mapped_column(
+        Numeric(precision=12, scale=2),
+        nullable=True,
+        default=Decimal("0.00"),
+    )
+    subscription_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="ACTIVE",
+    )  # ACTIVE, TRIAL, SUSPENDED, EXPIRED
+    billing_contact_email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    contract_start_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+    contract_end_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

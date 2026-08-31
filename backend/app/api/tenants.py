@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models import Tenant
-from app.schemas.tenants import TenantCreate, TenantResponse
+from app.schemas.tenants import TenantCreate, TenantResponse, TenantUpdate
 
 
 router = APIRouter(
@@ -24,7 +24,7 @@ def list_tenants(
     db: Session = Depends(get_db),
 ):
     """
-    List all onboarded municipalities / tenants.
+    List all onboarded municipalities / tenants with their SaaS and Engagement subscriptions.
     """
     statement = select(Tenant).order_by(Tenant.name.asc())
     return list(db.scalars(statement))
@@ -40,7 +40,7 @@ def create_tenant(
     db: Session = Depends(get_db),
 ):
     """
-    Onboard a new municipality into CollectionsOS.
+    Onboard a new municipality into CollectionsOS with engagement model (Internal SaaS or Molmos Managed Service).
     """
     code_upper = payload.code.strip().upper()
 
@@ -57,6 +57,14 @@ def create_tenant(
         id=uuid4(),
         name=payload.name.strip(),
         code=code_upper,
+        engagement_model=payload.engagement_model,
+        subscription_tier=payload.subscription_tier,
+        commission_rate=payload.commission_rate,
+        monthly_subscription_fee=payload.monthly_subscription_fee,
+        subscription_status=payload.subscription_status,
+        billing_contact_email=payload.billing_contact_email,
+        contract_start_date=payload.contract_start_date,
+        contract_end_date=payload.contract_end_date,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -84,4 +92,54 @@ def get_tenant(
             status_code=404,
             detail="Municipality not found.",
         )
+    return tenant
+
+
+@router.put(
+    "/{tenant_id}",
+    response_model=TenantResponse,
+)
+def update_tenant(
+    tenant_id: UUID,
+    payload: TenantUpdate,
+    db: Session = Depends(get_db),
+):
+    """
+    Update municipality SaaS subscription, engagement model, billing terms, or contract status.
+    """
+    tenant = db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipality not found.",
+        )
+
+    if payload.name is not None:
+        tenant.name = payload.name.strip()
+    if payload.code is not None:
+        code_upper = payload.code.strip().upper()
+        if code_upper != tenant.code:
+            existing = db.scalar(select(Tenant).where(Tenant.code == code_upper, Tenant.id != tenant_id))
+            if existing:
+                raise HTTPException(status_code=409, detail=f"Code '{code_upper}' already in use.")
+            tenant.code = code_upper
+    if payload.engagement_model is not None:
+        tenant.engagement_model = payload.engagement_model
+    if payload.subscription_tier is not None:
+        tenant.subscription_tier = payload.subscription_tier
+    if payload.commission_rate is not None:
+        tenant.commission_rate = payload.commission_rate
+    if payload.monthly_subscription_fee is not None:
+        tenant.monthly_subscription_fee = payload.monthly_subscription_fee
+    if payload.subscription_status is not None:
+        tenant.subscription_status = payload.subscription_status
+    if payload.billing_contact_email is not None:
+        tenant.billing_contact_email = payload.billing_contact_email
+    if payload.contract_start_date is not None:
+        tenant.contract_start_date = payload.contract_start_date
+    if payload.contract_end_date is not None:
+        tenant.contract_end_date = payload.contract_end_date
+
+    db.commit()
+    db.refresh(tenant)
     return tenant

@@ -34,10 +34,30 @@ A multi-tenant SaaS application purpose-built for South African municipal debt c
 
 ---
 
+### 💼 Dual Engagement & Business Operating Models (Molmos)
+
+CollectionsOS is architected to support two distinct commercial and operating delivery models:
+
+1. **🛡️ Molmos Managed Service (Outsourced Agency Debt Recovery)**:
+   - The municipality retains **Molmos** as an external recovery agency.
+   - Molmos deploy their own professional collector teams onto the municipal portfolio.
+   - **Commercial Structure**: Success-based commission (e.g. `10.00%` of all reconciled recovered debt).
+   - Municipal executives and CFOs retain read-only supervisory dashboards, financial oversight, and real-time audit trail visibility.
+
+2. **💻 Municipal SaaS Subscription (Internal Municipal Collection)**:
+   - The municipality licenses CollectionsOS as a multi-tenant cloud SaaS platform to run their own internal debt recovery division.
+   - Municipal collectors, team leads, and admins use the workbench, work queues, PTP tracking, and column ingestion engine directly.
+   - **Commercial Structure**: Fixed monthly subscription licensing fee based on tier (`STARTER`, `PROFESSIONAL`, `ENTERPRISE`).
+
+---
+
 ## 🔄 Step-by-Step System Workflows & Processes
 
 ### Workflow 1: Multi-Tenant Onboarding & Municipal Account Ingestion
-1. **Tenant Provisioning**: Each municipality (e.g. City of Johannesburg) is assigned a `tenant_id` and unique code.
+1. **Tenant Provisioning**: Each municipality (e.g. City of Johannesburg) is onboarded with:
+   - **Engagement Model**: `MANAGED_SERVICE` (Molmos Managed) or `SAAS_SELF_SERVICE` (Internal SaaS).
+   - **Subscription Tier**: `STARTER`, `PROFESSIONAL`, `ENTERPRISE`.
+   - **Commercial Terms**: Configurable commission rate (%) or monthly SaaS license fee (ZAR).
 2. **Account Ingestion**: Accounts are onboarded with property details, customer demographics, current account balance, and DPD (Days Past Due) aging metrics.
 3. **Opening Balance Backfill**: Generates `OPENING_BALANCE` entries in `financial_transactions` (`abs(balance)`) for every account onboarded to establish an auditable opening balance baseline without inventing fake transaction history.
 

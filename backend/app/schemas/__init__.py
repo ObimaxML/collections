@@ -338,3 +338,45 @@ class CaseGenerationResult(BaseModel):
     cases_updated: int
     cases_closed: int
     skipped: int
+
+
+class TenantCreate(BaseModel):
+    name: str
+    code: str
+    engagement_model: str = "MANAGED_SERVICE"  # MANAGED_SERVICE, SAAS_SELF_SERVICE
+    subscription_tier: str = "ENTERPRISE"      # STARTER, PROFESSIONAL, ENTERPRISE, OUTSOURCED_COMMISSION
+    commission_rate: Decimal = Decimal("10.00")
+    monthly_subscription_fee: Decimal = Decimal("0.00")
+    billing_contact_email: str | None = None
+    contract_start_date: date | None = None
+    contract_end_date: date | None = None
+
+
+class TenantUpdate(BaseModel):
+    name: str | None = None
+    code: str | None = None
+    engagement_model: str | None = None
+    subscription_tier: str | None = None
+    commission_rate: Decimal | None = None
+    monthly_subscription_fee: Decimal | None = None
+    subscription_status: str | None = None  # ACTIVE, TRIAL, SUSPENDED, EXPIRED
+    billing_contact_email: str | None = None
+    contract_start_date: date | None = None
+    contract_end_date: date | None = None
+
+
+class TenantResponse(BaseModel):
+    id: UUID
+    name: str
+    code: str
+    engagement_model: str
+    subscription_tier: str
+    commission_rate: Decimal | None
+    monthly_subscription_fee: Decimal | None
+    subscription_status: str
+    billing_contact_email: str | None
+    contract_start_date: date | None
+    contract_end_date: date | None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
