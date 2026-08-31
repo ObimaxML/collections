@@ -1165,25 +1165,23 @@ function App() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
-          <div className="login-brand">
-            <div className="loan-emblem-wrapper">
-              <svg className="loan-svg-icon" viewBox="0 0 64 64" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Outer Dashed Orbital Precision Ring */}
-                <circle cx="32" cy="32" r="29" stroke="#38bdf8" strokeWidth="2" strokeDasharray="4 3" opacity="0.85" style={{ animation: "rotateRing 12s infinite linear", transformOrigin: "32px 32px" }}/>
+          <div className="login-brand" style={{ marginBottom: "24px" }}>
+            <div className="loan-emblem-wrapper" style={{ width: "72px", height: "72px", margin: "0 auto 8px" }}>
+              <svg className="loan-svg-icon" viewBox="0 0 64 64" width="72" height="72" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Left Emerald/Cyan Gradient Sphere */}
-                <circle cx="24" cy="32" r="17" fill="#059669" fillOpacity="0.9"/>
+                <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
                 {/* Right Cobalt/Indigo Gradient Sphere */}
-                <circle cx="40" cy="32" r="17" fill="#3b82f6" fillOpacity="0.85" style={{ mixBlendMode: "screen" }}/>
+                <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9" style={{ mixBlendMode: "screen" }}/>
                 {/* Central Diamond Overlap Lens */}
-                <path d="M32 18 C36 24, 36 40, 32 46 C28 40, 28 24, 32 18 Z" fill="#38bdf8"/>
+                <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
                 {/* Bold Sculpted K Monogram */}
-                <text x="32" y="39.5" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" fontFamily="Outfit, sans-serif" style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}>
+                <text x="32" y="40" textAnchor="middle" fill="#ffffff" fontSize="23" fontWeight="900" fontFamily="Outfit, sans-serif" style={{ filter: "drop-shadow(0 2px 5px rgba(0,0,0,0.6))" }}>
                   K
                 </text>
               </svg>
             </div>
-            <h2>Khokhisa</h2>
-            <p style={{ color: "#38bdf8", fontWeight: 600, letterSpacing: "0.5px", fontSize: "12px", textTransform: "uppercase", marginTop: "2px" }}>Debt Recovery OS</p>
+            <h2 style={{ marginTop: "4px", marginBottom: "2px" }}>Khokhisa</h2>
+            <p style={{ color: "#38bdf8", fontWeight: 600, letterSpacing: "0.5px", fontSize: "12px", textTransform: "uppercase", margin: 0 }}>Debt Recovery OS</p>
           </div>
 
           {loginError && <div className="login-error">{loginError}</div>}
@@ -1281,11 +1279,10 @@ function App() {
         <div className="brand-section" style={{ margin: 0, padding: 0, alignItems: "center" }}>
           <div className="brand-icon" style={{ width: "36px", height: "36px" }}>
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "36px", height: "36px" }}>
-              <circle cx="32" cy="32" r="28" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3 2" opacity="0.9"/>
-              <circle cx="25" cy="32" r="16" fill="#059669" fillOpacity="0.95"/>
-              <circle cx="39" cy="32" r="16" fill="#3b82f6" fillOpacity="0.88"/>
-              <path d="M32 19 C35.5 25, 35.5 39, 32 45 C28.5 39, 28.5 25, 32 19 Z" fill="#38bdf8"/>
-              <text x="32" y="39" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="900" fontFamily="Outfit, sans-serif">
+              <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
+              <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
+              <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
+              <text x="32" y="40" textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="900" fontFamily="Outfit, sans-serif">
                 K
               </text>
             </svg>
@@ -1319,11 +1316,10 @@ function App() {
         <div className="brand-section">
           <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Recovery OS" style={{ width: "40px", height: "40px" }}>
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "40px", height: "40px" }}>
-              <circle cx="32" cy="32" r="28" stroke="#38bdf8" strokeWidth="2" strokeDasharray="3 2" opacity="0.9"/>
-              <circle cx="25" cy="32" r="16" fill="#059669" fillOpacity="0.95"/>
-              <circle cx="39" cy="32" r="16" fill="#3b82f6" fillOpacity="0.88"/>
-              <path d="M32 19 C35.5 25, 35.5 39, 32 45 C28.5 39, 28.5 25, 32 19 Z" fill="#38bdf8"/>
-              <text x="32" y="39" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="900" fontFamily="Outfit, sans-serif">
+              <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
+              <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
+              <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
+              <text x="32" y="40" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" fontFamily="Outfit, sans-serif">
                 K
               </text>
             </svg>
