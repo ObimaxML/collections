@@ -22,6 +22,29 @@
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-subtle: #64748b;
+  --input-bg: rgba(15, 23, 42, 0.6);
+  --input-border: rgba(255, 255, 255, 0.12);
+  --drawer-bg: #0f172a;
+}
+
+[data-theme="light"] {
+  --bg-app: #f1f5f9;
+  --bg-sidebar: #ffffff;
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-hover: rgba(248, 250, 252, 1);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-active: rgba(99, 102, 241, 0.6);
+
+  --primary: #4f46e5;
+  --primary-glow: rgba(79, 70, 229, 0.25);
+  --primary-hover: #4338ca;
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #64748b;
+  --input-bg: #ffffff;
+  --input-border: #cbd5e1;
+  --drawer-bg: #ffffff;
 }
 
 * {
@@ -40,6 +63,69 @@ body {
     radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.12) 0px, transparent 50%),
     radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
   background-attachment: fixed;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+[data-theme="light"] body {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.05) 0px, transparent 50%);
+}
+
+[data-theme="light"] .login-card {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.12), 0 0 20px rgba(99, 102, 241, 0.1);
+}
+
+[data-theme="light"] .login-brand h2,
+[data-theme="light"] .metric-value,
+[data-theme="light"] .panel-title h3,
+[data-theme="light"] .drawer-title h2,
+[data-theme="light"] .view-heading h2 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .drawer {
+  background: var(--drawer-bg);
+  box-shadow: -10px 0 35px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] input[type="text"],
+[data-theme="light"] input[type="email"],
+[data-theme="light"] input[type="password"],
+[data-theme="light"] input[type="number"],
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: var(--input-bg) !important;
+  color: var(--text-main) !important;
+  border-color: var(--input-border) !important;
+}
+
+[data-theme="light"] thead {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="light"] tr:hover td {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .mobile-item-card,
+[data-theme="light"] .glass-panel,
+[data-theme="light"] .metric-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .btn-secondary {
+  background: rgba(0, 0, 0, 0.04);
+  color: #1e293b;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 .app-container {

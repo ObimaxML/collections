@@ -118,6 +118,19 @@ function App() {
   const [settingsPassword, setSettingsPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
 
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("cos_theme") as "dark" | "light") || "dark";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("cos_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+  };
+
   const [currentUser, setCurrentUser] = useState<any>(() => {
     try {
       const saved = localStorage.getItem("cos_user_v2");
@@ -724,7 +737,28 @@ function App() {
   if (!currentUser) {
     return (
       <div className="login-screen">
-        <div className="login-card">
+        <div className="login-card" style={{ position: "relative" }}>
+          {/* Theme Toggle Button on Login Screen */}
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={toggleTheme}
+            style={{
+              position: "absolute",
+              top: "16px",
+              right: "16px",
+              padding: "5px 10px",
+              borderRadius: "20px",
+              fontSize: "12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+          >
+            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+          </button>
+
           <div className="login-brand">
             <div className="loan-emblem-wrapper">
               <div className="loan-emblem-bg"></div>
@@ -1079,6 +1113,15 @@ function App() {
           </div>
 
           <div className="top-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={toggleTheme}
+              title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            >
+              {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+            </button>
             <button className="btn btn-secondary" onClick={refreshData}>🔄 Refresh</button>
             <button className="btn btn-primary" onClick={triggerCaseEngine} disabled={loading}>
               ⚡ Run Case Engine
@@ -2723,6 +2766,32 @@ function App() {
                     className="form-input"
                     required
                   />
+                </div>
+              </div>
+
+              {/* Interface Theme Preference */}
+              <div style={{ padding: "16px 20px", borderRadius: "10px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", marginBottom: "20px" }}>
+                <h4 style={{ margin: "0 0 6px 0", fontSize: "14px", color: "#f8fafc" }}>🎨 Interface Theme Preference</h4>
+                <p style={{ color: "#94a3b8", fontSize: "12.5px", margin: "0 0 14px 0" }}>
+                  Toggle between high-contrast Deep Dark Mode and Crisp Slate Light Mode.
+                </p>
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button
+                    type="button"
+                    className={`btn ${theme === "dark" ? "btn-primary" : "btn-secondary"}`}
+                    onClick={() => setTheme("dark")}
+                    style={{ padding: "8px 16px", fontSize: "13px" }}
+                  >
+                    🌙 Dark Theme {theme === "dark" && "✓"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${theme === "light" ? "btn-primary" : "btn-secondary"}`}
+                    onClick={() => setTheme("light")}
+                    style={{ padding: "8px 16px", fontSize: "13px" }}
+                  >
+                    ☀️ Light Theme {theme === "light" && "✓"}
+                  </button>
                 </div>
               </div>
 
