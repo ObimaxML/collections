@@ -30,13 +30,117 @@ REQUIRED_COLUMNS = {
 }
 
 
+COLUMN_ALIASES = {
+    "tenant_id": [
+        "tenant_id",
+        "tenant",
+        "tenant_code",
+        "municipality_id",
+        "municipality",
+        "municipality_code",
+    ],
+    "account_number": [
+        "account_number",
+        "account_no",
+        "account_num",
+        "acc_no",
+        "acc_number",
+        "municipal_account",
+        "municipal_account_number",
+        "account",
+    ],
+    "amount": [
+        "amount",
+        "payment_amount",
+        "payment_value",
+        "value",
+        "paid_amount",
+        "amount_paid",
+        "total_paid",
+    ],
+    "payment_date": [
+        "payment_date",
+        "date",
+        "transaction_date",
+        "payment_dt",
+        "date_paid",
+        "paid_date",
+        "tx_date",
+    ],
+    "external_reference": [
+        "external_reference",
+        "reference",
+        "payment_reference",
+        "receipt_number",
+        "receipt_no",
+        "transaction_reference",
+        "ref_no",
+        "ref",
+    ],
+}
+
+
 def normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = [
-        str(column).strip().lower().replace(" ", "_")
+        str(column)
+        .strip()
+        .lower()
+        .replace("-", "_")
+        .replace("/", "_")
+        .replace(" ", "_")
         for column in df.columns
     ]
 
     return df
+
+
+def build_column_mapping(
+    columns: list[str],
+) -> dict[str, str]:
+    normalised = {
+        str(column)
+        .strip()
+        .lower()
+        .replace("-", "_")
+        .replace("/", "_")
+        .replace(" ", "_"): column
+        for column in columns
+    }
+
+    mapping = {}
+
+    for target, aliases in COLUMN_ALIASES.items():
+        for alias in aliases:
+            alias_normalised = (
+                str(alias)
+                .strip()
+                .lower()
+                .replace("-", "_")
+                .replace("/", "_")
+                .replace(" ", "_")
+            )
+
+            if alias_normalised in normalised:
+                mapping[target] = normalised[
+                    alias_normalised
+                ]
+                break
+
+    return mapping
+
+
+def validate_mapping(
+    columns: list[str],
+) -> tuple[dict[str, str], list[str]]:
+    mapping = build_column_mapping(columns)
+
+    missing = [
+        column
+        for column in REQUIRED_COLUMNS
+        if column not in mapping
+    ]
+
+    return mapping, missing
 
 
 @router.post("/import/preview")
@@ -80,30 +184,25 @@ async def preview_payment_import(
 
     df = normalise_columns(df)
 
-    missing = REQUIRED_COLUMNS - set(df.columns)
-
-    if missing:
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "message": "Missing required columns.",
-                "missing_columns": sorted(missing),
-                "required_columns": sorted(
-                    REQUIRED_COLUMNS
-                ),
-            },
-        )
+    mapping, missing = validate_mapping(
+        list(df.columns)
+    )
 
     preview = (
         df.head(10)
         .fillna("")
-        .to_dict(orient="records")
+        .to_dict(
+            orient="records"
+        )
     )
 
     return {
         "filename": file.filename,
         "rows": len(df),
         "columns": list(df.columns),
+        "mapping": mapping,
+        "missing_columns": missing,
+        "ready_for_import": not missing,
         "preview": preview,
     }
 
@@ -153,7 +252,7 @@ async def import_payments(
 
     df = normalise_columns(df)
 
-    missing = REQUIRED_COLUMNS - set(df.columns)
+    mapping, missing = validate_mapping(list(df.columns))
 
     if missing:
         raise HTTPException(
@@ -161,6 +260,9 @@ async def import_payments(
             detail={
                 "message": "Missing required columns.",
                 "missing_columns": sorted(missing),
+                "required_columns": sorted(
+                    REQUIRED_COLUMNS
+                ),
             },
         )
 
@@ -175,6 +277,18 @@ async def import_payments(
     errors = []
     imported_payment_ids = []
 
+    # Cache for tenant lookups (id, code, or name)
+    from app.models import Tenant
+    from sqlalchemy import select
+    all_tenants = db.scalars(select(Tenant)).all()
+    tenant_lookup = {}
+    for t in all_tenants:
+        tenant_lookup[str(t.id).lower()] = str(t.id)
+        if t.code:
+            tenant_lookup[str(t.code).lower()] = str(t.id)
+        if t.name:
+            tenant_lookup[str(t.name).lower()] = str(t.id)
+
     # ---------------------------------------------------------
     # Process rows
     # ---------------------------------------------------------
@@ -183,25 +297,19 @@ async def import_payments(
         row_number = index + 2
 
         try:
-            tenant_id = str(
-                row["tenant_id"]
-            ).strip()
-
-            account_number = str(
-                row["account_number"]
-            ).strip()
-
-            external_reference = str(
-                row["external_reference"]
-            ).strip()
+            raw_tenant = str(row[mapping["tenant_id"]]).strip()
+            account_number = str(row[mapping["account_number"]]).strip()
+            external_reference = str(row[mapping["external_reference"]]).strip()
+            raw_amount = row[mapping["amount"]]
+            raw_date = row[mapping["payment_date"]]
 
             # -------------------------------------------------
-            # Validate required values
+            # Validate required values & resolve tenant
             # -------------------------------------------------
-            if not tenant_id:
-                raise ValueError(
-                    "tenant_id is required."
-                )
+            if not raw_tenant:
+                raise ValueError("tenant_id / tenant_code is required.")
+
+            resolved_tenant_id = tenant_lookup.get(raw_tenant.lower(), raw_tenant)
 
             if not account_number:
                 raise ValueError(
@@ -217,9 +325,8 @@ async def import_payments(
             # Amount
             # -------------------------------------------------
             try:
-                amount = Decimal(
-                    str(row["amount"])
-                )
+                clean_amt = str(raw_amount).replace("R", "").replace("$", "").replace(",", "").strip()
+                amount = Decimal(clean_amt)
             except (
                 InvalidOperation,
                 ValueError,
@@ -232,7 +339,7 @@ async def import_payments(
             # Payment date
             # -------------------------------------------------
             parsed_date = pd.to_datetime(
-                row["payment_date"],
+                raw_date,
                 errors="coerce",
             )
 
@@ -251,7 +358,7 @@ async def import_payments(
             try:
                 payment = record_payment(
                     db,
-                    tenant_id=tenant_id,
+                    tenant_id=resolved_tenant_id,
                     account_number=account_number,
                     amount=amount,
                     payment_date=payment_date,

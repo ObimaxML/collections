@@ -1662,13 +1662,13 @@ function App() {
                             <td><span style={{ fontSize: "12px", color: "#cbd5e1" }}>{item.strategy_code ?? "STANDARD"}</span></td>
                             <td><span className={`status-pill ${getStatusPillClass(item.case_status)}`}>{formatCaseStatus(item.case_status)}</span></td>
                             <td>
-                              {currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR" ? (
-                                <button className="btn btn-secondary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
-                                  👁️ View Case
-                                </button>
-                              ) : (
+                              {currentUser?.role === "COLLECTOR" ? (
                                 <button className="btn btn-primary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
                                   🎯 Work Case
+                                </button>
+                              ) : (
+                                <button className="btn btn-secondary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
+                                  👁️ View Case
                                 </button>
                               )}
                             </td>
@@ -1719,13 +1719,13 @@ function App() {
                         </div>
 
                         <div className="mobile-card-actions">
-                          {currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR" ? (
-                            <button className="btn btn-secondary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
-                              👁️ View Case 360° (Read-Only)
-                            </button>
-                          ) : (
+                          {currentUser?.role === "COLLECTOR" ? (
                             <button className="btn btn-primary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
                               🎯 Work Debtor Case 360°
+                            </button>
+                          ) : (
+                            <button className="btn btn-secondary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(item.account_id)}>
+                              👁️ View Case 360° (Read-Only)
                             </button>
                           )}
                         </div>
@@ -4229,7 +4229,7 @@ function App() {
             {/* Workbench Actions Tabs */}
             <div className="tabs">
               <div className={`tab ${drawerTab === "overview" ? "active" : ""}`} onClick={() => setDrawerTab("overview")}>Timeline & Audit</div>
-              {currentUser?.role !== "ADMIN" && currentUser?.role !== "AUDITOR" && (
+              {currentUser?.role === "COLLECTOR" && (
                 <>
                   <div className={`tab ${drawerTab === "contact" ? "active" : ""}`} onClick={() => setDrawerTab("contact")}>Log Contact</div>
                   <div className={`tab ${drawerTab === "ptp" ? "active" : ""}`} onClick={() => setDrawerTab("ptp")}>Create PTP</div>
@@ -4239,9 +4239,9 @@ function App() {
               <div className={`tab ${drawerTab === "payments" ? "active" : ""}`} onClick={() => setDrawerTab("payments")}>Payments ({account360.payments.length})</div>
             </div>
 
-            {(currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR") && (
+            {currentUser?.role !== "COLLECTOR" && (
               <div style={{ margin: "0 0 16px 0", padding: "10px 14px", background: "rgba(56, 189, 248, 0.1)", border: "1px solid rgba(56, 189, 248, 0.25)", borderRadius: "8px", color: "#38bdf8", fontSize: "12.5px" }}>
-                🔒 <strong>{currentUser.role} View-Only Mode:</strong> You have oversight access to view all case details, promises, and payment logs without performing collector case mutations.
+                🔒 <strong>{currentUser?.role} Oversight Mode:</strong> You have read-only access to view case timelines, arrangements, and payment audits. Actioning cases (logging contact, PTP, and payment plans) is reserved exclusively for Collectors.
               </div>
             )}
 
@@ -4349,7 +4349,7 @@ function App() {
 
             {drawerTab === "payments" && (
               <div className="drawer-section">
-                {currentUser?.role !== "ADMIN" && currentUser?.role !== "AUDITOR" && (
+                {currentUser?.role === "COLLECTOR" && (
                   <>
                     <div className="drawer-section-title">💵 Capture & Post Reconciled Payment</div>
                     <div className="info-grid" style={{ marginBottom: "16px" }}>
