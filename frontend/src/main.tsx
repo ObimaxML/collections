@@ -1591,11 +1591,10 @@ function App() {
               setAccMinArrears("");
               setView("accounts");
             }}
-            title="Click to view all accounts with current unexpired billings (Current + 30D + 60D)"
+            title="Click to view all accounts with current unexpired billings"
           >
             <div className="metric-header">
               <span className="metric-title">Current Billings (&lt; 90D)</span>
-              <span className="metric-badge" style={{ background: "rgba(56, 189, 248, 0.2)", color: "#38bdf8" }}>Current + 30D + 60D</span>
             </div>
             <div className="metric-value" style={{ color: "#38bdf8" }}>
               {(() => {
