@@ -254,9 +254,9 @@ body {
 /* South African Municipal Debt & Revenue Recovery Emblem */
 .loan-emblem-wrapper {
   position: relative;
-  width: 80px;
-  height: 80px;
-  margin: 0 auto 14px;
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -265,58 +265,102 @@ body {
 .loan-emblem-bg {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(14, 165, 233, 0.15) 60%, transparent 80%);
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(14, 165, 233, 0.16) 50%, transparent 75%);
   border: 1px solid rgba(16, 185, 129, 0.35);
-  border-radius: 22px;
-  box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+  border-radius: 24px;
+  box-shadow: 0 0 35px rgba(16, 185, 129, 0.25);
   animation: emblemPulse 3.5s infinite ease-in-out;
 }
 
 .loan-svg-icon {
-  width: 58px;
-  height: 58px;
+  width: 82px;
+  height: 82px;
   position: relative;
   z-index: 2;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+  overflow: visible;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.4));
 }
 
-.rand-sack-group {
-  animation: sackFloat 3.2s infinite ease-in-out;
-  transform-origin: 24px 22px;
+/* Creative Debt Recovery Animated Groups */
+.collector-figure {
+  animation: collectorMotion 3s infinite ease-in-out;
+  transform-origin: 82px 75px;
 }
 
-.collector-hand-group {
-  animation: handCradle 3.2s infinite ease-in-out;
-  transform-origin: 20px 38px;
+.recovery-stream {
+  animation: streamPulse 1.2s infinite linear;
 }
 
-.rosette-badge-group {
-  animation: rosetteShine 2.8s infinite ease-in-out;
-  transform-origin: 10px 22px;
+.cash-bubble-1 {
+  animation: bubbleFloat1 2.2s infinite ease-in-out;
 }
 
-.down-recovery-arrow {
-  animation: arrowBounce 1.8s infinite ease-in-out;
+.cash-bubble-2 {
+  animation: bubbleFloat2 2.6s infinite ease-in-out 0.4s;
 }
 
-@keyframes sackFloat {
+.cash-bubble-3 {
+  animation: bubbleFloat3 1.9s infinite ease-in-out 0.8s;
+}
+
+.cash-bubble-4 {
+  animation: bubbleFloat4 2.4s infinite ease-in-out 0.2s;
+}
+
+.sparkle-star {
+  animation: sparkleGlow 1.8s infinite ease-in-out;
+  transform-origin: 38px 20px;
+}
+
+.debtor-vault {
+  animation: vaultVibrate 3s infinite ease-in-out;
+  transform-origin: 38px 55px;
+}
+
+@keyframes collectorMotion {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(-2deg) translateY(-1.5px); }
+}
+
+@keyframes streamPulse {
+  0% { stroke-dashoffset: 20; opacity: 0.6; }
+  50% { stroke-dashoffset: 0; opacity: 1; filter: drop-shadow(0 0 4px #38bdf8); }
+  100% { stroke-dashoffset: -20; opacity: 0.6; }
+}
+
+@keyframes bubbleFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  50% { transform: translate(-3px, -6px) scale(1.15); opacity: 1; filter: drop-shadow(0 0 6px #10b981); }
+}
+
+@keyframes bubbleFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.85; }
+  50% { transform: translate(4px, -7px) scale(1.2); opacity: 1; filter: drop-shadow(0 0 6px #f59e0b); }
+}
+
+@keyframes bubbleFloat3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.9; }
+  50% { transform: translate(-2px, -8px) scale(1.12); opacity: 1; filter: drop-shadow(0 0 5px #0ea5e9); }
+}
+
+@keyframes bubbleFloat4 {
+  0%, 100% { transform: translate(0, 0) scale(0.9); opacity: 0.7; }
+  50% { transform: translate(3px, -5px) scale(1.1); opacity: 1; }
+}
+
+@keyframes sparkleGlow {
+  0%, 100% { transform: scale(0.8) rotate(0deg); opacity: 0.4; }
+  50% { transform: scale(1.25) rotate(45deg); opacity: 1; filter: drop-shadow(0 0 6px #fbbf24); }
+}
+
+@keyframes vaultVibrate {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px) scale(1.02); }
+  50% { transform: translateY(-1px); }
 }
 
-@keyframes handCradle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(1px); }
-}
-
-@keyframes rosetteShine {
-  0%, 100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 0 2px rgba(245, 158, 11, 0.4)); }
-  50% { transform: rotate(4deg) scale(1.06); filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.8)); }
-}
-
-@keyframes arrowBounce {
-  0%, 100% { transform: translateY(0); opacity: 0.85; }
-  50% { transform: translateY(3.5px); opacity: 1; filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.7)); }
+@keyframes emblemPulse {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 40px rgba(16, 185, 129, 0.4); }
 }
 
 @keyframes emblemPulse {

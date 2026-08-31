@@ -1036,50 +1036,85 @@ function App() {
           <div className="login-brand">
             <div className="loan-emblem-wrapper">
               <div className="loan-emblem-bg"></div>
-              <svg className="loan-svg-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* 1. Green Money Sack with South African Rand 'R' */}
-                <g className="rand-sack-group">
-                  {/* Sack Tie Top Crown */}
-                  <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a" stroke="#15803d" strokeWidth="2.5" strokeLinejoin="round"/>
-                  <rect x="42" y="16" width="16" height="6" rx="3" fill="#22c55e" stroke="#16a34a" strokeWidth="1.5"/>
-                  {/* Main Sack Body */}
-                  <path d="M50 20 C32 20, 22 36, 22 56 C22 72, 34 76, 50 76 C66 76, 78 72, 78 56 C78 36, 68 20, 50 20 Z" fill="#16a34a" stroke="#15803d" strokeWidth="3" strokeLinejoin="round"/>
-                  
-                  {/* South African Rand 'R' Symbol */}
-                  <text x="50" y="58" textAnchor="middle" fill="#ffffff" fontSize="32" fontWeight="900" fontFamily="Outfit, sans-serif" style={{ filter: "drop-shadow(0 2px 3px rgba(0,0,0,0.3))" }}>
+              <svg className="loan-svg-icon" viewBox="0 0 110 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* 1. Municipal Debtor Vault & Arrears Container (Car-equivalent) */}
+                <g className="debtor-vault">
+                  {/* Vault Base & Body */}
+                  <rect x="12" y="38" width="48" height="42" rx="10" fill="#1e293b" stroke="#334155" strokeWidth="2.5"/>
+                  {/* Glowing Vault Door Dial */}
+                  <circle cx="36" cy="59" r="14" fill="#0f172a" stroke="#10b981" strokeWidth="2"/>
+                  {/* Golden Coin Center Lock */}
+                  <circle cx="36" cy="59" r="9" fill="#f59e0b" stroke="#d97706" strokeWidth="1.5"/>
+                  <text x="36" y="64" textAnchor="middle" fill="#ffffff" fontSize="11" fontWeight="900" fontFamily="Outfit, sans-serif">
                     R
                   </text>
+                  {/* Vault Indicator Hinges */}
+                  <circle cx="17" cy="46" r="2.5" fill="#64748b"/>
+                  <circle cx="17" cy="72" r="2.5" fill="#64748b"/>
+                  <rect x="52" y="55" width="5" height="8" rx="2" fill="#38bdf8"/>
                 </g>
 
-                {/* 2. Golden Rosette Badge / Certification Seal */}
-                <g className="rosette-badge-group">
-                  {/* Rosette Ribbons */}
-                  <path d="M14 55 L8 65 L16 63 L22 69 L20 57 Z" fill="#f59e0b"/>
-                  {/* Outer Orange Circle */}
-                  <circle cx="20" cy="46" r="16" fill="#f59e0b"/>
-                  {/* Inner White Ring */}
-                  <circle cx="20" cy="46" r="11" fill="#ffffff"/>
-                  {/* Center Golden Core */}
-                  <circle cx="20" cy="46" r="8" fill="#f59e0b"/>
+                {/* 2. Sparkling Clean Recovered Stars */}
+                <g className="sparkle-star">
+                  <path d="M38 18 L40 24 L46 26 L40 28 L38 34 L36 28 L30 26 L36 24 Z" fill="#fbbf24"/>
+                </g>
+                <g className="sparkle-star" style={{ transformOrigin: "20px 28px", animationDelay: "0.6s" }}>
+                  <path d="M20 25 L21.5 29 L25.5 30.5 L21.5 32 L20 36 L18.5 32 L14.5 30.5 L18.5 29 Z" fill="#34d399"/>
                 </g>
 
-                {/* 3. Descending Debt Collection / Cash Flow Arrow */}
-                <g className="down-recovery-arrow">
-                  {/* Dotted Trail Indicator */}
-                  <circle cx="82" cy="20" r="2.8" fill="#f59e0b"/>
-                  <circle cx="88" cy="20" r="2.8" fill="#f59e0b"/>
-                  <path d="M82 26 L82 32 M88 26 L88 32" stroke="#f59e0b" strokeWidth="3" strokeLinecap="round"/>
-                  {/* Downward Collection Arrow */}
-                  <path d="M74 36 L96 36 L85 52 Z" fill="#f59e0b" stroke="#f59e0b" strokeWidth="2" strokeLinejoin="round"/>
+                {/* 3. Floating Recovered Cash & Coin Bubbles */}
+                <g className="cash-bubble-1">
+                  <circle cx="48" cy="28" r="7" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" strokeWidth="1.8"/>
+                  <text x="48" y="32" textAnchor="middle" fill="#34d399" fontSize="9" fontWeight="800" fontFamily="Outfit, sans-serif">R</text>
+                </g>
+                <g className="cash-bubble-2">
+                  <circle cx="32" cy="22" r="6" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" strokeWidth="1.8"/>
+                  <text x="32" y="26" textAnchor="middle" fill="#fbbf24" fontSize="8" fontWeight="800" fontFamily="Outfit, sans-serif">R</text>
+                </g>
+                <g className="cash-bubble-3">
+                  <circle cx="58" cy="40" r="5" fill="rgba(14, 165, 233, 0.3)" stroke="#38bdf8" strokeWidth="1.5"/>
+                  <text x="58" y="44" textAnchor="middle" fill="#7dd3fc" fontSize="7" fontWeight="800" fontFamily="Outfit, sans-serif">R</text>
+                </g>
+                <g className="cash-bubble-4">
+                  <circle cx="46" cy="46" r="3.5" fill="rgba(52, 211, 153, 0.4)" stroke="#34d399" strokeWidth="1"/>
                 </g>
 
-                {/* 4. Supportive Debt Recovery Hand */}
-                <g className="collector-hand-group">
-                  {/* Cuff */}
-                  <rect x="0" y="74" width="10" height="24" rx="2" fill="#94a3b8"/>
-                  <rect x="10" y="73" width="10" height="26" rx="2" fill="#0f172a"/>
-                  {/* Hand Body & Extended Palm */}
-                  <path d="M20 83 C20 73, 30 65, 45 66 C58 67, 62 70, 62 74 C62 77, 54 77, 44 76 C40 76, 30 78, 25 84 L22 96 L68 96 C78 96, 88 90, 96 74 C97 73, 99 74, 98 76 C94 86, 82 98, 64 98 L20 98 Z" fill="#fca5a5" stroke="#ffffff" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round"/>
+                {/* 4. Active Cash Flow Recovery High-Pressure Stream */}
+                <path
+                  d="M72 63 C64 58, 54 54, 46 56"
+                  stroke="#38bdf8"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray="6 3"
+                  className="recovery-stream"
+                />
+                <path
+                  d="M72 63 C62 61, 52 60, 42 63"
+                  stroke="#34d399"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="4 2"
+                  className="recovery-stream"
+                  style={{ animationDirection: "reverse" }}
+                />
+
+                {/* 5. Collector Character Figure with Recovery Wand (Washing debt away) */}
+                <g className="collector-figure">
+                  {/* Collector Head & Hat/Cap */}
+                  <circle cx="88" cy="38" r="8.5" fill="#0ea5e9"/>
+                  {/* Collector Torso / Uniform */}
+                  <path d="M88 47 L88 67" stroke="#0ea5e9" strokeWidth="4.5" strokeLinecap="round"/>
+                  {/* Legs */}
+                  <path d="M88 67 L81 84 M88 67 L94 84" stroke="#0ea5e9" strokeWidth="4" strokeLinecap="round"/>
+                  {/* Arms & Recovery Wand Tool */}
+                  <path d="M88 53 L74 61 L70 64" stroke="#0ea5e9" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  {/* Nozzle Tool */}
+                  <rect x="69" y="61" width="5" height="5" rx="1.5" fill="#38bdf8"/>
+                  <path d="M69 63.5 L65 63.5" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round"/>
+                  {/* High-Pressure Recovery Hose linking to System Pack */}
+                  <path d="M74 62 C78 74, 88 80, 95 78" stroke="#64748b" strokeWidth="2" strokeLinecap="round" fill="none"/>
+                  {/* Recovery Pack on Back */}
+                  <rect x="91" y="50" width="5" height="13" rx="2" fill="#10b981"/>
                 </g>
               </svg>
             </div>
@@ -1224,22 +1259,27 @@ function App() {
       <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="brand-section">
           <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Recovery OS" style={{ width: "42px", height: "42px" }}>
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "32px", height: "32px" }}>
-              {/* Green Money Sack */}
-              <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a"/>
-              <rect x="42" y="16" width="16" height="6" rx="3" fill="#22c55e"/>
-              <path d="M50 20 C32 20, 22 36, 22 56 C22 72, 34 76, 50 76 C66 76, 78 72, 78 56 C78 36, 68 20, 50 20 Z" fill="#16a34a"/>
-              <text x="50" y="58" textAnchor="middle" fill="#ffffff" fontSize="32" fontWeight="900" fontFamily="Outfit, sans-serif">
-                R
-              </text>
-              {/* Rosette Medal */}
-              <circle cx="20" cy="46" r="14" fill="#f59e0b"/>
-              <circle cx="20" cy="46" r="9" fill="#ffffff"/>
-              <circle cx="20" cy="46" r="6" fill="#f59e0b"/>
-              {/* Collection Arrow */}
-              <path d="M74 36 L96 36 L85 52 Z" fill="#f59e0b"/>
-              {/* Recovery Hand */}
-              <path d="M20 83 C20 73, 30 65, 45 66 C58 67, 62 70, 62 74 C62 77, 54 77, 44 76 C40 76, 30 78, 25 84 L22 96 L68 96 C78 96, 88 90, 96 74 C97 73, 99 74, 98 76 C94 86, 82 98, 64 98 L20 98 Z" fill="#fca5a5"/>
+            <svg viewBox="0 0 110 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "36px", height: "36px" }}>
+              {/* Vault / Arrears Safe Body */}
+              <rect x="12" y="38" width="48" height="42" rx="10" fill="#1e293b" stroke="#334155" strokeWidth="2.5"/>
+              <circle cx="36" cy="59" r="13" fill="#0f172a" stroke="#10b981" strokeWidth="2"/>
+              <circle cx="36" cy="59" r="8" fill="#f59e0b"/>
+              <text x="36" y="63" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="900" fontFamily="Outfit, sans-serif">R</text>
+              {/* Sparkle */}
+              <path d="M38 18 L40 24 L46 26 L40 28 L38 34 L36 28 L30 26 L36 24 Z" fill="#fbbf24"/>
+              {/* Cash Bubbles */}
+              <circle cx="48" cy="28" r="6.5" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" strokeWidth="1.5"/>
+              <circle cx="32" cy="24" r="5" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" strokeWidth="1.5"/>
+              {/* Stream */}
+              <path d="M72 63 C64 58, 54 54, 46 56" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeDasharray="5 2.5"/>
+              {/* Collector Character */}
+              <circle cx="88" cy="38" r="8" fill="#0ea5e9"/>
+              <path d="M88 46 L88 67" stroke="#0ea5e9" strokeWidth="4" strokeLinecap="round"/>
+              <path d="M88 67 L81 84 M88 67 L94 84" stroke="#0ea5e9" strokeWidth="3.5" strokeLinecap="round"/>
+              <path d="M88 53 L74 61 L70 64" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round"/>
+              <rect x="69" y="61" width="4" height="4" rx="1" fill="#38bdf8"/>
+              <path d="M74 62 C78 74, 88 80, 95 78" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+              <rect x="91" y="50" width="4" height="12" rx="1.5" fill="#10b981"/>
             </svg>
           </div>
           <div className="brand-info">
