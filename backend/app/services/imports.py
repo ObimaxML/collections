@@ -18,6 +18,15 @@ REQUIRED_COLUMNS = {
 }
 
 COLUMN_ALIASES = {
+    "tenant_id": [
+        "tenant_id",
+        "tenant",
+        "tenant_code",
+        "municipality",
+        "municipality_code",
+        "municipality_id",
+        "municipality_name",
+    ],
     "account_number": [
         "account_number",
         "account number",
@@ -248,6 +257,42 @@ def validate_columns(columns):
         if required not in mapping:
             missing.append(required)
     return mapping, missing
+
+
+def build_mapping_details(columns):
+    normalised = {
+        normalise_column(column): column
+        for column in columns
+    }
+
+    results = []
+
+    for target, aliases in COLUMN_ALIASES.items():
+        matched_column = None
+        matched_alias = None
+
+        for alias in aliases:
+            alias_normalised = (
+                normalise_column(alias)
+            )
+
+            if alias_normalised in normalised:
+                matched_column = normalised[
+                    alias_normalised
+                ]
+                matched_alias = alias
+                break
+
+        results.append(
+            {
+                "target": target,
+                "source_column": matched_column,
+                "matched_alias": matched_alias,
+                "mapped": matched_column is not None,
+            }
+        )
+
+    return results
 
 
 def row_value(row, mapping, field):
@@ -685,3 +730,56 @@ def import_accounts(
         "skipped": skipped,
         "errors": errors,
     }
+
+
+def resolve_tenant(
+    db: Session,
+    value,
+):
+    """
+    Resolve a tenant using either:
+
+    - tenant UUID
+    - tenant code
+    - tenant name
+    """
+
+    value = clean_value(value)
+
+    if not value:
+        return None
+
+    # Try UUID first
+    try:
+        tenant_id = uuid.UUID(value)
+
+        tenant = db.scalar(
+            select(Tenant).where(
+                Tenant.id == tenant_id
+            )
+        )
+
+        if tenant:
+            return tenant
+
+    except (ValueError, AttributeError):
+        pass
+
+    # Try tenant code
+    tenant = db.scalar(
+        select(Tenant).where(
+            Tenant.code == value
+        )
+    )
+
+    if tenant:
+        return tenant
+
+    # Try tenant name
+    tenant = db.scalar(
+        select(Tenant).where(
+            Tenant.name.ilike(value)
+        )
+    )
+
+    return tenant

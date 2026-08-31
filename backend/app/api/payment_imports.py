@@ -143,9 +143,91 @@ def validate_mapping(
     return mapping, missing
 
 
+from app.services.imports import (
+    build_column_mapping as service_build_column_mapping,
+    build_mapping_details,
+    resolve_tenant,
+)
+
+
+@router.post("/import/mapping")
+async def payment_import_mapping(
+    file: UploadFile = File(...),
+):
+    content = await file.read()
+
+    filename = (
+        file.filename or ""
+    ).lower()
+
+    try:
+        if filename.endswith(".csv"):
+            df = pd.read_csv(
+                io.BytesIO(content)
+            )
+
+        elif filename.endswith(".xlsx"):
+            df = pd.read_excel(
+                io.BytesIO(content)
+            )
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Only CSV and XLSX files "
+                    "are supported."
+                ),
+            )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not read file: {exc}",
+        ) from exc
+
+    df = normalise_columns(df)
+
+    columns = list(df.columns)
+
+    mapping = build_column_mapping(
+        columns
+    )
+
+    mapping_details = build_mapping_details(
+        columns
+    )
+
+    unmapped_columns = [
+        column
+        for column in columns
+        if column not in mapping.values()
+    ]
+
+    return {
+        "filename": file.filename,
+        "rows": len(df),
+        "columns": columns,
+        "suggested_mapping": mapping,
+        "mapping_details": mapping_details,
+        "unmapped_columns": unmapped_columns,
+        "available_targets": [
+            "tenant_id",
+            "account_number",
+            "amount",
+            "payment_date",
+            "external_reference",
+        ],
+    }
+
+
 @router.post("/import/preview")
 async def preview_payment_import(
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     content = await file.read()
 
@@ -188,6 +270,47 @@ async def preview_payment_import(
         list(df.columns)
     )
 
+    tenant_results = []
+    tenant_column = mapping.get("tenant_id")
+
+    if tenant_column and tenant_column in df.columns:
+        values = (
+            df[tenant_column]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .unique()
+            .tolist()
+        )
+
+        for value in values[:20]:
+            tenant = resolve_tenant(
+                db,
+                value,
+            )
+
+            tenant_results.append(
+                {
+                    "source_value": value,
+                    "resolved": tenant is not None,
+                    "tenant_id": (
+                        str(tenant.id)
+                        if tenant
+                        else None
+                    ),
+                    "tenant_code": (
+                        tenant.code
+                        if tenant
+                        else None
+                    ),
+                    "tenant_name": (
+                        tenant.name
+                        if tenant
+                        else None
+                    ),
+                }
+            )
+
     preview = (
         df.head(10)
         .fillna("")
@@ -203,6 +326,7 @@ async def preview_payment_import(
         "mapping": mapping,
         "missing_columns": missing,
         "ready_for_import": not missing,
+        "tenant_resolution": tenant_results,
         "preview": preview,
     }
 
