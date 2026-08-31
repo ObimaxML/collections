@@ -1019,16 +1019,18 @@ function App() {
               position: "absolute",
               top: "16px",
               right: "16px",
-              padding: "5px 10px",
-              borderRadius: "20px",
-              fontSize: "12px",
+              padding: "6px 10px",
+              borderRadius: "50%",
+              fontSize: "15px",
               display: "flex",
               alignItems: "center",
-              gap: "6px",
+              justifyContent: "center",
+              width: "36px",
+              height: "36px",
             }}
             title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
           >
-            {theme === "dark" ? "☀️ Light" : "🌙 Dark"}
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
           <div className="login-brand">
@@ -1425,9 +1427,18 @@ function App() {
               className="btn btn-secondary"
               onClick={toggleTheme}
               title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
-              style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "40px",
+                height: "40px",
+                padding: "0",
+                fontSize: "17px",
+                borderRadius: "8px",
+              }}
             >
-              {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+              {theme === "dark" ? "☀️" : "🌙"}
             </button>
             <button className="btn btn-secondary" onClick={refreshData}>🔄 Refresh</button>
             <button className="btn btn-primary" onClick={triggerCaseEngine} disabled={loading}>
@@ -3356,9 +3367,9 @@ function App() {
                                     className="btn btn-secondary btn-sm"
                                     onClick={() => setViewingPdfDoc({ type: "PROPOSAL", data: prop })}
                                     style={{ padding: "4px 8px", fontSize: "11.5px" }}
-                                    title="View Proposal PDF Document"
+                                    title="View official Proposal document and print/save as PDF"
                                   >
-                                    📄 View
+                                    📄 PDF / Print
                                   </button>
 
                                   {/* Municipality Approval & Rejection Actions */}
