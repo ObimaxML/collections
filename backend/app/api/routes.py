@@ -32,6 +32,7 @@ from app.schemas import (
     UserResponse,
     TokenResponse,
     CustomerCreate,
+    CustomerUpdate,
     CustomerResponse,
     PropertyResponse,
     MunicipalAccountCreate,
@@ -499,6 +500,60 @@ def get_customer(
     return customer
 
 
+@router.put(
+    "/customers/{customer_id}",
+    response_model=CustomerResponse,
+)
+def update_customer(
+    customer_id: UUID,
+    payload: CustomerUpdate,
+    tenant_id: UUID | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Allow Municipal Admins, Collectors, and SuperAdmins to update debtor and contact details.
+    """
+    query = select(Customer).where(Customer.id == customer_id)
+    if tenant_id:
+        query = query.where(Customer.tenant_id == tenant_id)
+    
+    customer = db.execute(query).scalar_one_or_none()
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer debtor record not found.",
+        )
+
+    if payload.first_name is not None:
+        customer.first_name = payload.first_name.strip() if payload.first_name else None
+    if payload.last_name is not None:
+        customer.last_name = payload.last_name.strip() if payload.last_name else None
+    if payload.id_number is not None:
+        customer.id_number = payload.id_number.strip() if payload.id_number else None
+    if payload.company_registration is not None:
+        customer.company_registration = payload.company_registration.strip() if payload.company_registration else None
+    if payload.mobile is not None:
+        from app.services.imports import format_mobile_number
+        customer.mobile = format_mobile_number(payload.mobile) if payload.mobile else None
+    if payload.email is not None:
+        customer.email = payload.email.strip() if payload.email else None
+
+    # If address or property reference is supplied, update linked account's property
+    if payload.address is not None or payload.property_reference is not None:
+        acc = db.query(MunicipalAccount).filter(MunicipalAccount.customer_id == customer.id).first()
+        if acc and acc.property_id:
+            prop = db.get(Property, acc.property_id)
+            if prop:
+                if payload.address is not None:
+                    prop.address = payload.address.strip() if payload.address else None
+                if payload.property_reference is not None:
+                    prop.property_reference = payload.property_reference.strip() if payload.property_reference else None
+
+    db.commit()
+    db.refresh(customer)
+    return customer
+
+
 # ---------------------------------------------------------
 # Municipal Accounts
 # ---------------------------------------------------------
@@ -537,17 +592,14 @@ def create_account(
     response_model=list[MunicipalAccountResponse],
 )
 def list_accounts(
-    tenant_id: UUID,
+    tenant_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
+    query = select(MunicipalAccount)
+    if tenant_id:
+        query = query.where(MunicipalAccount.tenant_id == tenant_id)
     return db.execute(
-        select(MunicipalAccount)
-        .where(
-            MunicipalAccount.tenant_id == tenant_id
-        )
-        .order_by(
-            MunicipalAccount.arrears.desc()
-        )
+        query.order_by(MunicipalAccount.arrears.desc())
     ).scalars().all()
 
 
@@ -1593,7 +1645,7 @@ def payment_summary(
     response_model=list[WorkQueueItem],
 )
 def get_work_queue(
-    tenant_id: UUID,
+    tenant_id: UUID | None = None,
     assigned_to: str | None = None,
     limit: int = 100,
     db: Session = Depends(get_db),
@@ -1619,12 +1671,14 @@ def get_work_queue(
             Customer.id == MunicipalAccount.customer_id,
         )
         .where(
-            CollectionCase.tenant_id == tenant_id,
             CollectionCase.status.notin_(
                 ["PAID", "CLOSED"]
             ),
         )
     )
+
+    if tenant_id:
+        query = query.where(CollectionCase.tenant_id == tenant_id)
 
     if assigned_to:
         query = query.where(

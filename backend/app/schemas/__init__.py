@@ -62,6 +62,17 @@ class CustomerCreate(CustomerBase):
     tenant_id: UUID
 
 
+class CustomerUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    id_number: str | None = None
+    company_registration: str | None = None
+    mobile: str | None = None
+    email: str | None = None
+    address: str | None = None
+    property_reference: str | None = None
+
+
 class CustomerResponse(CustomerBase):
     id: UUID
     tenant_id: UUID

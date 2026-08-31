@@ -57,9 +57,11 @@ interface Account360 {
   last_payment_date: string | null;
   last_payment_amount: string;
   customer: {
+    id?: string;
     first_name: string | null;
     last_name: string | null;
     id_number: string | null;
+    company_registration?: string | null;
     mobile: string | null;
     email: string | null;
     popia_consent_status?: string | null;
@@ -256,6 +258,7 @@ function App() {
   const [newTenantContactPosition, setNewTenantContactPosition] = useState("");
   const [newTenantContactPhone, setNewTenantContactPhone] = useState("");
   const [editingTenant, setEditingTenant] = useState<any>(null);
+  const [editingDebtor, setEditingDebtor] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Filter states
@@ -275,33 +278,37 @@ function App() {
         if (Array.isArray(data) && data.length > 0) {
           setTenants(data);
           setSelectedTenant(prev => {
+            if (currentUser?.role === "SUPERADMIN") {
+              const savedDefault = localStorage.getItem(`cos_default_tenant_${currentUser.id}`);
+              if (savedDefault === "GLOBAL") return "GLOBAL";
+              if (savedDefault && data.some(d => d.id === savedDefault)) return savedDefault;
+              return prev || "GLOBAL";
+            }
             const savedDefault = currentUser?.id ? localStorage.getItem(`cos_default_tenant_${currentUser.id}`) : null;
             const userAssigned = currentUser?.tenant_ids || (currentUser?.tenant_id ? [currentUser.tenant_id] : []);
             
             if (savedDefault && data.some(d => d.id === savedDefault)) {
-              if (currentUser?.role === "SUPERADMIN" || userAssigned.includes(savedDefault)) {
+              if (userAssigned.includes(savedDefault)) {
                 return savedDefault;
               }
             }
             if (currentUser?.tenant_id && data.some(d => d.id === currentUser.tenant_id)) {
               return currentUser.tenant_id;
             }
-            if (currentUser?.role !== "SUPERADMIN" && userAssigned.length > 0) {
+            if (userAssigned.length > 0) {
               if (prev && userAssigned.includes(prev)) return prev;
               return userAssigned[0];
             }
             return prev || data[0].id;
           });
         } else {
-          setTenants([
-            { id: "9199c540-11dc-4ce0-bc70-922fccf25274", name: "City of Johannesburg", code: "JHB", engagement_model: "MANAGED_SERVICE", subscription_tier: "ENTERPRISE", commission_rate: 10.00, monthly_subscription_fee: 0, subscription_status: "ACTIVE" },
-          ]);
-          setSelectedTenant(prev => prev || "9199c540-11dc-4ce0-bc70-922fccf25274");
+          setTenants([]);
+          if (currentUser?.role === "SUPERADMIN") {
+            setSelectedTenant("GLOBAL");
+          }
         }
       })
-      .catch(err => {
-        console.error("Could not fetch tenants:", err);
-      });
+      .catch(console.error);
   };
 
   // Get municipalities accessible to the current user
@@ -487,14 +494,17 @@ function App() {
 
   const refreshData = () => {
     if (!selectedTenant) return;
+    const tenantParam = (selectedTenant === "GLOBAL" || !selectedTenant) ? "" : `?tenant_id=${selectedTenant}`;
+    const tenantParamPrefix = (selectedTenant === "GLOBAL" || !selectedTenant) ? "" : `tenant_id=${selectedTenant}`;
+
     // 1. Dashboard summary
-    fetch(`${API}/dashboard/summary?tenant_id=${selectedTenant}`)
+    fetch(`${API}/dashboard/summary${tenantParam}`)
       .then(r => r.json())
       .then(setSummary)
       .catch(console.error);
 
     // 2. Work Queue
-    fetch(`${API}/work-queue?tenant_id=${selectedTenant}`)
+    fetch(`${API}/work-queue${tenantParam}`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -531,7 +541,7 @@ function App() {
       });
 
     // 3. Accounts
-    fetch(`${API}/accounts?tenant_id=${selectedTenant}`)
+    fetch(`${API}/accounts${tenantParam}`)
       .then(r => r.json())
       .then(setAccounts)
       .catch(console.error);
@@ -1336,6 +1346,9 @@ function App() {
             )}
           </div>
           <select value={selectedTenant} onChange={e => setSelectedTenant(e.target.value)}>
+            {currentUser?.role === "SUPERADMIN" && (
+              <option value="GLOBAL">🌍 Global (All Municipalities)</option>
+            )}
             {accessibleTenants.map(t => (
               <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
             ))}
@@ -4405,7 +4418,32 @@ function App() {
 
             {/* Debtor Profile */}
             <div className="drawer-section">
-              <div className="drawer-section-title">👤 Customer & Property Master</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                <div className="drawer-section-title" style={{ margin: 0 }}>👤 Customer & Property Master</div>
+                {(currentUser?.role === "ADMIN" || currentUser?.role === "COLLECTOR" || currentUser?.role === "SUPERADMIN") && account360.customer && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: "4px 10px", fontSize: "11.5px", fontWeight: 600, color: "#38bdf8", borderColor: "rgba(56, 189, 248, 0.4)", background: "rgba(56, 189, 248, 0.1)" }}
+                    onClick={() => {
+                      const cust = account360.customer!;
+                      setEditingDebtor({
+                        id: cust.id,
+                        first_name: cust.first_name || "",
+                        last_name: cust.last_name || "",
+                        id_number: cust.id_number || "",
+                        company_registration: cust.company_registration || "",
+                        mobile: cust.mobile || "",
+                        email: cust.email || "",
+                        address: account360.property?.address || "",
+                        property_reference: account360.property?.property_reference || "",
+                      });
+                    }}
+                  >
+                    ✏️ Edit Debtor Details
+                  </button>
+                )}
+              </div>
               <div className="info-grid">
                 <div className="info-item">
                   <label>Full Name</label>
@@ -5166,6 +5204,167 @@ function App() {
                     {loading ? "Saving..." : "💾 Update Municipality"}
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Debtor Modal Dialog */}
+      {editingDebtor && (
+        <div className="modal-backdrop" onClick={() => setEditingDebtor(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "94%", margin: "auto", animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "14px" }}>
+              <div className="panel-title">
+                <h3 style={{ margin: 0, color: "#f8fafc", fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  ✏️ Edit Debtor & Property Master Details
+                </h3>
+                <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                  Update contact numbers, identification, primary billing email, and physical stand address
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setEditingDebtor(null)}
+                style={{ padding: "4px 10px", fontSize: "14px" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!editingDebtor) return;
+              setLoading(true);
+              try {
+                const res = await fetch(`${API}/customers/${editingDebtor.id}`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    first_name: editingDebtor.first_name,
+                    last_name: editingDebtor.last_name,
+                    id_number: editingDebtor.id_number,
+                    company_registration: editingDebtor.company_registration,
+                    mobile: editingDebtor.mobile,
+                    email: editingDebtor.email,
+                    address: editingDebtor.address,
+                    property_reference: editingDebtor.property_reference,
+                  }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                  alert(`Error updating debtor details: ${data.detail || "Server error"}`);
+                  return;
+                }
+                alert("Debtor master details updated successfully!");
+                setEditingDebtor(null);
+                if (selectedAccountId) {
+                  openAccountWorkbench(selectedAccountId);
+                }
+                refreshData();
+              } catch (err: any) {
+                alert("Network error: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>First Name / Entity Name</label>
+                  <input
+                    type="text"
+                    value={editingDebtor.first_name || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, first_name: e.target.value })}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Surname / Suffix</label>
+                  <input
+                    type="text"
+                    value={editingDebtor.last_name || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, last_name: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>SA ID Number / Registration</label>
+                  <input
+                    type="text"
+                    value={editingDebtor.id_number || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, id_number: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Company Reg / Trust No.</label>
+                  <input
+                    type="text"
+                    value={editingDebtor.company_registration || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, company_registration: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Mobile / Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 082 123 4567"
+                    value={editingDebtor.mobile || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, mobile: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Debtor Billing Email</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. debtor@example.co.za"
+                    value={editingDebtor.email || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, email: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "20px" }}>
+                <div className="form-group">
+                  <label>Physical Cadastral Address</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Stand 45, Schalk Farm 3, Ba-Phalaborwa"
+                    value={editingDebtor.address || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, address: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Cadastral Reference (ERF / Stand)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ERF 45"
+                    value={editingDebtor.property_reference || ""}
+                    onChange={e => setEditingDebtor({ ...editingDebtor, property_reference: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingDebtor(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Saving..." : "💾 Save Debtor Details"}
+                </button>
               </div>
             </form>
           </div>
