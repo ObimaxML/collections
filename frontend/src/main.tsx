@@ -214,9 +214,11 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("cos_user_v2");
-    localStorage.removeItem("cos_user");
-    setCurrentUser(null);
+    if (window.confirm("Are you sure you want to sign out and log out of Khokhisa Debt Recovery OS?")) {
+      localStorage.removeItem("cos_user_v2");
+      localStorage.removeItem("cos_user");
+      setCurrentUser(null);
+    }
   };
   const [contactOutcome, setContactOutcome] = useState("CUSTOMER_ENGAGED");
   const [contactChannel, setContactChannel] = useState("PHONE");
