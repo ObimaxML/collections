@@ -1165,9 +1165,9 @@ function App() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
-          <div className="login-brand" style={{ marginBottom: "24px" }}>
-            <div className="loan-emblem-wrapper" style={{ width: "72px", height: "72px", margin: "0 auto 8px" }}>
-              <svg className="loan-svg-icon" viewBox="0 0 64 64" width="72" height="72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="login-brand" style={{ marginBottom: "26px", paddingTop: "14px" }}>
+            <div className="loan-emblem-wrapper" style={{ width: "76px", height: "76px", margin: "0 auto 12px" }}>
+              <svg className="loan-svg-icon" viewBox="0 0 64 64" width="76" height="76" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Left Emerald/Cyan Gradient Sphere */}
                 <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
                 {/* Right Cobalt/Indigo Gradient Sphere */}
@@ -1180,8 +1180,8 @@ function App() {
                 </text>
               </svg>
             </div>
-            <h2 style={{ marginTop: "4px", marginBottom: "2px" }}>Khokhisa</h2>
-            <p style={{ color: "#38bdf8", fontWeight: 600, letterSpacing: "0.5px", fontSize: "12px", textTransform: "uppercase", margin: 0 }}>Debt Recovery OS</p>
+            <h2 style={{ marginTop: "4px", marginBottom: "2px", fontSize: "28px" }}>Khokhisa</h2>
+            <p style={{ color: "#38bdf8", fontWeight: 700, letterSpacing: "0.8px", fontSize: "12px", textTransform: "uppercase", margin: 0 }}>Debt Recovery OS</p>
           </div>
 
           {loginError && <div className="login-error">{loginError}</div>}
@@ -1276,9 +1276,9 @@ function App() {
     <div className="app-container">
       {/* Mobile Top Header */}
       <header className="mobile-header">
-        <div className="brand-section" style={{ margin: 0, padding: 0, display: "flex", alignItems: "center", gap: "10px" }}>
-          <div className="brand-icon" style={{ width: "36px", height: "36px", flexShrink: 0 }}>
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "36px", height: "36px" }}>
+        <div className="brand-section" style={{ margin: 0, padding: 0, display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="brand-icon" style={{ width: "42px", height: "42px", flexShrink: 0 }}>
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "42px", height: "42px" }}>
               <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
               <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
               <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
@@ -1288,8 +1288,8 @@ function App() {
             </svg>
           </div>
           <div className="brand-info" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <h1 style={{ fontSize: "16px", margin: 0, lineHeight: "1.1", fontWeight: 700 }}>Khokhisa</h1>
-            <span style={{ fontSize: "9px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "1px", background: "none", padding: 0 }}>
+            <h1 style={{ fontSize: "17px", margin: 0, lineHeight: "1.1", fontWeight: 700 }}>Khokhisa</h1>
+            <span style={{ fontSize: "9.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "2px", background: "none", padding: 0 }}>
               DEBT RECOVERY OS
             </span>
           </div>
@@ -1313,9 +1313,9 @@ function App() {
 
       {/* Sidebar */}
       <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
-        <div className="brand-section" style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-          <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Recovery OS" style={{ width: "42px", height: "42px", flexShrink: 0 }}>
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "42px", height: "42px" }}>
+        <div className="brand-section" style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "22px", padding: "4px 2px" }}>
+          <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Recovery OS" style={{ width: "52px", height: "52px", flexShrink: 0 }}>
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "52px", height: "52px" }}>
               <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
               <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
               <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
@@ -1325,8 +1325,8 @@ function App() {
             </svg>
           </div>
           <div className="brand-info" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <h1 style={{ margin: 0, fontSize: "18px", lineHeight: "1.1", fontWeight: 700, letterSpacing: "-0.3px" }}>Khokhisa</h1>
-            <span style={{ fontSize: "10px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "2px", background: "none", padding: 0 }}>
+            <h1 style={{ margin: 0, fontSize: "21px", lineHeight: "1.1", fontWeight: 800, letterSpacing: "-0.4px" }}>Khokhisa</h1>
+            <span style={{ fontSize: "10.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.7px", textTransform: "uppercase", marginTop: "3px", background: "none", padding: 0 }}>
               DEBT RECOVERY OS
             </span>
           </div>
