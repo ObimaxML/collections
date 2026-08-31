@@ -4822,7 +4822,7 @@ function App() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "24px" }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "8px" }}>
-                    {/* Stylish Modern Fintech Emblem */}
+                    {/* Stylish Modern Fintech Emblem (Canvas & PDF Native Compatible) */}
                     <div style={{
                       width: "48px",
                       height: "48px",
@@ -4832,39 +4832,24 @@ function App() {
                       justifyContent: "center",
                       flexShrink: 0,
                     }}>
-                      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "48px", height: "48px" }}>
-                        <circle cx="25" cy="32" r="19" fill="url(#leftSphereGrad)" fillOpacity="0.95"/>
-                        <circle cx="39" cy="32" r="19" fill="url(#rightSphereGrad)" fillOpacity="0.88" style={{ mixBlendMode: "multiply" }}/>
-                        <path d="M32 17 C36 24, 36 40, 32 47 C28 40, 28 24, 32 17 Z" fill="url(#centerCoreGrad)" fillOpacity="0.92"/>
-                        <circle cx="32" cy="32" r="27" stroke="url(#ringGrad)" strokeWidth="1.8" strokeDasharray="3 2" opacity="0.6"/>
-                        <text x="32" y="38.5" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="900" fontFamily="Outfit, -apple-system, sans-serif" style={{ filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.6))" }}>
+                      <svg viewBox="0 0 64 64" width="48" height="48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Outer Precision Ring */}
+                        <circle cx="32" cy="32" r="28" stroke="#0ea5e9" strokeWidth="1.5" strokeDasharray="3 2" fill="#0f172a"/>
+                        {/* Left Emerald/Cyan Sphere */}
+                        <circle cx="25" cy="32" r="16" fill="#10b981" fillOpacity="0.85"/>
+                        {/* Right Cobalt Sphere */}
+                        <circle cx="39" cy="32" r="16" fill="#0284c7" fillOpacity="0.85"/>
+                        {/* Center Lens Overlap */}
+                        <path d="M32 19 C35.5 25, 35.5 39, 32 45 C28.5 39, 28.5 25, 32 19 Z" fill="#38bdf8"/>
+                        {/* Center Monogram */}
+                        <text x="32" y="38.5" textAnchor="middle" fill="#ffffff" fontSize="18" fontWeight="900" fontFamily="sans-serif">
                           K
                         </text>
-                        <defs>
-                          <linearGradient id="leftSphereGrad" x1="6" y1="13" x2="44" y2="51" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#059669"/>
-                            <stop offset="1" stopColor="#0284c7"/>
-                          </linearGradient>
-                          <linearGradient id="rightSphereGrad" x1="20" y1="13" x2="58" y2="51" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#3b82f6"/>
-                            <stop offset="1" stopColor="#6366f1"/>
-                          </linearGradient>
-                          <linearGradient id="centerCoreGrad" x1="28" y1="17" x2="36" y2="47" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#10b981"/>
-                            <stop offset="0.5" stopColor="#38bdf8"/>
-                            <stop offset="1" stopColor="#4f46e5"/>
-                          </linearGradient>
-                          <linearGradient id="ringGrad" x1="5" y1="5" x2="59" y2="59" gradientUnits="userSpaceOnUse">
-                            <stop stopColor="#10b981"/>
-                            <stop offset="0.5" stopColor="#38bdf8"/>
-                            <stop offset="1" stopColor="#818cf8"/>
-                          </linearGradient>
-                        </defs>
                       </svg>
                     </div>
 
                     <div>
-                      <h2 style={{ margin: 0, fontSize: "23px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, -apple-system, sans-serif", letterSpacing: "-0.5px" }}>
+                      <h2 style={{ margin: 0, fontSize: "23px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, sans-serif", letterSpacing: "-0.5px" }}>
                         KHOKHISA
                       </h2>
                     </div>
@@ -5018,20 +5003,34 @@ function App() {
                   if (!el) return;
                   const docNum = viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number;
                   try {
-                    let html2pdfInstance = (window as any).html2pdf;
-                    if (!html2pdfInstance) {
-                      const mod = await import("html2pdf.js");
-                      html2pdfInstance = mod.default || mod;
-                    }
-                    const opt = {
-                      margin: [10, 10, 10, 10],
-                      filename: `${viewingPdfDoc.type}_${docNum}.pdf`,
-                      image: { type: "jpeg", quality: 0.98 },
-                      html2canvas: { scale: 2, useCORS: true, logging: false },
-                      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
-                    };
-                    html2pdfInstance().set(opt).from(el).save();
+                    const html2canvasModule = await import("html2canvas");
+                    const { jsPDF } = await import("jspdf");
+                    const html2canvas = html2canvasModule.default || html2canvasModule;
+
+                    const canvas = await html2canvas(el, {
+                      scale: 2,
+                      useCORS: true,
+                      logging: false,
+                      backgroundColor: "#ffffff",
+                    });
+
+                    const imgData = canvas.toDataURL("image/png");
+                    const pdf = new jsPDF({
+                      orientation: "portrait",
+                      unit: "mm",
+                      format: "a4",
+                    });
+
+                    const imgWidth = 190;
+                    const pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 10;
+
+                    pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+                    pdf.save(`${viewingPdfDoc.type}_${docNum}.pdf`);
                   } catch (e) {
+                    console.error("PDF generation fallback:", e);
                     window.print();
                   }
                 }}
