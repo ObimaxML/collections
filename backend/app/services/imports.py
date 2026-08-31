@@ -21,10 +21,15 @@ COLUMN_ALIASES = {
     "account_number": [
         "account_number",
         "account number",
+        "account #",
+        "account_#",
         "account_no",
         "account no",
+        "accountno",
         "municipal_account",
         "municipal account",
+        "acc_no",
+        "acc no",
         "account",
     ],
     "account_status": [
@@ -37,11 +42,17 @@ COLUMN_ALIASES = {
         "account_balance",
         "account balance",
         "total_balance",
+        "total balance",
     ],
     "arrears": [
+        "90 days plus",
+        "90_days_plus",
+        "90+ days",
+        "90+ days plus",
         "arrears",
         "arrears_amount",
         "arrears amount",
+        "overdue_amount",
     ],
     "days_in_arrears": [
         "days_in_arrears",
@@ -54,12 +65,16 @@ COLUMN_ALIASES = {
         "first name",
         "firstname",
         "customer_first_name",
+        "name",
+        "customer_name",
+        "account_holder",
     ],
     "last_name": [
         "last_name",
         "last name",
         "lastname",
         "customer_last_name",
+        "surname",
     ],
     "id_number": [
         "id_number",
@@ -67,21 +82,38 @@ COLUMN_ALIASES = {
         "id_no",
         "id no",
         "identity_number",
+        "identity number",
+        "id",
     ],
     "company_registration": [
         "company_registration",
         "company registration",
         "registration_number",
         "registration number",
+        "reg_no",
+        "reg no",
     ],
     "mobile": [
+        "cellular phone",
+        "cellular_phone",
+        "cell phone",
+        "cell_phone",
+        "cellular",
+        "cell",
         "mobile",
         "mobile_number",
         "mobile number",
+        "telephone 1",
+        "telephone_1",
+        "telephone 2",
+        "telephone_2",
+        "telephone",
         "phone",
         "phone_number",
     ],
     "email": [
+        "e_mail",
+        "e-mail",
         "email",
         "email_address",
         "email address",
@@ -91,12 +123,17 @@ COLUMN_ALIASES = {
         "property reference",
         "property_ref",
         "property ref",
+        "erf",
+        "stand",
     ],
     "address": [
+        "physical_address",
+        "physical address",
         "address",
         "property_address",
         "property address",
         "street_address",
+        "suburb",
     ],
     "last_payment_date": [
         "last_payment_date",
@@ -417,6 +454,22 @@ def import_accounts(
                 mapping,
                 "last_name",
             )
+
+            # Smart name splitting if only single full name column exists
+            if first_name and not last_name:
+                cleaned_name = first_name.strip()
+                # If name looks like a company or trust, store it under company registration / first name
+                if any(kw in cleaned_name.upper() for kw in ["(PTY)", "LTD", "TRUST", "ASSOC", "CC", "CHURCH", "MUNICIPALITY", "HOLDINGS"]):
+                    first_name = cleaned_name
+                    last_name = ""
+                else:
+                    parts = cleaned_name.split(None, 1)
+                    if len(parts) == 2:
+                        first_name, last_name = parts[0], parts[1]
+                    else:
+                        first_name = parts[0]
+                        last_name = ""
+
             id_number = row_value(
                 row,
                 mapping,
@@ -434,11 +487,22 @@ def import_accounts(
                     "mobile",
                 )
             )
+            # If mobile is empty, check alternate phone columns in raw row
+            if not mobile:
+                for alt_phone in ["Cellular Phone", "Telephone 1", "Telephone 2", "Phone", "Mobile"]:
+                    if alt_phone in row and row[alt_phone]:
+                        cand = format_mobile_number(row[alt_phone])
+                        if cand:
+                            mobile = cand
+                            break
+
             email = row_value(
                 row,
                 mapping,
                 "email",
             )
+            if email and ";" in str(email):
+                email = str(email).split(";")[0].strip()
 
             customer = find_customer(
                 db,
@@ -510,6 +574,14 @@ def import_accounts(
                 "address",
             )
 
+            # Check if SUBURB is present to build complete physical municipal address
+            suburb = clean_value(row.get("SUBURB") or row.get("suburb"))
+            if suburb and suburb != "-" and address:
+                if suburb.lower() not in address.lower():
+                    address = f"{address}, {suburb}"
+            elif suburb and suburb != "-" and not address:
+                address = suburb
+
             property_obj = find_property(
                 db,
                 tenant_id,
@@ -556,14 +628,20 @@ def import_accounts(
                     row,
                     mapping,
                     "arrears",
-                )
+                ),
+                default=balance,
             )
+            # If arrears was parsed as 0 but balance > 0, set arrears to balance
+            if arrears == Decimal("0.00") and balance > Decimal("0.00"):
+                arrears = balance
+
             days_in_arrears = parse_integer(
                 row_value(
                     row,
                     mapping,
                     "days_in_arrears",
-                )
+                ),
+                default=90 if arrears > Decimal("0.00") else 0,
             )
             last_payment_date = parse_date(
                 row_value(
