@@ -792,7 +792,13 @@ function App() {
       const res = await fetch(url, {
         method: "PATCH",
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        data = { detail: text || `HTTP ${res.status} ${res.statusText}` };
+      }
       if (!res.ok) {
         alert("Error updating proposal status: " + (data.detail || JSON.stringify(data)));
         return;
