@@ -1,12 +1,18 @@
 import io
+import json
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.services.imports import (
+    build_column_mapping as service_build_column_mapping,
+    build_mapping_details,
+    resolve_tenant,
+)
 from app.services.payment_service import (
     PaymentAccountNotFoundError,
     PaymentDuplicateError,
@@ -143,11 +149,25 @@ def validate_mapping(
     return mapping, missing
 
 
-from app.services.imports import (
-    build_column_mapping as service_build_column_mapping,
-    build_mapping_details,
-    resolve_tenant,
-)
+def get_mapped_value(
+    row,
+    mapping,
+    target,
+):
+    source_column = mapping.get(target)
+
+    if not source_column:
+        return None
+
+    value = row.get(source_column)
+
+    if pd.isna(value):
+        return None
+
+    if isinstance(value, str):
+        value = value.strip()
+
+    return value
 
 
 @router.post("/import/mapping")
@@ -331,10 +351,10 @@ async def preview_payment_import(
     }
 
 
-@router.post("/import")
-async def import_payments(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
+async def process_payment_import(
+    file: UploadFile,
+    db: Session,
+    mapping_override: dict[str, str] | None = None,
 ):
     content = await file.read()
 
@@ -376,17 +396,44 @@ async def import_payments(
 
     df = normalise_columns(df)
 
-    mapping, missing = validate_mapping(list(df.columns))
+    # ---------------------------------------------------------
+    # Build or use supplied mapping
+    # ---------------------------------------------------------
+    automatic_mapping = build_column_mapping(
+        list(df.columns)
+    )
+
+    mapping = automatic_mapping.copy()
+
+    if mapping_override:
+        for target, source in mapping_override.items():
+            if source in df.columns:
+                mapping[target] = source
+
+    required_targets = {
+        "tenant_id",
+        "account_number",
+        "amount",
+        "payment_date",
+        "external_reference",
+    }
+
+    missing = [
+        target
+        for target in required_targets
+        if target not in mapping
+    ]
 
     if missing:
         raise HTTPException(
             status_code=400,
             detail={
-                "message": "Missing required columns.",
-                "missing_columns": sorted(missing),
-                "required_columns": sorted(
-                    REQUIRED_COLUMNS
+                "message": (
+                    "Required payment fields "
+                    "could not be mapped."
                 ),
+                "missing_fields": missing,
+                "mapping": mapping,
             },
         )
 
@@ -401,18 +448,6 @@ async def import_payments(
     errors = []
     imported_payment_ids = []
 
-    # Cache for tenant lookups (id, code, or name)
-    from app.models import Tenant
-    from sqlalchemy import select
-    all_tenants = db.scalars(select(Tenant)).all()
-    tenant_lookup = {}
-    for t in all_tenants:
-        tenant_lookup[str(t.id).lower()] = str(t.id)
-        if t.code:
-            tenant_lookup[str(t.code).lower()] = str(t.id)
-        if t.name:
-            tenant_lookup[str(t.name).lower()] = str(t.id)
-
     # ---------------------------------------------------------
     # Process rows
     # ---------------------------------------------------------
@@ -421,49 +456,107 @@ async def import_payments(
         row_number = index + 2
 
         try:
-            raw_tenant = str(row[mapping["tenant_id"]]).strip()
-            account_number = str(row[mapping["account_number"]]).strip()
-            external_reference = str(row[mapping["external_reference"]]).strip()
-            raw_amount = row[mapping["amount"]]
-            raw_date = row[mapping["payment_date"]]
+            tenant_value = get_mapped_value(
+                row,
+                mapping,
+                "tenant_id",
+            )
+
+            account_number = get_mapped_value(
+                row,
+                mapping,
+                "account_number",
+            )
+
+            amount_value = get_mapped_value(
+                row,
+                mapping,
+                "amount",
+            )
+
+            payment_date_value = get_mapped_value(
+                row,
+                mapping,
+                "payment_date",
+            )
+
+            external_reference = get_mapped_value(
+                row,
+                mapping,
+                "external_reference",
+            )
 
             # -------------------------------------------------
-            # Validate required values & resolve tenant
+            # Tenant
             # -------------------------------------------------
-            if not raw_tenant:
-                raise ValueError("tenant_id / tenant_code is required.")
+            tenant = resolve_tenant(
+                db,
+                tenant_value,
+            )
 
-            resolved_tenant_id = tenant_lookup.get(raw_tenant.lower(), raw_tenant)
+            if tenant is None:
+                raise ValueError(
+                    f"Tenant not found: "
+                    f"{tenant_value}"
+                )
 
+            tenant_id = str(tenant.id)
+
+            # -------------------------------------------------
+            # Account
+            # -------------------------------------------------
             if not account_number:
                 raise ValueError(
                     "account_number is required."
                 )
 
+            account_number = str(
+                account_number
+            ).strip()
+
+            # -------------------------------------------------
+            # Reference
+            # -------------------------------------------------
             if not external_reference:
                 raise ValueError(
                     "external_reference is required."
                 )
 
+            external_reference = str(
+                external_reference
+            ).strip()
+
             # -------------------------------------------------
             # Amount
             # -------------------------------------------------
             try:
-                clean_amt = str(raw_amount).replace("R", "").replace("$", "").replace(",", "").strip()
-                amount = Decimal(clean_amt)
+                amount = Decimal(
+                    str(amount_value)
+                    .replace("R", "")
+                    .replace("r", "")
+                    .replace(",", "")
+                    .strip()
+                )
             except (
                 InvalidOperation,
                 ValueError,
+                AttributeError,
             ) as exc:
                 raise ValueError(
                     "Invalid payment amount."
                 ) from exc
 
+            if amount <= Decimal("0.00"):
+                raise ValueError(
+                    "Payment amount must be "
+                    "greater than zero."
+                )
+
             # -------------------------------------------------
             # Payment date
             # -------------------------------------------------
             parsed_date = pd.to_datetime(
-                raw_date,
+                payment_date_value,
                 errors="coerce",
             )
 
@@ -472,21 +565,25 @@ async def import_payments(
                     "Invalid payment date."
                 )
 
-            payment_date = parsed_date.date()
+            payment_date = (
+                parsed_date.date()
+            )
 
             # -------------------------------------------------
-            # Savepoint & Record Payment
+            # Savepoint
             # -------------------------------------------------
             savepoint = db.begin_nested()
 
             try:
                 payment = record_payment(
                     db,
-                    tenant_id=resolved_tenant_id,
+                    tenant_id=tenant_id,
                     account_number=account_number,
                     amount=amount,
                     payment_date=payment_date,
-                    external_reference=external_reference,
+                    external_reference=(
+                        external_reference
+                    ),
                     actor="payment_import",
                 )
 
@@ -507,7 +604,9 @@ async def import_payments(
                     {
                         "row": row_number,
                         "status": "DUPLICATE",
-                        "external_reference": external_reference,
+                        "external_reference": (
+                            external_reference
+                        ),
                         "message": str(exc),
                     }
                 )
@@ -552,17 +651,46 @@ async def import_payments(
                 }
             )
 
-    # ---------------------------------------------------------
-    # Commit all valid payments
-    # ---------------------------------------------------------
     db.commit()
 
     return {
+        "success": True,
         "filename": file.filename,
+        "mapping": mapping,
         "total_rows": total_rows,
         "imported": imported,
         "duplicates": duplicates,
         "rejected": rejected,
-        "payment_ids": imported_payment_ids,
         "errors": errors,
+        "imported_payment_ids": (
+            imported_payment_ids
+        ),
     }
+
+
+@router.post("/import")
+async def import_payments(
+    file: UploadFile = File(...),
+    mapping: str | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    mapping_override = None
+
+    if mapping:
+        try:
+            mapping_override = json.loads(
+                mapping
+            )
+        except json.JSONDecodeError as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Invalid mapping JSON."
+                ),
+            ) from exc
+
+    return await process_payment_import(
+        file=file,
+        db=db,
+        mapping_override=mapping_override,
+    )
