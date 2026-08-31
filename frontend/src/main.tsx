@@ -2812,28 +2812,42 @@ function App() {
 
                   {newRole !== "SUPERADMIN" && (
                     <div className="form-group" style={{ marginBottom: "20px" }}>
-                      <label>Assign to Municipalities (Multi-Select)</label>
+                      <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Assign to Municipalities (Multi-Select)</span>
+                        {newRole === "ADMIN" && (
+                          <span style={{ fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
+                            ℹ️ Admin logins can only be assigned to SaaS Subscription municipalities
+                          </span>
+                        )}
+                      </label>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", padding: "10px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                        {tenants.map(t => {
-                          const isChecked = newTenantIds.includes(t.id);
-                          return (
-                            <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={e => {
-                                  if (e.target.checked) {
-                                    setNewTenantIds([...newTenantIds, t.id]);
-                                  } else {
-                                    setNewTenantIds(newTenantIds.filter(id => id !== t.id));
-                                  }
-                                }}
-                                style={{ width: "16px", height: "16px" }}
-                              />
-                              <span>{t.name} ({t.code})</span>
-                            </label>
-                          );
-                        })}
+                        {tenants
+                          .filter(t => newRole !== "ADMIN" || t.engagement_model === "SAAS_SELF_SERVICE")
+                          .map(t => {
+                            const isChecked = newTenantIds.includes(t.id);
+                            return (
+                              <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={e => {
+                                    if (e.target.checked) {
+                                      setNewTenantIds([...newTenantIds, t.id]);
+                                    } else {
+                                      setNewTenantIds(newTenantIds.filter(id => id !== t.id));
+                                    }
+                                  }}
+                                  style={{ width: "16px", height: "16px" }}
+                                />
+                                <span>{t.name} ({t.code})</span>
+                              </label>
+                            );
+                          })}
+                        {newRole === "ADMIN" && tenants.filter(t => t.engagement_model === "SAAS_SELF_SERVICE").length === 0 && (
+                          <div style={{ color: "#fb7185", fontSize: "12.5px", padding: "8px", gridColumn: "1 / -1" }}>
+                            ⚠️ No municipalities currently operate under the <strong>SaaS Subscription</strong> model. Please change the municipality's engagement model under <em>Municipalities</em> first.
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -4183,28 +4197,42 @@ function App() {
 
               {editRole !== "SUPERADMIN" && (
                 <div className="form-group" style={{ marginBottom: "16px" }}>
-                  <label>Assigned Municipalities (Multi-Select)</label>
+                  <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Assigned Municipalities (Multi-Select)</span>
+                    {editRole === "ADMIN" && (
+                      <span style={{ fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
+                        ℹ️ Admin logins only available on SaaS Subscription
+                      </span>
+                    )}
+                  </label>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", padding: "10px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                    {tenants.map(t => {
-                      const isChecked = editTenantIds.includes(t.id);
-                      return (
-                        <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setEditTenantIds([...editTenantIds, t.id]);
-                              } else {
-                                setEditTenantIds(editTenantIds.filter(id => id !== t.id));
-                              }
-                            }}
-                            style={{ width: "16px", height: "16px" }}
-                          />
-                          <span>{t.name} ({t.code})</span>
-                        </label>
-                      );
-                    })}
+                    {tenants
+                      .filter(t => editRole !== "ADMIN" || t.engagement_model === "SAAS_SELF_SERVICE")
+                      .map(t => {
+                        const isChecked = editTenantIds.includes(t.id);
+                        return (
+                          <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setEditTenantIds([...editTenantIds, t.id]);
+                                } else {
+                                  setEditTenantIds(editTenantIds.filter(id => id !== t.id));
+                                }
+                              }}
+                              style={{ width: "16px", height: "16px" }}
+                            />
+                            <span>{t.name} ({t.code})</span>
+                          </label>
+                        );
+                      })}
+                    {editRole === "ADMIN" && tenants.filter(t => t.engagement_model === "SAAS_SELF_SERVICE").length === 0 && (
+                      <div style={{ color: "#fb7185", fontSize: "12.5px", padding: "8px", gridColumn: "1 / -1" }}>
+                        ⚠️ No municipalities currently operate under the <strong>SaaS Subscription</strong> model.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

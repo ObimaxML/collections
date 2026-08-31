@@ -179,6 +179,24 @@ def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     elif assigned_tenant_ids and not primary_tenant_id:
         primary_tenant_id = assigned_tenant_ids[0]
 
+    # Validate SaaS Subscription rule for ADMIN role creation
+    if payload.role.upper() == "ADMIN":
+        if not assigned_tenant_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="Municipal Admin users must be assigned to at least one municipality.",
+            )
+        # Check that assigned municipalities are SaaS Subscription models
+        for tid in assigned_tenant_ids:
+            tenant_obj = db.execute(
+                select(Tenant).where(Tenant.id == tid)
+            ).scalar_one_or_none()
+            if tenant_obj and tenant_obj.engagement_model != "SAAS_SELF_SERVICE":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Municipal Admin logins can only be created for municipalities operating under the 'SaaS Subscription' model. '{tenant_obj.name}' is currently under '{tenant_obj.engagement_model}'.",
+                )
+
     new_user = User(
         id=uuid.uuid4(),
         tenant_id=primary_tenant_id,
