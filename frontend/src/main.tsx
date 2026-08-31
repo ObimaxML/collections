@@ -1051,7 +1051,7 @@ function App() {
               </svg>
             </div>
             <h2>Khokhisa</h2>
-            <p>Municipal Debt Recovery & Revenue System</p>
+            <p style={{ color: "#38bdf8", fontWeight: 600, letterSpacing: "0.5px", fontSize: "12px", textTransform: "uppercase", marginTop: "2px" }}>Debt Recovery OS</p>
           </div>
 
           {loginError && <div className="login-error">{loginError}</div>}
@@ -1159,7 +1159,10 @@ function App() {
             </svg>
           </div>
           <div className="brand-info">
-            <h1 style={{ fontSize: "16px" }}>Khokhisa</h1>
+            <h1 style={{ fontSize: "16px", margin: 0, lineHeight: "1.2" }}>Khokhisa</h1>
+            <span style={{ fontSize: "9.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+              Debt Recovery OS
+            </span>
           </div>
         </div>
         <button
@@ -1194,7 +1197,10 @@ function App() {
             </svg>
           </div>
           <div className="brand-info">
-            <h1>Khokhisa</h1>
+            <h1 style={{ margin: 0, lineHeight: "1.2" }}>Khokhisa</h1>
+            <span style={{ fontSize: "10.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
+              Debt Recovery OS
+            </span>
           </div>
         </div>
 
