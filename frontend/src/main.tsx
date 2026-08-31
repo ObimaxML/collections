@@ -415,9 +415,17 @@ function App() {
       const res = await fetch(`${API}/tenants/${tenantId}`, {
         method: "DELETE",
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        if (!res.ok) {
+          throw new Error(`Server Error (${res.status}): ${text.slice(0, 150)}`);
+        }
+      }
       if (!res.ok) {
-        alert(`Error deleting municipality: ${data.detail || "Server error"}`);
+        alert(`Error deleting municipality: ${data.detail || text || "Server error"}`);
         return;
       }
       alert(data.message || `Municipality ${tenantName} deleted successfully!`);
@@ -427,7 +435,7 @@ function App() {
       fetchTenants();
       refreshData();
     } catch (err: any) {
-      alert("Network error: " + err.message);
+      alert("Error: " + (err.message || err));
     } finally {
       setLoading(false);
     }

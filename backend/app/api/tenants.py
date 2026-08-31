@@ -258,7 +258,12 @@ def delete_tenant(
     db.query(Invoice).filter(Invoice.tenant_id == tenant_id).delete(synchronize_session=False)
     db.query(AuditEvent).filter(AuditEvent.tenant_id == tenant_id).delete(synchronize_session=False)
 
-    # 5. Delete tenant itself
+    # 5. Dissociate user links
+    from app.models import User, UserTenant
+    db.query(UserTenant).filter(UserTenant.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(User).filter(User.tenant_id == tenant_id).update({User.tenant_id: None}, synchronize_session=False)
+
+    # 6. Delete tenant itself
     db.delete(tenant)
     db.commit()
 
