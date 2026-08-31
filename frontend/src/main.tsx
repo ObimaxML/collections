@@ -4819,23 +4819,76 @@ function App() {
             {/* Header & Print Action */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "24px" }}>
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                  <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "linear-gradient(135deg, #10b981, #0ea5e9)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: "18px" }}>
-                    R
+                <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "8px" }}>
+                  {/* Stylish Modern Fintech Emblem (Apple / Mastercard inspired minimalism) */}
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}>
+                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "48px", height: "48px" }}>
+                      {/* Left Intersecting Gradient Sphere (Emerald/Teal) */}
+                      <circle cx="25" cy="32" r="19" fill="url(#leftSphereGrad)" fillOpacity="0.95"/>
+                      {/* Right Intersecting Gradient Sphere (Cobalt/Indigo) */}
+                      <circle cx="39" cy="32" r="19" fill="url(#rightSphereGrad)" fillOpacity="0.88" style={{ mixBlendMode: "multiply" }}/>
+                      
+                      {/* Central Geometric Overlap Core / Diamond Lens */}
+                      <path d="M32 17 C36 24, 36 40, 32 47 C28 40, 28 24, 32 17 Z" fill="url(#centerCoreGrad)" fillOpacity="0.92"/>
+                      
+                      {/* Crisp Minimalist Platinum Accent Ring */}
+                      <circle cx="32" cy="32" r="27" stroke="url(#ringGrad)" strokeWidth="1.8" strokeDasharray="3 2" opacity="0.6"/>
+                      
+                      {/* Modern Sculpted Currency Glyph */}
+                      <text x="32" y="38.5" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="900" fontFamily="Outfit, -apple-system, sans-serif" style={{ filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.6))" }}>
+                        K
+                      </text>
+
+                      {/* Gradients */}
+                      <defs>
+                        <linearGradient id="leftSphereGrad" x1="6" y1="13" x2="44" y2="51" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#059669"/>
+                          <stop offset="1" stopColor="#0284c7"/>
+                        </linearGradient>
+                        <linearGradient id="rightSphereGrad" x1="20" y1="13" x2="58" y2="51" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#3b82f6"/>
+                          <stop offset="1" stopColor="#6366f1"/>
+                        </linearGradient>
+                        <linearGradient id="centerCoreGrad" x1="28" y1="17" x2="36" y2="47" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#10b981"/>
+                          <stop offset="0.5" stopColor="#38bdf8"/>
+                          <stop offset="1" stopColor="#4f46e5"/>
+                        </linearGradient>
+                        <linearGradient id="ringGrad" x1="5" y1="5" x2="59" y2="59" gradientUnits="userSpaceOnUse">
+                          <stop stopColor="#10b981"/>
+                          <stop offset="0.5" stopColor="#38bdf8"/>
+                          <stop offset="1" stopColor="#818cf8"/>
+                        </linearGradient>
+                      </defs>
+                    </svg>
                   </div>
+
                   <div>
-                    <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#0f172a", fontFamily: "Outfit, sans-serif" }}>
-                      MOLMOS (PTY) LTD
-                    </h2>
-                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>
-                      Khokhisa Municipal Revenue Operating System
-                    </span>
+                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                      <h2 style={{ margin: 0, fontSize: "21px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, -apple-system, sans-serif", letterSpacing: "-0.5px" }}>
+                        KHOKHISA
+                      </h2>
+                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", letterSpacing: "1px", textTransform: "uppercase" }}>
+                        • REVENUE OS
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "11.5px", color: "#475569", fontWeight: 600, letterSpacing: "0.2px" }}>
+                      Operated by Molmos (Pty) Ltd | Financial & Municipal Recovery Division
+                    </div>
                   </div>
                 </div>
-                <div style={{ fontSize: "11.5px", color: "#475569", lineHeight: "1.4" }}>
+                <div style={{ fontSize: "11px", color: "#64748b", lineHeight: "1.45" }}>
                   Registration: 2026/894210/07 | VAT No: 4890284719<br />
                   Sandton City Financial Tower, Johannesburg, Gauteng, 2196<br />
-                  Email: billing@molmos.co.za | Tel: +27 (0)11 555 0199
+                  Official Remittance Invoicing: billing@khokhisa.co.za | Tel: +27 (0)11 555 0199
                 </div>
               </div>
 
