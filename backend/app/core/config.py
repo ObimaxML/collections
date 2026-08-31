@@ -15,6 +15,14 @@ class Settings(BaseSettings):
         "*"
     ]
 
+    # Email & Dispatch Settings (Optional SMTP / Console fallback)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "proposals@khokhisa.co.za"
+    smtp_tls: bool = True
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

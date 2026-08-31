@@ -776,11 +776,15 @@ function App() {
     }
   };
 
-  const handleUpdateProposalStatus = async (proposalId: string, newStatus: string) => {
+  const handleUpdateProposalStatus = async (proposalId: string, newStatus: string, targetEmail?: string) => {
     setLoading(true);
     try {
       const actorName = currentUser?.full_name || (currentUser?.role === "ADMIN" ? "Municipal Executive" : "SuperAdmin");
-      const res = await fetch(`${API}/billing/proposals/${proposalId}/status?status=${newStatus}&actor=${encodeURIComponent(actorName)}`, {
+      let url = `${API}/billing/proposals/${proposalId}/status?status=${newStatus}&actor=${encodeURIComponent(actorName)}`;
+      if (targetEmail) {
+        url += `&target_email=${encodeURIComponent(targetEmail)}`;
+      }
+      const res = await fetch(url, {
         method: "PATCH",
       });
       const data = await res.json();
@@ -788,10 +792,58 @@ function App() {
         alert("Error updating proposal status: " + (data.detail || JSON.stringify(data)));
         return;
       }
-      alert(`Proposal status updated to "${newStatus}"!`);
+      if (newStatus === "SUBMITTED_TO_MUNICIPALITY") {
+        alert(`🚀 Proposal "${data.proposal_number}" submitted to municipality! Notification dispatched to ${targetEmail || data.tenant_name}.`);
+      } else if (newStatus === "REJECTED") {
+        alert(`❌ Proposal "${data.proposal_number}" has been marked as REJECTED.`);
+      } else {
+        alert(`Proposal status updated to "${newStatus}"!`);
+      }
       refreshData();
     } catch (err: any) {
       alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteProposal = async (proposalId: string, propNum: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete Proposal "${propNum}"?`)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/billing/proposals/${proposalId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert("Error deleting proposal: " + (err.detail || JSON.stringify(err)));
+        return;
+      }
+      alert(`🗑️ Proposal "${propNum}" deleted successfully.`);
+      refreshData();
+    } catch (e: any) {
+      alert("Network error: " + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoiceId: string, invNum: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete Tax Invoice "${invNum}"?`)) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/billing/invoices/${invoiceId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert("Error deleting invoice: " + (err.detail || JSON.stringify(err)));
+        return;
+      }
+      alert(`🗑️ Invoice "${invNum}" deleted successfully.`);
+      refreshData();
+    } catch (e: any) {
+      alert("Network error: " + e.message);
     } finally {
       setLoading(false);
     }
@@ -3168,6 +3220,16 @@ function App() {
                                       ✓ Mark Paid
                                     </button>
                                   )}
+                                  {currentUser?.role === "SUPERADMIN" && (
+                                    <button
+                                      className="btn btn-secondary btn-sm"
+                                      onClick={() => handleDeleteInvoice(inv.id, inv.invoice_number)}
+                                      style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
+                                      title="Permanently Delete Invoice"
+                                    >
+                                      🗑️
+                                    </button>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -3252,27 +3314,27 @@ function App() {
                                     prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "status-engaged" :
                                     prop.status === "REJECTED" ? "status-broken" : "status-new"
                                   }`}>
-                                    {prop.status}
+                                    {prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "SUBMITTED" : prop.status}
                                   </span>
                                   {prop.approved_by && (
-                                    <div style={{ fontSize: "10.5px", color: "#34d399", marginTop: "3px" }}>
-                                      ✓ Approved by {prop.approved_by}
+                                    <div style={{ fontSize: "10.5px", color: prop.status === "APPROVED" ? "#34d399" : "#fb7185", marginTop: "3px" }}>
+                                      {prop.approved_by.startsWith("Rejected") ? `✕ ${prop.approved_by}` : `✓ Approved by ${prop.approved_by}`}
                                     </div>
                                   )}
                                 </div>
                               </td>
                               <td>
-                                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                                <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
                                   <button
                                     className="btn btn-secondary btn-sm"
                                     onClick={() => setViewingPdfDoc({ type: "PROPOSAL", data: prop })}
                                     style={{ padding: "4px 8px", fontSize: "11.5px" }}
                                     title="View Proposal PDF Document"
                                   >
-                                    📄 View Proposal
+                                    📄 View
                                   </button>
 
-                                  {/* Municipality Approval Actions */}
+                                  {/* Municipality Approval & Rejection Actions */}
                                   {prop.status !== "APPROVED" && (
                                     <>
                                       <button
@@ -3283,17 +3345,39 @@ function App() {
                                       >
                                         👍 Approve
                                       </button>
-                                      {currentUser?.role === "SUPERADMIN" && prop.status === "DRAFT" && (
+                                      {prop.status !== "REJECTED" && (
                                         <button
                                           className="btn btn-secondary btn-sm"
-                                          onClick={() => handleUpdateProposalStatus(prop.id, "SUBMITTED_TO_MUNICIPALITY")}
-                                          style={{ padding: "4px 8px", fontSize: "11.5px" }}
-                                          title="Submit to Municipality for Review"
+                                          onClick={() => handleUpdateProposalStatus(prop.id, "REJECTED")}
+                                          style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
+                                          title="Reject Proposal"
                                         >
-                                          🚀 Submit
+                                          ✕ Reject
+                                        </button>
+                                      )}
+                                      {currentUser?.role === "SUPERADMIN" && (
+                                        <button
+                                          className="btn btn-secondary btn-sm"
+                                          onClick={() => handleUpdateProposalStatus(prop.id, "SUBMITTED_TO_MUNICIPALITY", "obimax.ml@gmail.com")}
+                                          style={{ padding: "4px 8px", fontSize: "11.5px", borderColor: "rgba(14, 165, 233, 0.4)", color: "#38bdf8" }}
+                                          title="Submit / Resend proposal notification to municipality (obimax.ml@gmail.com)"
+                                        >
+                                          📧 Submit to obimax.ml@gmail.com
                                         </button>
                                       )}
                                     </>
+                                  )}
+
+                                  {/* SuperAdmin Delete Proposal */}
+                                  {currentUser?.role === "SUPERADMIN" && (
+                                    <button
+                                      className="btn btn-secondary btn-sm"
+                                      onClick={() => handleDeleteProposal(prop.id, prop.proposal_number)}
+                                      style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
+                                      title="Permanently Delete Proposal"
+                                    >
+                                      🗑️
+                                    </button>
                                   )}
                                 </div>
                               </td>

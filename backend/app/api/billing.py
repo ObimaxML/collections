@@ -175,11 +175,68 @@ def create_proposal(
     return _format_proposal(proposal, db)
 
 
+import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+logger = logging.getLogger("khokhisa.billing")
+
+
+def _send_proposal_email(proposal: Proposal, tenant: Tenant, recipient_email: str) -> bool:
+    """
+    Sends or dispatches official notification email to municipal representative with proposal summary.
+    If SMTP is configured, sends via SMTP; otherwise logs structured notification event.
+    """
+    from app.core.config import settings
+    subject = f"Commercial Proposal {proposal.proposal_number} - {tenant.name} / Khokhisa"
+    
+    body_text = f"""Dear Municipal Executive / Finance Team ({tenant.name}),
+
+Please find your official commercial proposal from Khokhisa Municipal Revenue Recovery OS:
+
+Proposal Number: {proposal.proposal_number}
+Title: {proposal.title}
+Operating Model: {proposal.engagement_model}
+Subscription Tier: {proposal.subscription_tier}
+Total Value: R {proposal.total_amount:,.2f}
+Status: SUBMITTED TO MUNICIPALITY FOR REVIEW
+
+You can review and approve this proposal directly within your Khokhisa Municipal Portal.
+
+Kind Regards,
+Khokhisa Revenue Management Team
+Molmos (Pty) Ltd
+"""
+    logger.info(f"📧 [PROPOSAL DISPATCH] To: {recipient_email} | Subject: {subject} | Proposal: {proposal.proposal_number}")
+    
+    if settings.smtp_host and settings.smtp_user and settings.smtp_password:
+        try:
+            msg = MIMEMultipart()
+            msg["From"] = settings.smtp_from
+            msg["To"] = recipient_email
+            msg["Subject"] = subject
+            msg.attach(MIMEText(body_text, "plain"))
+            
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as server:
+                if settings.smtp_tls:
+                    server.starttls()
+                server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+            logger.info(f"✅ SMTP Email delivered successfully to {recipient_email}")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Failed to dispatch email via SMTP: {e}")
+            return False
+    return True
+
+
 @router.patch("/proposals/{proposal_id}/status", response_model=ProposalResponse)
 def update_proposal_status(
     proposal_id: UUID,
     status: str = Query(..., description="DRAFT, SUBMITTED_TO_MUNICIPALITY, APPROVED, REJECTED"),
     actor: str | None = Query(default="Municipal Executive"),
+    target_email: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
     proposal = db.get(Proposal, proposal_id)
@@ -192,13 +249,37 @@ def update_proposal_status(
         raise HTTPException(status_code=400, detail=f"Invalid status: {status_upper}")
 
     proposal.status = status_upper
+    tenant = db.get(Tenant, proposal.tenant_id)
+    
     if status_upper == "APPROVED":
         proposal.approved_by = actor
         proposal.approved_at = datetime.now(timezone.utc)
+    elif status_upper == "REJECTED":
+        proposal.approved_by = f"Rejected by {actor}"
+        proposal.approved_at = datetime.now(timezone.utc)
+    elif status_upper == "SUBMITTED_TO_MUNICIPALITY":
+        # Dispatch notification to recipient
+        rec_email = target_email or (tenant.billing_contact_email if tenant else None) or "obimax.ml@gmail.com"
+        if tenant:
+            _send_proposal_email(proposal, tenant, rec_email)
 
     db.commit()
     db.refresh(proposal)
     return _format_proposal(proposal, db)
+
+
+@router.delete("/proposals/{proposal_id}", status_code=200)
+def delete_proposal(
+    proposal_id: UUID,
+    db: Session = Depends(get_db),
+):
+    proposal = db.get(Proposal, proposal_id)
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found.")
+    
+    db.delete(proposal)
+    db.commit()
+    return {"status": "ok", "message": f"Proposal {proposal.proposal_number} deleted successfully."}
 
 
 # -----------------------------------------------------------------------------
@@ -424,3 +505,17 @@ def update_invoice_status(
     db.commit()
     db.refresh(invoice)
     return _format_invoice(invoice, db)
+
+
+@router.delete("/invoices/{invoice_id}", status_code=200)
+def delete_invoice(
+    invoice_id: UUID,
+    db: Session = Depends(get_db),
+):
+    invoice = db.get(Invoice, invoice_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found.")
+    
+    db.delete(invoice)
+    db.commit()
+    return {"status": "ok", "message": f"Invoice {invoice.invoice_number} deleted successfully."}
