@@ -1927,9 +1927,10 @@ function App() {
             const matchesMinArrears = !accMinArrears || Number(acc.arrears) >= Number(accMinArrears);
 
             const isOverdue = Number(acc.arrears) > 0;
+            const currentPortion = Math.max(0, Number(acc.balance) - Number(acc.arrears));
             const matchesOverdue = accOverdueFilter === "ALL" ||
               (accOverdueFilter === "OVERDUE" && isOverdue) ||
-              (accOverdueFilter === "NOT_OVERDUE" && !isOverdue);
+              (accOverdueFilter === "NOT_OVERDUE" && currentPortion > 0);
 
             return matchesSearch && matchesMobile && matchesStatus && matchesMinArrears && matchesOverdue;
           });
@@ -1940,7 +1941,7 @@ function App() {
                 <div className="panel-title">
                   <h3>
                     Municipal Debt Book ({filteredAccounts.length} / {accounts.length} Accounts)
-                    {accOverdueFilter === "NOT_OVERDUE" && <span style={{ color: "#38bdf8", fontSize: "14px", marginLeft: "10px", fontWeight: 600 }}>• Showing Current (Not Overdue) Accounts</span>}
+                    {accOverdueFilter === "NOT_OVERDUE" && <span style={{ color: "#38bdf8", fontSize: "14px", marginLeft: "10px", fontWeight: 600 }}>• Showing Accounts with Current Active Billings</span>}
                     {accOverdueFilter === "OVERDUE" && <span style={{ color: "#f87171", fontSize: "14px", marginLeft: "10px", fontWeight: 600 }}>• Showing Overdue Arrears Accounts</span>}
                   </h3>
                   <p>Complete debtor ledger with balance, arrears, and collection statuses</p>
@@ -1984,7 +1985,7 @@ function App() {
                   >
                     <option value="ALL">All Ledger Types</option>
                     <option value="OVERDUE">🚨 Overdue Arrears</option>
-                    <option value="NOT_OVERDUE">✅ Current (Not Overdue)</option>
+                    <option value="NOT_OVERDUE">✅ Current Active Billings</option>
                   </select>
 
                   <select
@@ -2039,84 +2040,92 @@ function App() {
                           <th>Account Number</th>
                           <th>Debtor Name & Mobile</th>
                           <th>Status</th>
-                          <th>Balance</th>
-                          <th>Arrears</th>
+                          <th>Total Balance</th>
+                          <th>Current (Not Overdue)</th>
+                          <th>Overdue Arrears</th>
                           <th>DAYS PAST DUE</th>
                           <th>Last Payment</th>
                           <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredAccounts.map(acc => (
-                          <tr key={acc.id}>
-                            <td><strong>{acc.account_number}</strong></td>
-                            <td>
-                              <div style={{ fontWeight: 600, color: "#e2e8f0" }}>{acc.customer_name || "—"}</div>
-                              {acc.mobile && (
-                                <div style={{ fontSize: "11px", color: "#38bdf8", marginTop: "2px" }}>
-                                  📱 {formatPhone(acc.mobile)}
-                                </div>
-                              )}
-                            </td>
-                            <td><span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span></td>
-                            <td>{money(acc.balance)}</td>
-                            <td style={{ color: "#f87171", fontWeight: 600 }}>{money(acc.arrears)}</td>
-                            <td><strong>{acc.days_in_arrears}</strong></td>
-                            <td>{acc.last_payment_date ? `${acc.last_payment_date} (${money(acc.last_payment_amount)})` : "None"}</td>
-                            <td>
-                              <button className="table-action-btn" onClick={() => openAccountWorkbench(acc.id)}>
-                                Workbench
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {filteredAccounts.map(acc => {
+                          const currentAmt = Math.max(0, Number(acc.balance) - Number(acc.arrears));
+                          return (
+                            <tr key={acc.id}>
+                              <td><strong>{acc.account_number}</strong></td>
+                              <td>
+                                <div style={{ fontWeight: 600, color: "#e2e8f0" }}>{acc.customer_name || "—"}</div>
+                                {acc.mobile && (
+                                  <div style={{ fontSize: "11px", color: "#38bdf8", marginTop: "2px" }}>
+                                    📱 {formatPhone(acc.mobile)}
+                                  </div>
+                                )}
+                              </td>
+                              <td><span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span></td>
+                              <td><strong>{money(acc.balance)}</strong></td>
+                              <td style={{ color: "#38bdf8", fontWeight: 600 }}>{money(currentAmt)}</td>
+                              <td style={{ color: "#f87171", fontWeight: 600 }}>{money(acc.arrears)}</td>
+                              <td><strong>{acc.days_in_arrears}</strong></td>
+                              <td>{acc.last_payment_date ? `${acc.last_payment_date} (${money(acc.last_payment_amount)})` : "None"}</td>
+                              <td>
+                                <button className="table-action-btn" onClick={() => openAccountWorkbench(acc.id)}>
+                                  Workbench
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
 
                   {/* Mobile / Tablet Adaptive Card List */}
                   <div className="mobile-card-list">
-                    {filteredAccounts.map(acc => (
-                      <div key={acc.id} className="mobile-item-card">
-                        <div className="mobile-card-header">
-                          <div>
-                            <div className="mobile-card-acc">{acc.account_number}</div>
-                            <div className="mobile-card-debtor">{acc.customer_name || `Status: ${formatCaseStatus(acc.account_status)}`}</div>
-                            {acc.mobile && (
-                              <div style={{ fontSize: "11px", color: "#38bdf8", marginTop: "2px" }}>
-                                📱 {formatPhone(acc.mobile)}
-                              </div>
-                            )}
+                    {filteredAccounts.map(acc => {
+                      const currentAmt = Math.max(0, Number(acc.balance) - Number(acc.arrears));
+                      return (
+                        <div key={acc.id} className="mobile-item-card">
+                          <div className="mobile-card-header">
+                            <div>
+                              <div className="mobile-card-acc">{acc.account_number}</div>
+                              <div className="mobile-card-debtor">{acc.customer_name || `Status: ${formatCaseStatus(acc.account_status)}`}</div>
+                              {acc.mobile && (
+                                <div style={{ fontSize: "11px", color: "#38bdf8", marginTop: "2px" }}>
+                                  📱 {formatPhone(acc.mobile)}
+                                </div>
+                              )}
+                            </div>
+                            <span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span>
                           </div>
-                          <span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span>
-                        </div>
 
-                        <div className="mobile-card-body">
-                          <div className="mobile-stat">
-                            <label>Total Balance</label>
-                            <span>{money(acc.balance)}</span>
+                          <div className="mobile-card-body">
+                            <div className="mobile-stat">
+                              <label>Total Balance</label>
+                              <span>{money(acc.balance)}</span>
+                            </div>
+                            <div className="mobile-stat">
+                              <label>Current (Not Overdue)</label>
+                              <span style={{ color: "#38bdf8", fontWeight: 600 }}>{money(currentAmt)}</span>
+                            </div>
+                            <div className="mobile-stat">
+                              <label>Overdue Arrears</label>
+                              <span className="arrears-val">{money(acc.arrears)}</span>
+                            </div>
+                            <div className="mobile-stat">
+                              <label>DAYS PAST DUE</label>
+                              <span>{acc.days_in_arrears}</span>
+                            </div>
                           </div>
-                          <div className="mobile-stat">
-                            <label>Arrears</label>
-                            <span className="arrears-val">{money(acc.arrears)}</span>
-                          </div>
-                          <div className="mobile-stat">
-                            <label>DAYS PAST DUE</label>
-                            <span>{acc.days_in_arrears}</span>
-                          </div>
-                          <div className="mobile-stat">
-                            <label>Last Payment</label>
-                            <span>{acc.last_payment_date ? money(acc.last_payment_amount) : "None"}</span>
-                          </div>
-                        </div>
 
-                        <div className="mobile-card-actions">
-                          <button className="btn btn-secondary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(acc.id)}>
-                            📑 View Account 360°
-                          </button>
+                          <div className="mobile-card-actions">
+                            <button className="btn btn-secondary btn-sm" style={{ width: "100%", justifyContent: "center" }} onClick={() => openAccountWorkbench(acc.id)}>
+                              👁️ View Account 360°
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </>
               )}

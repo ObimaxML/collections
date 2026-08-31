@@ -391,13 +391,13 @@ def dashboard_summary(
     broken_promises = promise_query.scalar() or 0
 
     # ---------------------------------------------------------
-    # Current / Not Overdue metrics (Arrears == 0 or Balance > Arrears)
+    # Current / Not Overdue metrics (Unexpired current portion: balance - arrears > 0)
     # ---------------------------------------------------------
     current_not_overdue_query = db.query(
         func.coalesce(func.sum(MunicipalAccount.balance - MunicipalAccount.arrears), 0),
         func.count(MunicipalAccount.id),
     ).filter(
-        MunicipalAccount.arrears == 0
+        MunicipalAccount.balance > MunicipalAccount.arrears
     )
     if tenant_id:
         current_not_overdue_query = current_not_overdue_query.filter(
