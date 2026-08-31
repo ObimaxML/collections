@@ -1277,25 +1277,25 @@ function App() {
       {/* Mobile Top Header */}
       <header className="mobile-header">
         <div className="brand-section" style={{ margin: 0, padding: 0, display: "flex", alignItems: "center", gap: "10px" }}>
-          <div className="brand-icon" style={{ width: "36px", height: "36px", flexShrink: 0 }}>
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "36px", height: "36px" }}>
+          <div className="brand-icon" style={{ width: "46px", height: "46px", flexShrink: 0 }}>
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "46px", height: "46px" }}>
               <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
               <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
               <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
-              <text x="32" y="40" textAnchor="middle" fill="#ffffff" fontSize="21" fontWeight="900" fontFamily="Outfit, sans-serif">
+              <text x="32" y="40" textAnchor="middle" fill="#ffffff" fontSize="22" fontWeight="900" fontFamily="Outfit, sans-serif">
                 K
               </text>
             </svg>
           </div>
           <div className="brand-info" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <h1 style={{ fontSize: "16px", margin: 0, lineHeight: "1.1", fontWeight: 700 }}>Khokhisa</h1>
-            <span style={{ fontSize: "9px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "1px", background: "none", padding: 0 }}>
+            <h1 style={{ fontSize: "18px", margin: 0, lineHeight: "1.1", fontWeight: 800, letterSpacing: "-0.3px" }}>Khokhisa</h1>
+            <span style={{ fontSize: "9.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "2px", background: "none", padding: 0 }}>
               DEBT RECOVERY OS
             </span>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "2px" }}>
           {/* Mode Button with no background border */}
           <button
             type="button"
@@ -1305,8 +1305,8 @@ function App() {
               background: "transparent",
               border: "none",
               boxShadow: "none",
-              padding: "6px 8px",
-              fontSize: "18px",
+              padding: "4px 5px",
+              fontSize: "17px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -1326,8 +1326,8 @@ function App() {
               background: "transparent",
               border: "none",
               boxShadow: "none",
-              padding: "6px 8px",
-              fontSize: "17px",
+              padding: "4px 5px",
+              fontSize: "16px",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -1336,6 +1336,27 @@ function App() {
             }}
           >
             🔄
+          </button>
+
+          {/* Logout Button with no background border */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Sign Out / Logout"
+            style={{
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              padding: "4px 5px",
+              fontSize: "17px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fb7185",
+            }}
+          >
+            🚪
           </button>
 
           {/* Hamburger Menu Button */}
@@ -1347,8 +1368,11 @@ function App() {
               background: "transparent",
               border: "none",
               boxShadow: "none",
-              fontSize: "22px",
-              padding: "6px 8px",
+              fontSize: "20px",
+              padding: "4px 6px",
+              width: "auto",
+              height: "auto",
+              marginLeft: "2px",
             }}
           >
             {mobileMenuOpen ? "✕" : "☰"}
