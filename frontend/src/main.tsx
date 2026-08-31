@@ -233,7 +233,6 @@ function App() {
         } else {
           setTenants([
             { id: "9199c540-11dc-4ce0-bc70-922fccf25274", name: "City of Johannesburg", code: "JHB", engagement_model: "MANAGED_SERVICE", subscription_tier: "ENTERPRISE", commission_rate: 10.00, monthly_subscription_fee: 0, subscription_status: "ACTIVE" },
-            { id: "e7a50839-7456-4b94-89f6-c3996cd123b6", name: "Demo Municipality", code: "DEMO", engagement_model: "SAAS_SELF_SERVICE", subscription_tier: "PROFESSIONAL", commission_rate: 0.00, monthly_subscription_fee: 45000, subscription_status: "ACTIVE" },
           ]);
           setSelectedTenant(prev => prev || "9199c540-11dc-4ce0-bc70-922fccf25274");
         }
