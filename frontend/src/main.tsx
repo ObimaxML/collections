@@ -695,15 +695,25 @@ function App() {
 
   const openAccountWorkbench = (accountId: string) => {
     setSelectedAccountId(accountId);
-    fetch(`${API}/accounts/${accountId}/360?tenant_id=${selectedTenant}`)
-      .then(r => r.json())
+    const tenantParam = (!selectedTenant || selectedTenant === "GLOBAL") ? "" : `?tenant_id=${selectedTenant}`;
+    fetch(`${API}/accounts/${accountId}/360${tenantParam}`)
+      .then(async r => {
+        if (!r.ok) {
+          throw new Error(`Failed to load Account 360 (HTTP ${r.status})`);
+        }
+        return r.json();
+      })
       .then(data => {
         setAccount360(data);
         if (data.arrears) {
           setPtpAmount((Number(data.arrears) / 2).toFixed(2));
         }
       })
-      .catch(console.error);
+      .catch(err => {
+        console.error("Workbench load error:", err);
+        alert("Error loading Account 360 Workbench: " + err.message);
+        setSelectedAccountId(null);
+      });
   };
 
   const recordContact = async () => {

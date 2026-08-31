@@ -686,16 +686,14 @@ def get_account(
 )
 def get_account_360(
     account_id: UUID,
-    tenant_id: UUID,
+    tenant_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
-    account = db.execute(
-        select(MunicipalAccount)
-        .where(
-            MunicipalAccount.id == account_id,
-            MunicipalAccount.tenant_id == tenant_id,
-        )
-    ).scalar_one_or_none()
+    query = select(MunicipalAccount).where(MunicipalAccount.id == account_id)
+    if tenant_id:
+        query = query.where(MunicipalAccount.tenant_id == tenant_id)
+    
+    account = db.execute(query).scalar_one_or_none()
 
     if not account:
         raise HTTPException(
@@ -721,7 +719,7 @@ def get_account_360(
         select(CollectionCase)
         .where(
             CollectionCase.account_id == account_id,
-            CollectionCase.tenant_id == tenant_id,
+            CollectionCase.tenant_id == account.tenant_id,
         )
         .order_by(CollectionCase.opened_at.desc())
     ).scalars().all()
@@ -783,7 +781,7 @@ def get_account_360(
         select(Payment)
         .where(
             Payment.account_id == account_id,
-            Payment.tenant_id == tenant_id,
+            Payment.tenant_id == account.tenant_id,
         )
         .order_by(Payment.payment_date.desc())
     ).scalars().all()
