@@ -4769,9 +4769,12 @@ function App() {
                     </div>
 
                     <div>
-                      <h2 style={{ margin: 0, fontSize: "23px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, sans-serif", letterSpacing: "-0.5px" }}>
+                      <h2 style={{ margin: 0, fontSize: "23px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, sans-serif", letterSpacing: "-0.5px", lineHeight: "1.1" }}>
                         KHOKHISA
                       </h2>
+                      <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0284c7", letterSpacing: "0.5px", textTransform: "uppercase" }}>
+                        Debt Recovery OS
+                      </div>
                     </div>
                   </div>
                   <div style={{ fontSize: "11px", color: "#64748b", lineHeight: "1.45" }}>
@@ -4816,8 +4819,7 @@ function App() {
                   </div>
                   <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
                     Municipal Code: <strong>{viewingPdfDoc.data.tenant_code || "JHB"}</strong><br />
-                    Attention: Chief Financial Officer / Revenue Unit<br />
-                    Republic of South Africa
+                    Attention: Chief Financial Officer / Revenue Unit
                   </div>
                 </div>
 
@@ -4848,11 +4850,11 @@ function App() {
                 <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
                   <thead>
                     <tr style={{ background: "#0f172a", color: "white" }}>
-                      <th style={{ padding: "10px 14px", borderRadius: "6px 0 0 0" }}>#</th>
+                      <th style={{ padding: "10px 14px", width: "40px", borderRadius: "6px 0 0 0" }}>#</th>
                       <th style={{ padding: "10px 14px" }}>Description</th>
-                      <th style={{ padding: "10px 14px", textAlign: "center" }}>Qty</th>
-                      <th style={{ padding: "10px 14px", textAlign: "right" }}>Unit Price</th>
-                      <th style={{ padding: "10px 14px", textAlign: "right", borderRadius: "0 6px 0 0" }}>Total Amount</th>
+                      <th style={{ padding: "10px 14px", width: "60px", textAlign: "center", whiteSpace: "nowrap" }}>Qty</th>
+                      <th style={{ padding: "10px 14px", width: "130px", textAlign: "right", whiteSpace: "nowrap" }}>Unit Price</th>
+                      <th style={{ padding: "10px 14px", width: "140px", textAlign: "right", whiteSpace: "nowrap", borderRadius: "0 6px 0 0" }}>Total Amount</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -4860,9 +4862,9 @@ function App() {
                       <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
                         <td style={{ padding: "12px 14px", color: "#64748b" }}>{i + 1}</td>
                         <td style={{ padding: "12px 14px", color: "#0f172a", fontWeight: 600 }}>{it.description}</td>
-                        <td style={{ padding: "12px 14px", textAlign: "center", color: "#475569" }}>{it.quantity}</td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#475569" }}>{money(it.unit_price)}</td>
-                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>
+                        <td style={{ padding: "12px 14px", textAlign: "center", color: "#475569", whiteSpace: "nowrap" }}>{it.quantity}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#475569", whiteSpace: "nowrap" }}>{money(it.unit_price)}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#0f172a", fontWeight: 700, whiteSpace: "nowrap" }}>
                           {money(it.total || (it.quantity * it.unit_price))}
                         </td>
                       </tr>
@@ -4875,15 +4877,15 @@ function App() {
                   <div style={{ width: "280px", fontSize: "13px", lineHeight: "1.6" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
                       <span>Subtotal:</span>
-                      <span>{money(viewingPdfDoc.data.subtotal || viewingPdfDoc.data.total_amount)}</span>
+                      <span style={{ whiteSpace: "nowrap" }}>{money(viewingPdfDoc.data.subtotal || viewingPdfDoc.data.total_amount)}</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
                       <span>VAT (15%):</span>
-                      <span>{money(viewingPdfDoc.data.vat_amount || 0)}</span>
+                      <span style={{ whiteSpace: "nowrap" }}>{money(viewingPdfDoc.data.vat_amount || 0)}</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 800, color: "#0f172a", borderTop: "2px solid #0f172a", paddingTop: "6px", marginTop: "6px" }}>
                       <span>Total Due (ZAR):</span>
-                      <span>{money(viewingPdfDoc.data.total_amount)}</span>
+                      <span style={{ whiteSpace: "nowrap" }}>{money(viewingPdfDoc.data.total_amount)}</span>
                     </div>
                   </div>
                 </div>
@@ -4910,7 +4912,7 @@ function App() {
 
               {/* Footer Note */}
               <div style={{ fontSize: "11px", color: "#64748b", textAlign: "center", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
-                Generated electronically by Khokhisa • Compliant with MFMA & South African Revenue Service (SARS) standards
+                Generated electronically by Khokhisa • Compliant with MFMA, POPIA & South African Revenue Service (SARS) standards
               </div>
             </div>
 
