@@ -1168,9 +1168,9 @@ function App() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
-          <div className="login-brand" style={{ marginBottom: "26px", paddingTop: "14px" }}>
-            <div className="loan-emblem-wrapper" style={{ width: "76px", height: "76px", margin: "0 auto 12px" }}>
-              <svg className="loan-svg-icon" viewBox="0 0 64 64" width="76" height="76" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="login-brand" style={{ marginBottom: "28px", paddingTop: "26px" }}>
+            <div className="loan-emblem-wrapper" style={{ width: "80px", height: "80px", margin: "0 auto 14px" }}>
+              <svg className="loan-svg-icon" viewBox="0 0 64 64" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg">
                 {/* Left Emerald/Cyan Gradient Sphere */}
                 <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
                 {/* Right Cobalt/Indigo Gradient Sphere */}
@@ -1184,7 +1184,7 @@ function App() {
               </svg>
             </div>
             <h2 style={{ marginTop: "4px", marginBottom: "2px", fontSize: "28px" }}>Khokhisa</h2>
-            <p style={{ color: "#38bdf8", fontWeight: 700, letterSpacing: "0.8px", fontSize: "12px", textTransform: "uppercase", margin: 0 }}>Debt Recovery OS</p>
+            <p style={{ color: "#38bdf8", fontWeight: 700, letterSpacing: "0.8px", fontSize: "12px", textTransform: "uppercase", margin: 0 }}>DEBT COLLECTION OS</p>
           </div>
 
           {loginError && <div className="login-error">{loginError}</div>}
@@ -1293,7 +1293,7 @@ function App() {
           <div className="brand-info" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <h1 style={{ fontSize: "18px", margin: 0, lineHeight: "1.1", fontWeight: 800, letterSpacing: "-0.3px" }}>Khokhisa</h1>
             <span style={{ fontSize: "9.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "2px", background: "none", padding: 0 }}>
-              DEBT RECOVERY OS
+              DEBT COLLECTION OS
             </span>
           </div>
         </div>
@@ -1459,7 +1459,7 @@ function App() {
       {/* Sidebar */}
       <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="brand-section" style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "22px", padding: "4px 2px" }}>
-          <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Recovery OS" style={{ width: "52px", height: "52px", flexShrink: 0 }}>
+          <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Collection OS" style={{ width: "52px", height: "52px", flexShrink: 0 }}>
             <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "52px", height: "52px" }}>
               <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
               <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
@@ -1472,7 +1472,7 @@ function App() {
           <div className="brand-info" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
             <h1 style={{ margin: 0, fontSize: "21px", lineHeight: "1.1", fontWeight: 800, letterSpacing: "-0.4px" }}>Khokhisa</h1>
             <span style={{ fontSize: "10.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.7px", textTransform: "uppercase", marginTop: "3px", background: "none", padding: 0 }}>
-              DEBT RECOVERY OS
+              DEBT COLLECTION OS
             </span>
           </div>
         </div>
@@ -5844,7 +5844,7 @@ function App() {
                         KHOKHISA
                       </h2>
                       <div style={{ fontSize: "10.5px", fontWeight: 800, color: "#0284c7", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-                        Debt Recovery OS
+                        DEBT COLLECTION OS
                       </div>
                     </div>
                   </div>
