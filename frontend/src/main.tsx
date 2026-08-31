@@ -3156,78 +3156,88 @@ function App() {
                       )}
                     </div>
                   ) : (
-                    <div className="table-container">
-                      <table>
+                    <div className="table-container" style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", whiteSpace: "nowrap", borderCollapse: "collapse", fontSize: "12px" }}>
                         <thead>
-                          <tr>
-                            <th>Invoice #</th>
-                            <th>Municipality</th>
-                            <th>Billing Period</th>
-                            <th>Issue Date</th>
-                            <th>Due Date</th>
-                            <th>Subtotal</th>
-                            <th>VAT (15%)</th>
-                            <th>Total Amount</th>
-                            <th>Status</th>
-                            <th>Actions</th>
+                          <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Invoice #</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Municipality</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Period</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Issue Date</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Due Date</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right" }}>Subtotal</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right" }}>VAT (15%)</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right" }}>Total Due</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>Status</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {invoices.map(inv => (
-                            <tr key={inv.id}>
-                              <td>
-                                <strong style={{ color: "#38bdf8", fontFamily: "monospace", fontSize: "13.5px" }}>
+                            <tr key={inv.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
+                                <strong style={{ color: "#38bdf8", fontFamily: "monospace", fontSize: "12.5px" }}>
                                   {inv.invoice_number}
                                 </strong>
                               </td>
-                              <td>
-                                <div>
-                                  <strong style={{ color: "#f8fafc" }}>{inv.tenant_name || "Municipality"}</strong>
-                                  <span style={{ fontSize: "11px", color: "#94a3b8", display: "block" }}>Code: {inv.tenant_code}</span>
-                                </div>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", maxWidth: "220px", overflow: "hidden", textOverflow: "ellipsis" }} title={inv.tenant_name || "Municipality"}>
+                                <strong style={{ color: "#f8fafc", fontSize: "12px" }}>{inv.tenant_name || "Municipality"}</strong>
+                                <span style={{ fontSize: "10.5px", color: "#64748b", marginLeft: "6px" }}>({inv.tenant_code})</span>
                               </td>
-                              <td><span style={{ fontWeight: 500 }}>{inv.billing_period}</span></td>
-                              <td>{inv.issue_date}</td>
-                              <td style={{ color: new Date(inv.due_date) < new Date() && inv.status !== "PAID" ? "#f87171" : "#cbd5e1" }}>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>{inv.billing_period}</td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: "#94a3b8" }}>{inv.issue_date}</td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: new Date(inv.due_date) < new Date() && inv.status !== "PAID" ? "#f87171" : "#94a3b8" }}>
                                 {inv.due_date}
                               </td>
-                              <td>{money(inv.subtotal)}</td>
-                              <td style={{ color: "#94a3b8" }}>{money(inv.vat_amount)}</td>
-                              <td><strong style={{ color: "#f8fafc", fontSize: "14px" }}>{money(inv.total_amount)}</strong></td>
-                              <td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right", color: "#94a3b8" }}>{money(inv.subtotal)}</td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right", color: "#94a3b8" }}>{money(inv.vat_amount)}</td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right" }}>
+                                <strong style={{ color: "#f8fafc", fontSize: "12.5px" }}>{money(inv.total_amount)}</strong>
+                              </td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>
                                 <span className={`status-pill ${
                                   inv.status === "PAID" ? "status-paying" :
                                   inv.status === "ISSUED" ? "status-new" :
                                   inv.status === "OVERDUE" ? "status-escalated" : "status-engaged"
-                                }`}>
+                                }`} style={{ padding: "2px 8px", fontSize: "10.5px" }}>
                                   {inv.status}
                                 </span>
                               </td>
-                              <td>
-                                <div style={{ display: "flex", gap: "6px" }}>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>
+                                <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                                   <button
                                     className="btn btn-secondary btn-sm"
                                     onClick={() => setViewingPdfDoc({ type: "INVOICE", data: inv })}
-                                    style={{ padding: "4px 8px", fontSize: "11.5px" }}
+                                    style={{ padding: "3px 8px", fontSize: "11px", whiteSpace: "nowrap" }}
                                     title="View official PDF Tax Invoice and print"
                                   >
                                     📄 PDF / Print
                                   </button>
-                                  {currentUser?.role === "SUPERADMIN" && inv.status !== "PAID" && (
+                                  {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && inv.status !== "PAID" && (
                                     <button
                                       className="btn btn-primary btn-sm"
                                       onClick={() => handleUpdateInvoiceStatus(inv.id, "PAID")}
-                                      style={{ padding: "4px 8px", fontSize: "11.5px", background: "#10b981", borderColor: "#10b981" }}
+                                      style={{ padding: "3px 8px", fontSize: "11px", background: "#10b981", borderColor: "#10b981", whiteSpace: "nowrap" }}
                                       title="Mark invoice as settled / paid"
                                     >
                                       ✓ Mark Paid
+                                    </button>
+                                  )}
+                                  {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && inv.status === "PAID" && (
+                                    <button
+                                      className="btn btn-secondary btn-sm"
+                                      onClick={() => handleUpdateInvoiceStatus(inv.id, "ISSUED")}
+                                      style={{ padding: "3px 8px", fontSize: "11px", color: "#fbbf24", borderColor: "rgba(251,191,36,0.3)", whiteSpace: "nowrap" }}
+                                      title="Revert to Unpaid / Issued"
+                                    >
+                                      ↺ Unmark
                                     </button>
                                   )}
                                   {currentUser?.role === "SUPERADMIN" && (
                                     <button
                                       className="btn btn-secondary btn-sm"
                                       onClick={() => handleDeleteInvoice(inv.id, inv.invoice_number)}
-                                      style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
+                                      style={{ padding: "3px 6px", fontSize: "11px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
                                       title="Permanently Delete Invoice"
                                     >
                                       🗑️
@@ -3261,77 +3271,68 @@ function App() {
                       )}
                     </div>
                   ) : (
-                    <div className="table-container">
-                      <table>
+                    <div className="table-container" style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", whiteSpace: "nowrap", borderCollapse: "collapse", fontSize: "12px" }}>
                         <thead>
-                          <tr>
-                            <th>Proposal #</th>
-                            <th>Municipality</th>
-                            <th>Proposal Title</th>
-                            <th>Operating Model</th>
-                            <th>Total Value</th>
-                            <th>Valid Until</th>
-                            <th>Status & Approval</th>
-                            <th>Actions</th>
+                          <tr style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Proposal #</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Municipality</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Title</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Model</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right" }}>Total Value</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>Valid Until</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>Status</th>
+                            <th style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {proposals.map(prop => (
-                            <tr key={prop.id}>
-                              <td>
-                                <strong style={{ color: "#a5b4fc", fontFamily: "monospace", fontSize: "13.5px" }}>
+                            <tr key={prop.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
+                                <strong style={{ color: "#a5b4fc", fontFamily: "monospace", fontSize: "12.5px" }}>
                                   {prop.proposal_number}
                                 </strong>
                               </td>
-                              <td>
-                                <div>
-                                  <strong style={{ color: "#f8fafc" }}>{prop.tenant_name || "Municipality"}</strong>
-                                  <span style={{ fontSize: "11px", color: "#94a3b8", display: "block" }}>Code: {prop.tenant_code}</span>
-                                </div>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }} title={prop.tenant_name || "Municipality"}>
+                                <strong style={{ color: "#f8fafc", fontSize: "12px" }}>{prop.tenant_name || "Municipality"}</strong>
+                                <span style={{ fontSize: "10.5px", color: "#64748b", marginLeft: "6px" }}>({prop.tenant_code})</span>
                               </td>
-                              <td>
-                                <div style={{ fontWeight: 600, color: "#f8fafc", maxWidth: "260px" }}>{prop.title}</div>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", maxWidth: "240px", overflow: "hidden", textOverflow: "ellipsis" }} title={prop.title}>
+                                <span style={{ fontWeight: 600, color: "#f8fafc" }}>{prop.title}</span>
                               </td>
-                              <td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap" }}>
                                 <span style={{
-                                  fontSize: "11px",
+                                  fontSize: "10.5px",
                                   fontWeight: 700,
-                                  padding: "3px 8px",
+                                  padding: "2px 6px",
                                   borderRadius: "4px",
                                   background: prop.engagement_model === "SAAS_SELF_SERVICE" ? "rgba(14, 165, 233, 0.15)" : "rgba(16, 185, 129, 0.15)",
                                   color: prop.engagement_model === "SAAS_SELF_SERVICE" ? "#38bdf8" : "#34d399",
                                 }}>
-                                  {prop.engagement_model === "SAAS_SELF_SERVICE" ? "💻 SaaS Self-Service" : "🛡️ Managed Service"}
+                                  {prop.engagement_model === "SAAS_SELF_SERVICE" ? "SaaS" : "Managed"}
                                 </span>
                               </td>
-                              <td>
-                                <strong style={{ color: "#f8fafc", fontSize: "14px" }}>
-                                  {Number(prop.total_amount) > 0 ? money(prop.total_amount) : `${prop.commission_rate}% Commission`}
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "right" }}>
+                                <strong style={{ color: "#f8fafc", fontSize: "12.5px" }}>
+                                  {Number(prop.total_amount) > 0 ? money(prop.total_amount) : `${prop.commission_rate}% Comm.`}
                                 </strong>
                               </td>
-                              <td>{prop.valid_until || "30 Days"}</td>
-                              <td>
-                                <div>
-                                  <span className={`status-pill ${
-                                    prop.status === "APPROVED" ? "status-paying" :
-                                    prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "status-engaged" :
-                                    prop.status === "REJECTED" ? "status-broken" : "status-new"
-                                  }`}>
-                                    {prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "SUBMITTED" : prop.status}
-                                  </span>
-                                  {prop.approved_by && (
-                                    <div style={{ fontSize: "10.5px", color: prop.status === "APPROVED" ? "#34d399" : "#fb7185", marginTop: "3px" }}>
-                                      {prop.approved_by.startsWith("Rejected") ? `✕ ${prop.approved_by}` : `✓ Approved by ${prop.approved_by}`}
-                                    </div>
-                                  )}
-                                </div>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", color: "#94a3b8" }}>{prop.valid_until || "30 Days"}</td>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>
+                                <span className={`status-pill ${
+                                  prop.status === "APPROVED" ? "status-paying" :
+                                  prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "status-engaged" :
+                                  prop.status === "REJECTED" ? "status-broken" : "status-new"
+                                }`} style={{ padding: "2px 8px", fontSize: "10.5px" }}>
+                                  {prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "SUBMITTED" : prop.status}
+                                </span>
                               </td>
-                              <td>
-                                <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                              <td style={{ padding: "8px 10px", whiteSpace: "nowrap", textAlign: "center" }}>
+                                <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
                                   <button
                                     className="btn btn-secondary btn-sm"
                                     onClick={() => setViewingPdfDoc({ type: "PROPOSAL", data: prop })}
-                                    style={{ padding: "4px 8px", fontSize: "11.5px" }}
+                                    style={{ padding: "3px 8px", fontSize: "11px", whiteSpace: "nowrap" }}
                                     title="View official Proposal document and print/save as PDF"
                                   >
                                     📄 PDF / Print
@@ -3343,18 +3344,17 @@ function App() {
                                       <button
                                         className="btn btn-primary btn-sm"
                                         onClick={() => handleUpdateProposalStatus(prop.id, "APPROVED")}
-                                        style={{ padding: "4px 8px", fontSize: "11.5px", background: "#10b981", borderColor: "#10b981" }}
-                                        title="Approve Proposal (Municipal Executive Action)"
+                                        style={{ padding: "3px 8px", fontSize: "11px", background: "#10b981", borderColor: "#10b981", whiteSpace: "nowrap" }}
+                                        title="Approve Proposal (Auto-generates Tax Invoice)"
                                       >
                                         👍 Approve
                                       </button>
-                                      {/* ONLY ADMIN (Municipal Executive) can reject proposals, SuperAdmin cannot */}
                                       {currentUser?.role === "ADMIN" && prop.status !== "REJECTED" && (
                                         <button
                                           className="btn btn-secondary btn-sm"
                                           onClick={() => handleUpdateProposalStatus(prop.id, "REJECTED")}
-                                          style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
-                                          title="Reject Proposal (Municipal Executive Action)"
+                                          style={{ padding: "3px 8px", fontSize: "11px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)", whiteSpace: "nowrap" }}
+                                          title="Reject Proposal"
                                         >
                                           ✕ Reject
                                         </button>
@@ -3363,10 +3363,10 @@ function App() {
                                         <button
                                           className="btn btn-secondary btn-sm"
                                           onClick={() => handleUpdateProposalStatus(prop.id, "SUBMITTED_TO_MUNICIPALITY", "obimax.ml@gmail.com")}
-                                          style={{ padding: "4px 8px", fontSize: "11.5px", borderColor: "rgba(14, 165, 233, 0.4)", color: "#38bdf8" }}
-                                          title="Submit / Resend proposal notification to municipality (obimax.ml@gmail.com)"
+                                          style={{ padding: "3px 8px", fontSize: "11px", borderColor: "rgba(14, 165, 233, 0.4)", color: "#38bdf8", whiteSpace: "nowrap" }}
+                                          title="Submit proposal notification to municipality"
                                         >
-                                          📧 Submit to obimax.ml@gmail.com
+                                          📧 Submit
                                         </button>
                                       )}
                                     </>
@@ -3377,7 +3377,7 @@ function App() {
                                     <button
                                       className="btn btn-secondary btn-sm"
                                       onClick={() => handleDeleteProposal(prop.id, prop.proposal_number)}
-                                      style={{ padding: "4px 8px", fontSize: "11.5px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
+                                      style={{ padding: "3px 6px", fontSize: "11px", color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
                                       title="Permanently Delete Proposal"
                                     >
                                       🗑️
