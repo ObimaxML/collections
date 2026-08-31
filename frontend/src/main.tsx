@@ -2480,10 +2480,10 @@ function App() {
             {/* Commercial Revenue Pipeline & Potential Projections */}
             {(() => {
               const activeTenants = tenants.filter(t => t.subscription_status === "ACTIVE" || !t.subscription_status);
-              const saasTenants = tenants.filter(t => t.engagement_model === "SAAS_SELF_SERVICE");
               const managedTenants = tenants.filter(t => t.engagement_model === "MANAGED_SERVICE");
 
-              const monthlySaasMRR = saasTenants.reduce((acc, t) => acc + (Number(t.monthly_subscription_fee) || 0), 0);
+              // SaaS MRR applies across all contracted municipalities
+              const monthlySaasMRR = tenants.reduce((acc, t) => acc + (Number(t.monthly_subscription_fee) || 0), 0);
               const projectedSaasARR = monthlySaasMRR * 12;
 
               // Managed recovery potential: Average monthly book collected (or estimated active accounts)
@@ -2532,7 +2532,7 @@ function App() {
                         R {monthlySaasMRR.toLocaleString()}
                       </div>
                       <div className="metric-subtitle">
-                        From <strong>{saasTenants.length}</strong> active SaaS municipal clients
+                        Across <strong>{tenants.length}</strong> contracted municipalities
                       </div>
                     </div>
 
