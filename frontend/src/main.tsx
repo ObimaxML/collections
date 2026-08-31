@@ -2486,16 +2486,16 @@ function App() {
               const monthlySaasMRR = tenants.reduce((acc, t) => acc + (Number(t.monthly_subscription_fee) || 0), 0);
               const projectedSaasARR = monthlySaasMRR * 12;
 
-              // Managed recovery potential: Average monthly book collected (or estimated active accounts)
+              // Managed recovery commission potential directly on the managed debt book
               const totalLedgerBalance = summary?.outstanding || summary?.debt_book || 0;
-              const estimatedMonthlyRecoveryPool = totalLedgerBalance * 0.05; // 5% recovery velocity benchmark
               const avgManagedCommission = managedTenants.length > 0 
                 ? managedTenants.reduce((acc, t) => acc + (Number(t.commission_rate) || 10), 0) / managedTenants.length 
-                : 10;
-              const estManagedMonthlyCommission = (estimatedMonthlyRecoveryPool * (avgManagedCommission / 100));
-              const estManagedAnnualCommission = estManagedMonthlyCommission * 12;
+                : 15;
+              
+              // Total potential commission across the managed portfolio
+              const totalManagedCommissionPotential = totalLedgerBalance * (avgManagedCommission / 100);
 
-              const totalProjectedAnnualRevenue = projectedSaasARR + estManagedAnnualCommission;
+              const totalProjectedAnnualRevenue = projectedSaasARR + totalManagedCommissionPotential;
 
               return (
                 <div style={{ marginBottom: "28px" }}>
@@ -2554,15 +2554,15 @@ function App() {
                     <div className="metric-card">
                       <div className="metric-header">
                         <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          🛡️ Managed ARR (Est.)
+                          🛡️ Managed Commission Potential
                         </span>
                         <span className="metric-badge badge-green">Commission</span>
                       </div>
                       <div className="metric-value" style={{ color: "#34d399" }}>
-                        R {Math.round(estManagedAnnualCommission).toLocaleString()}
+                        R {Math.round(totalManagedCommissionPotential).toLocaleString()}
                       </div>
                       <div className="metric-subtitle">
-                        ~{avgManagedCommission.toFixed(1)}% recovery commission on books
+                        {avgManagedCommission.toFixed(1)}% commission on R {Math.round(totalLedgerBalance).toLocaleString()} debt book
                       </div>
                     </div>
 
