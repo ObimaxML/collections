@@ -809,12 +809,13 @@ function App() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          tenant_id: selectedTenant,
+          account_id: account360.id,
           account_number: account360.account_number,
+          tenant_id: selectedTenant,
           amount: Number(paymentAmount),
           payment_date: paymentDate,
           external_reference: paymentRef,
-          actor: currentUser?.email || "collector",
+          actor: currentUser?.full_name || currentUser?.email || "Collector",
         }),
       });
       const paymentData = await pRes.json();

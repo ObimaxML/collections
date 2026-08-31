@@ -26,9 +26,36 @@ def create_payment_endpoint(
     db: Session = Depends(get_db),
 ):
     try:
+        from app.models import MunicipalAccount
+        from sqlalchemy import select
+        
+        target_account_id = None
+        if request.account_id:
+            try:
+                target_account_id = UUID(request.account_id)
+            except ValueError:
+                pass
+        
+        if not target_account_id and request.account_number:
+            query = select(MunicipalAccount).where(MunicipalAccount.account_number == request.account_number)
+            if request.tenant_id and request.tenant_id.upper() != "GLOBAL":
+                try:
+                    query = query.where(MunicipalAccount.tenant_id == UUID(request.tenant_id))
+                except ValueError:
+                    pass
+            acc_match = db.execute(query).scalars().first()
+            if acc_match:
+                target_account_id = acc_match.id
+
+        if not target_account_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not identify account. Please provide a valid account_id or account_number.",
+            )
+
         payment = create_payment(
             db=db,
-            account_id=UUID(request.account_id),
+            account_id=target_account_id,
             amount=request.amount,
             payment_date=request.payment_date,
             external_reference=(
@@ -36,6 +63,17 @@ def create_payment_endpoint(
             ),
             actor=request.actor,
         )
+
+        # Automatically reconcile payment against pending promises / ledger to update balances immediately
+        try:
+            reconcile_payment(
+                db=db,
+                payment_id=payment.id,
+                actor=request.actor,
+            )
+            db.refresh(payment)
+        except Exception:
+            pass
 
         return {
             "success": True,

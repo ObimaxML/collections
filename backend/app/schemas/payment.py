@@ -5,7 +5,9 @@ from pydantic import BaseModel, Field
 
 
 class PaymentCreate(BaseModel):
-    account_id: str
+    account_id: str | None = None
+    account_number: str | None = None
+    tenant_id: str | None = None
 
     amount: Decimal = Field(
         gt=0,
@@ -19,6 +21,7 @@ class PaymentCreate(BaseModel):
     )
 
     actor: str = Field(
+        default="collector",
         min_length=1,
         max_length=150,
     )
