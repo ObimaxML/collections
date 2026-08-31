@@ -1580,11 +1580,11 @@ function App() {
               setAccMinArrears("");
               setView("accounts");
             }}
-            title="Click to view all current accounts with no overdue arrears"
+            title="Click to view all accounts with current unexpired billings (Current + 30D + 60D)"
           >
             <div className="metric-header">
-              <span className="metric-title">Current (Not Overdue)</span>
-              <span className="metric-badge" style={{ background: "rgba(56, 189, 248, 0.2)", color: "#38bdf8" }}>✓ Up to Date</span>
+              <span className="metric-title">Current Billings (&lt; 90D)</span>
+              <span className="metric-badge" style={{ background: "rgba(56, 189, 248, 0.2)", color: "#38bdf8" }}>Current + 30D + 60D</span>
             </div>
             <div className="metric-value" style={{ color: "#38bdf8" }}>
               {(() => {
@@ -1595,9 +1595,7 @@ function App() {
               })()}
             </div>
             <div className="metric-subtitle">
-              {summary?.current_not_overdue_accounts !== undefined
-                ? `${summary.current_not_overdue_accounts} accounts in good standing`
-                : "Accounts with R0 overdue arrears (Click to view)"}
+              Unexpired active debt across portfolio (Click to view)
             </div>
           </div>
 
