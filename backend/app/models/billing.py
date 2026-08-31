@@ -191,7 +191,7 @@ class Invoice(Base):
         nullable=False,
         default=lambda: {
             "bank_name": "First National Bank (FNB)",
-            "account_name": "Molmos (Pty) Ltd - Khokhisa Collections",
+            "account_name": "Khokhisa (Pty) Ltd - Khokhisa Collections",
             "account_number": "62899432101",
             "branch_code": "250655",
             "account_type": "Business Cheque Account",

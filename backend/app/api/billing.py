@@ -148,7 +148,7 @@ def create_proposal(
         else:
             comm = payload.commission_rate or Decimal("10.00")
             items_data.append({
-                "description": f"Molmos Full-Service Managed Debt Recovery ({comm}% Contingency Commission on Recovered Cash)",
+                "description": f"Khokhisa Full-Service Managed Debt Recovery ({comm}% Contingency Commission on Recovered Cash)",
                 "quantity": 1.0,
                 "unit_price": 0.0,
                 "total": 0.0,
@@ -218,7 +218,7 @@ You can review and approve this proposal directly within your Khokhisa Municipal
 
 Kind Regards,
 Khokhisa Revenue Management Team
-Molmos (Pty) Ltd
+Khokhisa (Pty) Ltd
 """
     logger.info(f"📧 [PROPOSAL DISPATCH] To: {recipient_email} | Subject: {subject} | Proposal: {proposal.proposal_number}")
     
@@ -509,7 +509,7 @@ def autogenerate_invoice_from_tenant(
 
     banking = {
         "bank_name": "First National Bank (FNB)",
-        "account_name": "Molmos (Pty) Ltd - Khokhisa Collections",
+        "account_name": "Khokhisa (Pty) Ltd - Khokhisa Collections",
         "account_number": "62899432101",
         "branch_code": "250655",
         "account_type": "Business Cheque Account",

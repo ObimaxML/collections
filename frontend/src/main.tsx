@@ -371,7 +371,7 @@ function App() {
         alert(`Error onboarding municipality: ${data.detail}`);
         return;
       }
-      alert(`Municipality ${data.name} (${data.code}) onboarded successfully under ${data.engagement_model === "MANAGED_SERVICE" ? "Molmos Managed Collections" : "Internal SaaS Subscription"}!`);
+      alert(`Municipality ${data.name} (${data.code}) onboarded successfully under ${data.engagement_model === "MANAGED_SERVICE" ? "Khokhisa Managed Collections" : "Internal SaaS Subscription"}!`);
       setNewTenantName("");
       setNewTenantCode("");
       setNewTenantStatus("ACTIVE");
@@ -2590,7 +2590,7 @@ function App() {
               <div className="panel-header">
                 <div className="panel-title">
                   <h3>🏛️ Onboard New Municipality & Engagement Model</h3>
-                  <p>Register a South African municipality for either <strong>Molmos Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
+                  <p>Register a South African municipality for either <strong>Khokhisa Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
                 </div>
               </div>
 
@@ -2622,7 +2622,7 @@ function App() {
 
                 <div className="info-grid" style={{ marginBottom: "16px" }}>
                   <div className="form-group">
-                    <label>💼 Engagement & Operating Model</label>
+                    <label>Engagement & Operating Model</label>
                     <select
                       value={newTenantModel}
                       onChange={e => setNewTenantModel(e.target.value as any)}
@@ -2634,7 +2634,7 @@ function App() {
                         fontWeight: 600,
                       }}
                     >
-                      <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Molmos Managed Service (Outsourced Agency Debt Recovery)</option>
+                      <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Khokhisa Managed Service (Outsourced Agency Debt Recovery)</option>
                       <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 SaaS Subscription (Municipality Uses System Internally)</option>
                     </select>
                   </div>
@@ -2671,34 +2671,11 @@ function App() {
                   </div>
                 </div>
 
-                {newTenantModel === "MANAGED_SERVICE" ? (
-                  <div className="info-grid" style={{ marginBottom: "20px", padding: "12px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)", borderRadius: "8px" }}>
-                    <div className="form-group">
-                      <label style={{ color: "#34d399" }}>Molmos Recovery Commission Rate (%)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="e.g. 10.00"
-                        value={newTenantCommission}
-                        onChange={e => setNewTenantCommission(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based recovery fee retained by Molmos upon debt collection.</small>
-                    </div>
-                    <div className="form-group">
-                      <label>Billing & Contract Contact Email</label>
-                      <input
-                        type="email"
-                        placeholder="revenue.cfo@municipality.gov.za"
-                        value={newTenantBillingEmail}
-                        onChange={e => setNewTenantBillingEmail(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
+                <div style={{ marginBottom: "20px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px" }}>
+                  <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "12px", fontSize: "13.5px" }}>
+                    💼 Commercial Terms (Monthly SaaS License Fee & Khokhisa Recovery Commission)
                   </div>
-                ) : (
-                  <div className="info-grid" style={{ marginBottom: "20px", padding: "12px", background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: "8px" }}>
+                  <div className="info-grid" style={{ marginBottom: "12px" }}>
                     <div className="form-group">
                       <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
                       <input
@@ -2713,17 +2690,30 @@ function App() {
                       <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
                     </div>
                     <div className="form-group">
-                      <label>Billing & Invoice Email</label>
+                      <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
                       <input
-                        type="email"
-                        placeholder="it.procurement@municipality.gov.za"
-                        value={newTenantBillingEmail}
-                        onChange={e => setNewTenantBillingEmail(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        placeholder="e.g. 10.00"
+                        value={newTenantCommission}
+                        onChange={e => setNewTenantCommission(e.target.value)}
                         className="form-input"
+                        required
                       />
+                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based contingency fee retained upon debt collection.</small>
                     </div>
                   </div>
-                )}
+                  <div className="form-group">
+                    <label>Billing & Contract Contact Email</label>
+                    <input
+                      type="email"
+                      placeholder="revenue.cfo@municipality.gov.za"
+                      value={newTenantBillingEmail}
+                      onChange={e => setNewTenantBillingEmail(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
 
                 {/* Address & Contact Information (Optional) */}
                 <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
@@ -2798,7 +2788,7 @@ function App() {
               <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div className="panel-title">
                   <h3>🏛️ Municipal Clients & SaaS Portfolios ({tenants.length})</h3>
-                  <p>Manage subscription tiers, engagement models (Internal SaaS vs Molmos Managed), and billing terms</p>
+                  <p>Manage subscription tiers, engagement models (Internal SaaS vs Khokhisa Managed), and billing terms</p>
                 </div>
               </div>
 
@@ -2823,7 +2813,7 @@ function App() {
                         <td>
                           {t.engagement_model === "MANAGED_SERVICE" ? (
                             <span style={{ padding: "4px 8px", borderRadius: "4px", background: "rgba(16, 185, 129, 0.15)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.3)", fontWeight: 600, fontSize: "11.5px" }}>
-                              🛡️ Molmos Managed Agency
+                              🛡️ Khokhisa Managed Agency
                             </span>
                           ) : (
                             <span style={{ padding: "4px 8px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.15)", color: "#60a5fa", border: "1px solid rgba(59, 130, 246, 0.3)", fontWeight: 600, fontSize: "11.5px" }}>
@@ -2833,15 +2823,14 @@ function App() {
                         </td>
                         <td><strong style={{ color: "#e2e8f0", fontSize: "12px" }}>{t.subscription_tier || "ENTERPRISE"}</strong></td>
                         <td>
-                          {t.engagement_model === "MANAGED_SERVICE" ? (
-                            <span style={{ color: "#34d399", fontWeight: 600 }}>
-                              {t.commission_rate ? `${t.commission_rate}% Commission` : "10% Commission"}
-                            </span>
-                          ) : (
-                            <span style={{ color: "#60a5fa", fontWeight: 600 }}>
-                              {t.monthly_subscription_fee ? `R ${Number(t.monthly_subscription_fee).toLocaleString()} / mo` : "Standard SaaS"}
-                            </span>
-                          )}
+                          <div style={{ fontSize: "12px" }}>
+                            <div style={{ color: "#60a5fa", fontWeight: 600 }}>
+                              {t.monthly_subscription_fee ? `R ${Number(t.monthly_subscription_fee).toLocaleString()} / mo SaaS` : "R 0 / mo SaaS"}
+                            </div>
+                            <div style={{ color: "#34d399", fontWeight: 600, marginTop: "2px" }}>
+                              {t.commission_rate ? `${t.commission_rate}% Khokhisa Comm.` : "10% Khokhisa Comm."}
+                            </div>
+                          </div>
                         </td>
                         <td>
                           {currentUser?.role === "SUPERADMIN" ? (
@@ -3683,7 +3672,7 @@ function App() {
                       <div style={{ fontSize: "36px", marginBottom: "12px" }}>📑</div>
                       <h4 style={{ color: "#f8fafc", margin: "0 0 6px 0" }}>No Commercial Proposals Drafted</h4>
                       <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "460px", margin: "0 auto 20px auto" }}>
-                        Create formal proposals for municipalities covering SaaS licensing tiers or Molmos Managed Collections with approval workflows.
+                        Create formal proposals for municipalities covering SaaS licensing tiers or Khokhisa Managed Collections with approval workflows.
                       </p>
                       {currentUser?.role === "SUPERADMIN" && (
                         <button className="btn btn-primary btn-sm" onClick={() => setShowNewProposalModal(true)}>
@@ -4498,7 +4487,7 @@ function App() {
                     onChange={e => setEditingTenant({ ...editingTenant, engagement_model: e.target.value })}
                     className="form-select"
                   >
-                    <option value="MANAGED_SERVICE">🛡️ Molmos Managed Debt Agency</option>
+                    <option value="MANAGED_SERVICE">🛡️ Khokhisa Managed Debt Agency</option>
                     <option value="SAAS_SELF_SERVICE">💻 SaaS Municipal Subscription</option>
                   </select>
                 </div>
@@ -4518,27 +4507,28 @@ function App() {
 
               <div className="info-grid" style={{ marginBottom: "16px" }}>
                 <div className="form-group">
-                  <label>
-                    {editingTenant.engagement_model === "MANAGED_SERVICE" ? "Molmos Commission (%)" : "Monthly License Fee (ZAR)"}
-                  </label>
-                  {editingTenant.engagement_model === "MANAGED_SERVICE" ? (
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={editingTenant.commission_rate ?? 10.00}
-                      onChange={e => setEditingTenant({ ...editingTenant, commission_rate: e.target.value })}
-                      className="form-input"
-                    />
-                  ) : (
-                    <input
-                      type="number"
-                      step="100"
-                      value={editingTenant.monthly_subscription_fee ?? 45000}
-                      onChange={e => setEditingTenant({ ...editingTenant, monthly_subscription_fee: e.target.value })}
-                      className="form-input"
-                    />
-                  )}
+                  <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
+                  <input
+                    type="number"
+                    step="100"
+                    value={editingTenant.monthly_subscription_fee ?? 45000}
+                    onChange={e => setEditingTenant({ ...editingTenant, monthly_subscription_fee: e.target.value })}
+                    className="form-input"
+                  />
                 </div>
+                <div className="form-group">
+                  <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingTenant.commission_rate ?? 10.00}
+                    onChange={e => setEditingTenant({ ...editingTenant, commission_rate: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
                 <div className="form-group">
                   <label>Subscription Status</label>
                   <select
@@ -4552,16 +4542,15 @@ function App() {
                     <option value="EXPIRED">EXPIRED</option>
                   </select>
                 </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: "24px" }}>
-                <label>Billing & Contract Email</label>
-                <input
-                  type="email"
-                  value={editingTenant.billing_contact_email || ""}
-                  onChange={e => setEditingTenant({ ...editingTenant, billing_contact_email: e.target.value })}
-                  className="form-input"
-                />
+                <div className="form-group">
+                  <label>Billing & Contract Email</label>
+                  <input
+                    type="email"
+                    value={editingTenant.billing_contact_email || ""}
+                    onChange={e => setEditingTenant({ ...editingTenant, billing_contact_email: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
@@ -4947,7 +4936,7 @@ function App() {
                     onChange={e => setPropModel(e.target.value)}
                     className="form-select"
                   >
-                    <option value="MANAGED_SERVICE">🛡️ Molmos Managed Debt Collection Agency</option>
+                    <option value="MANAGED_SERVICE">🛡️ Khokhisa Managed Debt Collection Agency</option>
                     <option value="SAAS_SELF_SERVICE">💻 Internal Municipal SaaS Platform</option>
                   </select>
                 </div>
@@ -5290,7 +5279,7 @@ function App() {
                     onChange={e => setEditingTenant({ ...editingTenant, engagement_model: e.target.value })}
                     className="form-select"
                   >
-                    <option value="MANAGED_SERVICE">🛡️ Molmos Managed Debt Collection Agency</option>
+                    <option value="MANAGED_SERVICE">🛡️ Khokhisa Managed Debt Collection Agency</option>
                     <option value="SAAS_SELF_SERVICE">💻 Internal Municipal SaaS Platform</option>
                   </select>
                 </div>

@@ -13,7 +13,7 @@ class LineItem(BaseModel):
 
 class BankingDetails(BaseModel):
     bank_name: str = "First National Bank (FNB)"
-    account_name: str = "Molmos (Pty) Ltd - Khokhisa Collections"
+    account_name: str = "Khokhisa (Pty) Ltd - Khokhisa Collections"
     account_number: str = "62899432101"
     branch_code: str = "250655"
     account_type: str = "Business Cheque Account"
