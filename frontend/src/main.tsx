@@ -2,7 +2,20 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
 
-const API = (import.meta as any).env?.VITE_API_URL || "/api";
+const getApiBase = () => {
+  if ((import.meta as any).env?.VITE_API_URL) {
+    return (import.meta as any).env.VITE_API_URL;
+  }
+  if (typeof window !== "undefined") {
+    // If accessing via direct localhost on dev without proxy or port 5173
+    if (window.location.port === "5173" && !window.location.hostname.includes("cloudflared")) {
+      return "http://localhost:8000/api";
+    }
+  }
+  return "/api";
+};
+
+const API = getApiBase();
 
 interface Tenant {
   id: string;
