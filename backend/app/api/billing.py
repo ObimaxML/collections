@@ -1,0 +1,426 @@
+from datetime import date, datetime, timezone
+from decimal import Decimal
+from uuid import UUID, uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, func
+from sqlalchemy.orm import Session
+
+from app.db.session import get_db
+from app.models import Tenant
+from app.models.billing import Invoice, Proposal
+from app.schemas.billing import (
+    InvoiceCreate,
+    InvoiceResponse,
+    InvoiceUpdate,
+    ProposalCreate,
+    ProposalResponse,
+    ProposalUpdate,
+)
+
+router = APIRouter(
+    prefix="/billing",
+    tags=["Municipal Commercial Billing & Proposals"],
+)
+
+
+def _format_proposal(proposal: Proposal, db: Session) -> dict:
+    tenant = db.get(Tenant, proposal.tenant_id)
+    return {
+        "id": proposal.id,
+        "tenant_id": proposal.tenant_id,
+        "tenant_name": tenant.name if tenant else None,
+        "tenant_code": tenant.code if tenant else None,
+        "proposal_number": proposal.proposal_number,
+        "title": proposal.title,
+        "engagement_model": proposal.engagement_model,
+        "subscription_tier": proposal.subscription_tier,
+        "status": proposal.status,
+        "total_amount": proposal.total_amount,
+        "vat_amount": proposal.vat_amount,
+        "monthly_fee": proposal.monthly_fee,
+        "commission_rate": proposal.commission_rate,
+        "valid_until": proposal.valid_until,
+        "scope_of_work": proposal.scope_of_work,
+        "terms_and_conditions": proposal.terms_and_conditions,
+        "line_items": proposal.line_items,
+        "approved_by": proposal.approved_by,
+        "approved_at": proposal.approved_at,
+        "created_by": proposal.created_by,
+        "created_at": proposal.created_at,
+    }
+
+
+def _format_invoice(invoice: Invoice, db: Session) -> dict:
+    tenant = db.get(Tenant, invoice.tenant_id)
+    return {
+        "id": invoice.id,
+        "tenant_id": invoice.tenant_id,
+        "tenant_name": tenant.name if tenant else None,
+        "tenant_code": tenant.code if tenant else None,
+        "proposal_id": invoice.proposal_id,
+        "invoice_number": invoice.invoice_number,
+        "billing_period": invoice.billing_period,
+        "status": invoice.status,
+        "issue_date": invoice.issue_date,
+        "due_date": invoice.due_date,
+        "subtotal": invoice.subtotal,
+        "vat_rate": invoice.vat_rate,
+        "vat_amount": invoice.vat_amount,
+        "total_amount": invoice.total_amount,
+        "paid_amount": invoice.paid_amount,
+        "line_items": invoice.line_items,
+        "banking_details": invoice.banking_details,
+        "notes": invoice.notes,
+        "created_at": invoice.created_at,
+    }
+
+
+# -----------------------------------------------------------------------------
+# PROPOSALS API
+# -----------------------------------------------------------------------------
+
+@router.get("/proposals", response_model=list[ProposalResponse])
+def list_proposals(
+    tenant_id: UUID | None = None,
+    db: Session = Depends(get_db),
+):
+    query = select(Proposal).order_by(Proposal.created_at.desc())
+    if tenant_id:
+        query = query.where(Proposal.tenant_id == tenant_id)
+    proposals = db.scalars(query).all()
+    return [_format_proposal(p, db) for p in proposals]
+
+
+@router.post("/proposals", response_model=ProposalResponse, status_code=201)
+def create_proposal(
+    payload: ProposalCreate,
+    db: Session = Depends(get_db),
+):
+    tenant = db.get(Tenant, payload.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Municipality not found.")
+
+    # Generate sequential proposal number: PROP-CODE-YYYYMM-XXX
+    count = db.scalar(select(func.count()).select_from(Proposal)) or 0
+    seq = count + 1
+    now_str = datetime.now().strftime("%Y%m")
+    proposal_number = f"PROP-{tenant.code}-{now_str}-{seq:03d}"
+
+    # Calculate line items subtotal
+    subtotal = Decimal("0.00")
+    items_data = []
+    for item in payload.line_items:
+        qty = Decimal(str(item.quantity))
+        price = Decimal(str(item.unit_price))
+        total = qty * price
+        items_data.append({
+            "description": item.description,
+            "quantity": float(qty),
+            "unit_price": float(price),
+            "total": float(total),
+        })
+        subtotal += total
+
+    # If no line items passed, autogenerate from engagement model
+    if not items_data:
+        if payload.engagement_model == "SAAS_SELF_SERVICE":
+            fee = payload.monthly_fee or Decimal("20000.00")
+            items_data.append({
+                "description": f"Khokhisa {payload.subscription_tier} SaaS License Subscription (Monthly)",
+                "quantity": 1.0,
+                "unit_price": float(fee),
+                "total": float(fee),
+            })
+            subtotal += fee
+        else:
+            comm = payload.commission_rate or Decimal("10.00")
+            items_data.append({
+                "description": f"Molmos Full-Service Managed Debt Recovery ({comm}% Contingency Commission on Recovered Cash)",
+                "quantity": 1.0,
+                "unit_price": 0.0,
+                "total": 0.0,
+            })
+
+    vat_amount = (subtotal * Decimal("0.15")).quantize(Decimal("0.01"))
+    total_amount = subtotal + vat_amount
+
+    proposal = Proposal(
+        id=uuid4(),
+        tenant_id=payload.tenant_id,
+        proposal_number=proposal_number,
+        title=payload.title,
+        engagement_model=payload.engagement_model,
+        subscription_tier=payload.subscription_tier,
+        status="DRAFT",
+        total_amount=total_amount,
+        vat_amount=vat_amount,
+        monthly_fee=payload.monthly_fee,
+        commission_rate=payload.commission_rate,
+        valid_until=payload.valid_until,
+        scope_of_work=payload.scope_of_work or (
+            f"Provision of Khokhisa Debt Recovery Operating System & Municipal Revenue collections under {payload.engagement_model}."
+        ),
+        terms_and_conditions=payload.terms_and_conditions or (
+            "1. Invoicing on monthly payment cycles.\n2. Subject to Municipal Finance Management Act (MFMA) compliance.\n3. 30-day payment term."
+        ),
+        line_items=items_data,
+        created_by=payload.created_by or "SuperAdmin",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(proposal)
+    db.commit()
+    db.refresh(proposal)
+    return _format_proposal(proposal, db)
+
+
+@router.patch("/proposals/{proposal_id}/status", response_model=ProposalResponse)
+def update_proposal_status(
+    proposal_id: UUID,
+    status: str = Query(..., description="DRAFT, SUBMITTED_TO_MUNICIPALITY, APPROVED, REJECTED"),
+    actor: str | None = Query(default="Municipal Executive"),
+    db: Session = Depends(get_db),
+):
+    proposal = db.get(Proposal, proposal_id)
+    if not proposal:
+        raise HTTPException(status_code=404, detail="Proposal not found.")
+
+    valid_statuses = {"DRAFT", "SUBMITTED_TO_MUNICIPALITY", "APPROVED", "REJECTED", "EXPIRED"}
+    status_upper = status.strip().upper()
+    if status_upper not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status: {status_upper}")
+
+    proposal.status = status_upper
+    if status_upper == "APPROVED":
+        proposal.approved_by = actor
+        proposal.approved_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(proposal)
+    return _format_proposal(proposal, db)
+
+
+# -----------------------------------------------------------------------------
+# INVOICES API
+# -----------------------------------------------------------------------------
+
+@router.get("/invoices", response_model=list[InvoiceResponse])
+def list_invoices(
+    tenant_id: UUID | None = None,
+    db: Session = Depends(get_db),
+):
+    query = select(Invoice).order_by(Invoice.created_at.desc())
+    if tenant_id:
+        query = query.where(Invoice.tenant_id == tenant_id)
+    invoices = db.scalars(query).all()
+    return [_format_invoice(inv, db) for inv in invoices]
+
+
+@router.post("/invoices", response_model=InvoiceResponse, status_code=201)
+def create_invoice(
+    payload: InvoiceCreate,
+    db: Session = Depends(get_db),
+):
+    tenant = db.get(Tenant, payload.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Municipality not found.")
+
+    # Generate sequential invoice number: INV-CODE-YYYYMM-XXX
+    count = db.scalar(select(func.count()).select_from(Invoice)) or 0
+    seq = count + 1
+    now_str = datetime.now().strftime("%Y%m")
+    invoice_number = f"INV-{tenant.code}-{now_str}-{seq:03d}"
+
+    # Calculate line items subtotal
+    subtotal = Decimal("0.00")
+    items_data = []
+    for item in payload.line_items:
+        qty = Decimal(str(item.quantity))
+        price = Decimal(str(item.unit_price))
+        total = qty * price
+        items_data.append({
+            "description": item.description,
+            "quantity": float(qty),
+            "unit_price": float(price),
+            "total": float(total),
+        })
+        subtotal += total
+
+    # If no line items, autogenerate from tenant engagement model
+    if not items_data:
+        if tenant.engagement_model == "SAAS_SELF_SERVICE":
+            fee = tenant.monthly_subscription_fee or Decimal("20000.00")
+            items_data.append({
+                "description": f"Khokhisa {tenant.subscription_tier} SaaS License ({payload.billing_period})",
+                "quantity": 1.0,
+                "unit_price": float(fee),
+                "total": float(fee),
+            })
+            subtotal += fee
+        else:
+            comm = tenant.commission_rate or Decimal("10.00")
+            items_data.append({
+                "description": f"Managed Collections Recovery Fee ({comm}% Commission for {payload.billing_period})",
+                "quantity": 1.0,
+                "unit_price": 0.0,
+                "total": 0.0,
+            })
+
+    vat_rate = Decimal(str(payload.vat_rate))
+    vat_amount = (subtotal * (vat_rate / Decimal("100.00"))).quantize(Decimal("0.01"))
+    total_amount = subtotal + vat_amount
+
+    default_banking = {
+        "bank_name": "First National Bank (FNB)",
+        "account_name": "Molmos (Pty) Ltd - Khokhisa Collections",
+        "account_number": "62899432101",
+        "branch_code": "250655",
+        "account_type": "Business Cheque Account",
+        "swift_code": "FIRNZAJJ",
+        "payment_reference": invoice_number,
+    }
+
+    invoice = Invoice(
+        id=uuid4(),
+        tenant_id=payload.tenant_id,
+        proposal_id=payload.proposal_id,
+        invoice_number=invoice_number,
+        billing_period=payload.billing_period,
+        status="ISSUED",
+        issue_date=payload.issue_date,
+        due_date=payload.due_date,
+        subtotal=subtotal,
+        vat_rate=vat_rate,
+        vat_amount=vat_amount,
+        total_amount=total_amount,
+        paid_amount=Decimal("0.00"),
+        line_items=items_data,
+        banking_details=payload.banking_details.model_dump() if payload.banking_details else default_banking,
+        notes=payload.notes or f"Official Tax Invoice for municipal revenue & debt recovery services. Payment due within 30 days.",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(invoice)
+    db.commit()
+    db.refresh(invoice)
+    return _format_invoice(invoice, db)
+
+
+@router.post("/invoices/autogenerate", response_model=InvoiceResponse, status_code=201)
+def autogenerate_invoice_from_tenant(
+    tenant_id: UUID,
+    billing_period: str | None = None,
+    due_days: int = 30,
+    db: Session = Depends(get_db),
+):
+    """
+    Autogenerates an official tax invoice based on the municipality's configured engagement model,
+    subscription tier, monthly fee, recovery books, and banking details.
+    """
+    tenant = db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Municipality not found.")
+
+    period = billing_period or datetime.now().strftime("%B %Y")
+    issue_d = date.today()
+    from datetime import timedelta
+    due_d = issue_d + timedelta(days=due_days)
+
+    items = []
+    subtotal = Decimal("0.00")
+
+    if tenant.engagement_model == "SAAS_SELF_SERVICE":
+        fee = tenant.monthly_subscription_fee or Decimal("20000.00")
+        items.append({
+            "description": f"Khokhisa {tenant.subscription_tier} Municipal SaaS Platform License ({period})",
+            "quantity": 1.0,
+            "unit_price": float(fee),
+            "total": float(fee),
+        })
+        subtotal += fee
+    else:
+        # Managed service: calculate recovered commission from recent payments
+        from app.models import Payment
+        recovered = db.scalar(
+            select(func.coalesce(func.sum(Payment.amount), Decimal("0.00")))
+            .where(
+                Payment.tenant_id == tenant_id,
+                Payment.reconciliation_status == "MATCHED",
+            )
+        ) or Decimal("0.00")
+
+        comm_pct = tenant.commission_rate or Decimal("10.00")
+        commission_fee = (Decimal(str(recovered)) * (comm_pct / Decimal("100.00"))).quantize(Decimal("0.01"))
+        
+        items.append({
+            "description": f"Managed Debt Collections Commission ({comm_pct}% on R{recovered:,.2f} Reconciled Cash)",
+            "quantity": 1.0,
+            "unit_price": float(commission_fee),
+            "total": float(commission_fee),
+        })
+        subtotal += commission_fee
+
+    vat_rate = Decimal("15.00")
+    vat_amount = (subtotal * Decimal("0.15")).quantize(Decimal("0.01"))
+    total_amount = subtotal + vat_amount
+
+    count = db.scalar(select(func.count()).select_from(Invoice)) or 0
+    seq = count + 1
+    now_str = datetime.now().strftime("%Y%m")
+    invoice_number = f"INV-{tenant.code}-{now_str}-{seq:03d}"
+
+    banking = {
+        "bank_name": "First National Bank (FNB)",
+        "account_name": "Molmos (Pty) Ltd - Khokhisa Collections",
+        "account_number": "62899432101",
+        "branch_code": "250655",
+        "account_type": "Business Cheque Account",
+        "swift_code": "FIRNZAJJ",
+        "payment_reference": invoice_number,
+    }
+
+    invoice = Invoice(
+        id=uuid4(),
+        tenant_id=tenant_id,
+        invoice_number=invoice_number,
+        billing_period=period,
+        status="ISSUED",
+        issue_date=issue_d,
+        due_date=due_d,
+        subtotal=subtotal,
+        vat_rate=vat_rate,
+        vat_amount=vat_amount,
+        total_amount=total_amount,
+        paid_amount=Decimal("0.00"),
+        line_items=items,
+        banking_details=banking,
+        notes=f"Auto-generated based on {tenant.engagement_model} contract terms for {period}.",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    db.add(invoice)
+    db.commit()
+    db.refresh(invoice)
+    return _format_invoice(invoice, db)
+
+
+@router.patch("/invoices/{invoice_id}/status", response_model=InvoiceResponse)
+def update_invoice_status(
+    invoice_id: UUID,
+    status: str = Query(..., description="DRAFT, ISSUED, PAID, OVERDUE, CANCELLED"),
+    paid_amount: Decimal | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    invoice = db.get(Invoice, invoice_id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found.")
+
+    status_upper = status.strip().upper()
+    invoice.status = status_upper
+    if status_upper == "PAID":
+        invoice.paid_amount = paid_amount if paid_amount is not None else invoice.total_amount
+
+    db.commit()
+    db.refresh(invoice)
+    return _format_invoice(invoice, db)

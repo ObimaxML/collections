@@ -86,7 +86,7 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "settings">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "billing" | "settings">("dashboard");
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
@@ -95,6 +95,43 @@ function App() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [account360, setAccount360] = useState<Account360 | null>(null);
   const [drawerTab, setDrawerTab] = useState<"overview" | "contact" | "ptp" | "plan" | "payments">("overview");
+
+  // Proposals & Invoicing State
+  const [proposals, setProposals] = useState<any[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [billingSubTab, setBillingSubTab] = useState<"invoices" | "proposals">("invoices");
+  const [showNewProposalModal, setShowNewProposalModal] = useState(false);
+  const [showNewInvoiceModal, setShowNewInvoiceModal] = useState(false);
+  const [viewingPdfDoc, setViewingPdfDoc] = useState<{ type: "INVOICE" | "PROPOSAL"; data: any } | null>(null);
+
+  // Proposal Creation Form
+  const [propTenantId, setPropTenantId] = useState("");
+  const [propTitle, setPropTitle] = useState("Municipal Revenue Recovery & Khokhisa SaaS Platform Proposal");
+  const [propModel, setPropModel] = useState("MANAGED_SERVICE");
+  const [propTier, setPropTier] = useState("ENTERPRISE");
+  const [propMonthlyFee, setPropMonthlyFee] = useState("0");
+  const [propCommissionRate, setPropCommissionRate] = useState("10.00");
+  const [propValidDays, setPropValidDays] = useState("30");
+  const [propScope, setPropScope] = useState("End-to-end debt recovery management, debtor contactability tracing, algorithmic work queue dispatch, and automated payment reconciliation.");
+  const [propTerms, setPropTerms] = useState("1. Invoicing on monthly payment cycles.\n2. Subject to Municipal Finance Management Act (MFMA) compliance.\n3. 30-day payment term.");
+  const [propLineItems, setPropLineItems] = useState<Array<{ description: string; quantity: number; unit_price: number }>>([
+    { description: "Khokhisa Core Collections Platform Deployment & Configuration", quantity: 1, unit_price: 50000 },
+    { description: "Managed Recovery Operations (Contingency Commission Based on Recovered Cash)", quantity: 1, unit_price: 0 },
+  ]);
+
+  // Invoice Creation Form
+  const [invTenantId, setInvTenantId] = useState("");
+  const [invBillingPeriod, setInvBillingPeriod] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+  const [invDueDays, setInvDueDays] = useState("30");
+  const [invLineItems, setInvLineItems] = useState<Array<{ description: string; quantity: number; unit_price: number }>>([
+    { description: "Khokhisa Municipal SaaS Platform License Fee (Monthly)", quantity: 1, unit_price: 20000 },
+  ]);
+  const [invBankingBank, setInvBankingBank] = useState("First National Bank (FNB)");
+  const [invBankingAccName, setInvBankingAccName] = useState("Molmos (Pty) Ltd - Khokhisa Collections");
+  const [invBankingAccNum, setInvBankingAccNum] = useState("62899432101");
+  const [invBankingBranch, setInvBankingBranch] = useState("250655");
+  const [invBankingType, setInvBankingType] = useState("Business Cheque Account");
+  const [invBankingSwift, setInvBankingSwift] = useState("FIRNZAJJ");
 
   // New User Creation form for SuperAdmin / Admin
   const [newFullName, setNewFullName] = useState("");
@@ -414,6 +451,17 @@ function App() {
       .then(r => r.json())
       .then(setUsersList)
       .catch(console.error);
+
+    // 5. Billing proposals & invoices
+    fetch(`${API}/billing/proposals`)
+      .then(r => r.json())
+      .then(setProposals)
+      .catch(console.error);
+
+    fetch(`${API}/billing/invoices`)
+      .then(r => r.json())
+      .then(setInvoices)
+      .catch(console.error);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -680,6 +728,158 @@ function App() {
       const data = await res.json();
       alert(`Case Engine Completed!\nCreated: ${data.cases_created}\nUpdated: ${data.cases_updated}`);
       refreshData();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Proposal Handlers
+  const handleCreateProposal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetTenant = propTenantId || selectedTenant;
+    if (!targetTenant) {
+      alert("Please select a municipality for this proposal.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const validUntilDate = new Date(Date.now() + Number(propValidDays) * 86400000).toISOString().split("T")[0];
+      const res = await fetch(`${API}/billing/proposals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: targetTenant,
+          title: propTitle,
+          engagement_model: propModel,
+          subscription_tier: propTier,
+          monthly_fee: Number(propMonthlyFee) || 0,
+          commission_rate: Number(propCommissionRate) || 10,
+          valid_until: validUntilDate,
+          scope_of_work: propScope,
+          terms_and_conditions: propTerms,
+          line_items: propLineItems,
+          created_by: currentUser?.full_name || "SuperAdmin",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Error creating proposal: " + (data.detail || JSON.stringify(data)));
+        return;
+      }
+      alert(`✅ Proposal "${data.proposal_number}" created successfully!`);
+      setShowNewProposalModal(false);
+      refreshData();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateProposalStatus = async (proposalId: string, newStatus: string) => {
+    setLoading(true);
+    try {
+      const actorName = currentUser?.full_name || (currentUser?.role === "ADMIN" ? "Municipal Executive" : "SuperAdmin");
+      const res = await fetch(`${API}/billing/proposals/${proposalId}/status?status=${newStatus}&actor=${encodeURIComponent(actorName)}`, {
+        method: "PATCH",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Error updating proposal status: " + (data.detail || JSON.stringify(data)));
+        return;
+      }
+      alert(`Proposal status updated to "${newStatus}"!`);
+      refreshData();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Invoice Handlers
+  const handleCreateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const targetTenant = invTenantId || selectedTenant;
+    if (!targetTenant) {
+      alert("Please select a municipality to invoice.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const dueDate = new Date(Date.now() + Number(invDueDays) * 86400000).toISOString().split("T")[0];
+      const res = await fetch(`${API}/billing/invoices`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tenant_id: targetTenant,
+          billing_period: invBillingPeriod,
+          issue_date: new Date().toISOString().split("T")[0],
+          due_date: dueDate,
+          vat_rate: 15.0,
+          line_items: invLineItems,
+          banking_details: {
+            bank_name: invBankingBank,
+            account_name: invBankingAccName,
+            account_number: invBankingAccNum,
+            branch_code: invBankingBranch,
+            account_type: invBankingType,
+            swift_code: invBankingSwift,
+            payment_reference: `INV-${Date.now().toString().slice(-4)}`,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Error issuing invoice: " + (data.detail || JSON.stringify(data)));
+        return;
+      }
+      alert(`✅ Tax Invoice "${data.invoice_number}" issued successfully!`);
+      setShowNewInvoiceModal(false);
+      refreshData();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAutogenerateInvoice = async (tenantId: string) => {
+    setLoading(true);
+    try {
+      const currentPeriod = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const res = await fetch(`${API}/billing/invoices/autogenerate?tenant_id=${tenantId}&billing_period=${encodeURIComponent(currentPeriod)}`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Error autogenerating invoice: " + (data.detail || JSON.stringify(data)));
+        return;
+      }
+      alert(`🚀 Auto-generated Tax Invoice "${data.invoice_number}" for ${data.tenant_name || 'Municipality'}!`);
+      refreshData();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateInvoiceStatus = async (invoiceId: string, newStatus: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/billing/invoices/${invoiceId}/status?status=${newStatus}`, {
+        method: "PATCH",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert("Error updating invoice: " + (data.detail || JSON.stringify(data)));
+        return;
+      }
+      alert(`Invoice status updated to "${newStatus}"!`);
+      refreshData();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -1052,6 +1252,12 @@ function App() {
               💎 SaaS Pricing & Tiers
             </div>
           )}
+          {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+            <div className={`nav-item ${view === "billing" ? "active" : ""}`} onClick={() => { setView("billing"); setMobileMenuOpen(false); }}>
+              🧾 Proposals & Invoicing
+              <span className="nav-badge">{invoices.length + proposals.length}</span>
+            </div>
+          )}
           <div className={`nav-item ${view === "settings" ? "active" : ""}`} onClick={() => { setView("settings"); setMobileMenuOpen(false); setSettingsFullName(currentUser?.full_name || ""); setSettingsEmail(currentUser?.email || ""); }}>
             ⚙️ Account Settings
           </div>
@@ -1115,7 +1321,10 @@ function App() {
               {view === "workqueue" && "Prioritized Daily Collector Work Queue"}
               {view === "accounts" && "Municipal Debt Book & Accounts"}
               {view === "imports" && "Bulk Data Import & Upsert Engine"}
+              {view === "onboarding" && "🏛️ Municipal Onboarding & Engagement Portfolios"}
               {view === "users" && "System User Management & Role-Based Access Control"}
+              {view === "saas_tiers" && "💎 Commercial SaaS Tier Matrix & Pricing Breakdown"}
+              {view === "billing" && "🧾 Commercial Proposals & Municipal Invoicing"}
               {view === "settings" && "Account & Profile Settings"}
             </h2>
             <p>
@@ -1123,7 +1332,10 @@ function App() {
               {view === "workqueue" && "Algorithmically ranked accounts ready for collector action"}
               {view === "accounts" && "Direct access to debtor records, contact details, and account 360° views"}
               {view === "imports" && "Upload CSV / XLSX files with automated field mapping and duplicate protection"}
+              {view === "onboarding" && "Onboard new municipal councils and configure engagement agreements"}
               {view === "users" && "Provision new administrative and collector accounts and configure permissions"}
+              {view === "saas_tiers" && "Commercial packaging, municipal feature limits, and revenue matrix"}
+              {view === "billing" && "Issue structured proposals, generate official tax invoices (PDF), and manage banking remittance"}
               {view === "settings" && "Update your personal details, email address, and account password"}
             </p>
           </div>
@@ -2751,6 +2963,352 @@ function App() {
           </div>
         )}
 
+        {/* BILLING & PROPOSALS VIEW */}
+        {view === "billing" && (
+          <div>
+            {/* KPI Summary Cards for Proposals & Invoices */}
+            {(() => {
+              const totalInvoiced = invoices.reduce((acc, inv) => acc + (Number(inv.total_amount) || 0), 0);
+              const totalPaid = invoices.filter(inv => inv.status === "PAID").reduce((acc, inv) => acc + (Number(inv.paid_amount || inv.total_amount) || 0), 0);
+              const pendingInvoices = invoices.filter(inv => inv.status === "ISSUED" || inv.status === "DRAFT");
+              const activeProposals = proposals.filter(p => p.status === "APPROVED" || p.status === "SUBMITTED_TO_MUNICIPALITY");
+
+              return (
+                <section className="metrics-grid" style={{ marginBottom: "24px" }}>
+                  <div className="metric-card">
+                    <div className="metric-header">
+                      <span className="metric-title">Total Invoiced</span>
+                      <span className="metric-badge badge-blue">{invoices.length} Invoices</span>
+                    </div>
+                    <div className="metric-value">{money(totalInvoiced)}</div>
+                    <div className="metric-subtitle">Across all active municipal contracts</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header">
+                      <span className="metric-title">Collected / Paid</span>
+                      <span className="metric-badge badge-green">Received</span>
+                    </div>
+                    <div className="metric-value" style={{ color: "#34d399" }}>{money(totalPaid)}</div>
+                    <div className="metric-subtitle">{invoices.filter(inv => inv.status === "PAID").length} Fully settled invoices</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header">
+                      <span className="metric-title">Pending Remittance</span>
+                      <span className="metric-badge badge-amber">{pendingInvoices.length} Due</span>
+                    </div>
+                    <div className="metric-value" style={{ color: "#fbbf24" }}>
+                      {money(pendingInvoices.reduce((acc, inv) => acc + (Number(inv.total_amount) || 0), 0))}
+                    </div>
+                    <div className="metric-subtitle">Awaiting municipal EFT settlement</div>
+                  </div>
+
+                  <div className="metric-card">
+                    <div className="metric-header">
+                      <span className="metric-title">Active Proposals</span>
+                      <span className="metric-badge badge-indigo" style={{ background: "rgba(99, 102, 241, 0.15)", color: "#a5b4fc" }}>
+                        {proposals.length} Total
+                      </span>
+                    </div>
+                    <div className="metric-value" style={{ color: "#818cf8" }}>{activeProposals.length}</div>
+                    <div className="metric-subtitle">
+                      {proposals.filter(p => p.status === "APPROVED").length} Approved & Contracted
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
+
+            {/* Main Billing Navigation Panel */}
+            <div className="glass-panel">
+              <div className="panel-header" style={{ flexWrap: "wrap", gap: "16px", borderBottom: "1px solid var(--border-subtle)", paddingBottom: "16px", marginBottom: "20px" }}>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                  <button
+                    type="button"
+                    className={`btn ${billingSubTab === "invoices" ? "btn-primary" : "btn-secondary"}`}
+                    onClick={() => setBillingSubTab("invoices")}
+                    style={{ padding: "8px 18px", fontSize: "13.5px" }}
+                  >
+                    🧾 Official Tax Invoices ({invoices.length})
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${billingSubTab === "proposals" ? "btn-primary" : "btn-secondary"}`}
+                    onClick={() => setBillingSubTab("proposals")}
+                    style={{ padding: "8px 18px", fontSize: "13.5px" }}
+                  >
+                    📑 Commercial Proposals ({proposals.length})
+                  </button>
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+                  {currentUser?.role === "SUPERADMIN" && (
+                    <>
+                      {billingSubTab === "invoices" ? (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleAutogenerateInvoice(selectedTenant)}
+                            style={{ background: "linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.2))", borderColor: "#10b981", color: "#6ee7b7" }}
+                            title="Auto-calculate and generate invoice based on active subscription tier or recovered collections"
+                          >
+                            ⚡ Auto-Generate for Active Municipality
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => {
+                              setInvTenantId(selectedTenant);
+                              setShowNewInvoiceModal(true);
+                            }}
+                          >
+                            ➕ Create Custom Invoice
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => {
+                            setPropTenantId(selectedTenant);
+                            setShowNewProposalModal(true);
+                          }}
+                        >
+                          ➕ Draft New Proposal
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* TAB 1: INVOICES TABLE */}
+              {billingSubTab === "invoices" && (
+                <div>
+                  {invoices.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "48px 20px" }}>
+                      <div style={{ fontSize: "36px", marginBottom: "12px" }}>🧾</div>
+                      <h4 style={{ color: "#f8fafc", margin: "0 0 6px 0" }}>No Invoices Issued Yet</h4>
+                      <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "460px", margin: "0 auto 20px auto" }}>
+                        Click <strong>Auto-Generate</strong> to immediately create a tax invoice from your municipality's engagement model or create a custom one with extra line items.
+                      </p>
+                      {currentUser?.role === "SUPERADMIN" && (
+                        <button className="btn btn-primary btn-sm" onClick={() => handleAutogenerateInvoice(selectedTenant)}>
+                          ⚡ Auto-Generate Invoice Now
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="table-container">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Invoice #</th>
+                            <th>Municipality</th>
+                            <th>Billing Period</th>
+                            <th>Issue Date</th>
+                            <th>Due Date</th>
+                            <th>Subtotal</th>
+                            <th>VAT (15%)</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {invoices.map(inv => (
+                            <tr key={inv.id}>
+                              <td>
+                                <strong style={{ color: "#38bdf8", fontFamily: "monospace", fontSize: "13.5px" }}>
+                                  {inv.invoice_number}
+                                </strong>
+                              </td>
+                              <td>
+                                <div>
+                                  <strong style={{ color: "#f8fafc" }}>{inv.tenant_name || "Municipality"}</strong>
+                                  <span style={{ fontSize: "11px", color: "#94a3b8", display: "block" }}>Code: {inv.tenant_code}</span>
+                                </div>
+                              </td>
+                              <td><span style={{ fontWeight: 500 }}>{inv.billing_period}</span></td>
+                              <td>{inv.issue_date}</td>
+                              <td style={{ color: new Date(inv.due_date) < new Date() && inv.status !== "PAID" ? "#f87171" : "#cbd5e1" }}>
+                                {inv.due_date}
+                              </td>
+                              <td>{money(inv.subtotal)}</td>
+                              <td style={{ color: "#94a3b8" }}>{money(inv.vat_amount)}</td>
+                              <td><strong style={{ color: "#f8fafc", fontSize: "14px" }}>{money(inv.total_amount)}</strong></td>
+                              <td>
+                                <span className={`status-pill ${
+                                  inv.status === "PAID" ? "status-paying" :
+                                  inv.status === "ISSUED" ? "status-new" :
+                                  inv.status === "OVERDUE" ? "status-escalated" : "status-engaged"
+                                }`}>
+                                  {inv.status}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => setViewingPdfDoc({ type: "INVOICE", data: inv })}
+                                    style={{ padding: "4px 8px", fontSize: "11.5px" }}
+                                    title="View official PDF Tax Invoice and print"
+                                  >
+                                    📄 PDF / Print
+                                  </button>
+                                  {currentUser?.role === "SUPERADMIN" && inv.status !== "PAID" && (
+                                    <button
+                                      className="btn btn-primary btn-sm"
+                                      onClick={() => handleUpdateInvoiceStatus(inv.id, "PAID")}
+                                      style={{ padding: "4px 8px", fontSize: "11.5px", background: "#10b981", borderColor: "#10b981" }}
+                                      title="Mark invoice as settled / paid"
+                                    >
+                                      ✓ Mark Paid
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: PROPOSALS TABLE */}
+              {billingSubTab === "proposals" && (
+                <div>
+                  {proposals.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "48px 20px" }}>
+                      <div style={{ fontSize: "36px", marginBottom: "12px" }}>📑</div>
+                      <h4 style={{ color: "#f8fafc", margin: "0 0 6px 0" }}>No Commercial Proposals Drafted</h4>
+                      <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "460px", margin: "0 auto 20px auto" }}>
+                        Create formal proposals for municipalities covering SaaS licensing tiers or Molmos Managed Collections with approval workflows.
+                      </p>
+                      {currentUser?.role === "SUPERADMIN" && (
+                        <button className="btn btn-primary btn-sm" onClick={() => setShowNewProposalModal(true)}>
+                          ➕ Draft First Proposal
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="table-container">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Proposal #</th>
+                            <th>Municipality</th>
+                            <th>Proposal Title</th>
+                            <th>Operating Model</th>
+                            <th>Total Value</th>
+                            <th>Valid Until</th>
+                            <th>Status & Approval</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {proposals.map(prop => (
+                            <tr key={prop.id}>
+                              <td>
+                                <strong style={{ color: "#a5b4fc", fontFamily: "monospace", fontSize: "13.5px" }}>
+                                  {prop.proposal_number}
+                                </strong>
+                              </td>
+                              <td>
+                                <div>
+                                  <strong style={{ color: "#f8fafc" }}>{prop.tenant_name || "Municipality"}</strong>
+                                  <span style={{ fontSize: "11px", color: "#94a3b8", display: "block" }}>Code: {prop.tenant_code}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ fontWeight: 600, color: "#f8fafc", maxWidth: "260px" }}>{prop.title}</div>
+                              </td>
+                              <td>
+                                <span style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  padding: "3px 8px",
+                                  borderRadius: "4px",
+                                  background: prop.engagement_model === "SAAS_SELF_SERVICE" ? "rgba(14, 165, 233, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                                  color: prop.engagement_model === "SAAS_SELF_SERVICE" ? "#38bdf8" : "#34d399",
+                                }}>
+                                  {prop.engagement_model === "SAAS_SELF_SERVICE" ? "💻 SaaS Self-Service" : "🛡️ Managed Service"}
+                                </span>
+                              </td>
+                              <td>
+                                <strong style={{ color: "#f8fafc", fontSize: "14px" }}>
+                                  {Number(prop.total_amount) > 0 ? money(prop.total_amount) : `${prop.commission_rate}% Commission`}
+                                </strong>
+                              </td>
+                              <td>{prop.valid_until || "30 Days"}</td>
+                              <td>
+                                <div>
+                                  <span className={`status-pill ${
+                                    prop.status === "APPROVED" ? "status-paying" :
+                                    prop.status === "SUBMITTED_TO_MUNICIPALITY" ? "status-engaged" :
+                                    prop.status === "REJECTED" ? "status-broken" : "status-new"
+                                  }`}>
+                                    {prop.status}
+                                  </span>
+                                  {prop.approved_by && (
+                                    <div style={{ fontSize: "10.5px", color: "#34d399", marginTop: "3px" }}>
+                                      ✓ Approved by {prop.approved_by}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                                  <button
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => setViewingPdfDoc({ type: "PROPOSAL", data: prop })}
+                                    style={{ padding: "4px 8px", fontSize: "11.5px" }}
+                                    title="View Proposal PDF Document"
+                                  >
+                                    📄 View Proposal
+                                  </button>
+
+                                  {/* Municipality Approval Actions */}
+                                  {prop.status !== "APPROVED" && (
+                                    <>
+                                      <button
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => handleUpdateProposalStatus(prop.id, "APPROVED")}
+                                        style={{ padding: "4px 8px", fontSize: "11.5px", background: "#10b981", borderColor: "#10b981" }}
+                                        title="Approve Proposal (Municipal Executive Action)"
+                                      >
+                                        👍 Approve
+                                      </button>
+                                      {currentUser?.role === "SUPERADMIN" && prop.status === "DRAFT" && (
+                                        <button
+                                          className="btn btn-secondary btn-sm"
+                                          onClick={() => handleUpdateProposalStatus(prop.id, "SUBMITTED_TO_MUNICIPALITY")}
+                                          style={{ padding: "4px 8px", fontSize: "11.5px" }}
+                                          title="Submit to Municipality for Review"
+                                        >
+                                          🚀 Submit
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* SETTINGS VIEW - Available to ALL users */}
         {view === "settings" && currentUser && (
           <div className="glass-panel" style={{ maxWidth: "800px" }}>
@@ -3345,6 +3903,519 @@ function App() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* CREATE NEW PROPOSAL MODAL */}
+      {showNewProposalModal && (
+        <div className="modal-backdrop" onClick={() => setShowNewProposalModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "720px", width: "94%", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
+              <div className="panel-title">
+                <h3>📑 Draft Municipal Commercial Proposal</h3>
+                <p>Create a formal collections proposal requiring municipal executive sign-off</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowNewProposalModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleCreateProposal}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Target Municipality</label>
+                  <select
+                    value={propTenantId}
+                    onChange={e => setPropTenantId(e.target.value)}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">-- Select Municipality --</option>
+                    {accessibleTenants.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Operating & Engagement Model</label>
+                  <select
+                    value={propModel}
+                    onChange={e => setPropModel(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="MANAGED_SERVICE">🛡️ Molmos Managed Debt Collection Agency</option>
+                    <option value="SAAS_SELF_SERVICE">💻 Internal Municipal SaaS Platform</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Proposal Title</label>
+                <input
+                  type="text"
+                  value={propTitle}
+                  onChange={e => setPropTitle(e.target.value)}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Subscription Tier</label>
+                  <select
+                    value={propTier}
+                    onChange={e => setPropTier(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="STARTER">Starter Tier (R18k - R30k/mo)</option>
+                    <option value="PROFESSIONAL">Professional Tier (R55k - R95k/mo)</option>
+                    <option value="ENTERPRISE">Enterprise Tier (R140k - R250k+/mo)</option>
+                    <option value="OUTSOURCED_COMMISSION">Outsourced Contingency Commission</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Validity Period (Days)</label>
+                  <input
+                    type="number"
+                    value={propValidDays}
+                    onChange={e => setPropValidDays(e.target.value)}
+                    className="form-input"
+                    min="7"
+                    max="180"
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Line Items */}
+              <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <label style={{ margin: 0, fontWeight: 700, color: "#f8fafc" }}>Proposal Commercial Line Items & Extras</label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setPropLineItems([...propLineItems, { description: "Custom Service / Add-on Line Item", quantity: 1, unit_price: 15000 }])}
+                    style={{ padding: "3px 8px", fontSize: "11.5px" }}
+                  >
+                    ➕ Add Line Item
+                  </button>
+                </div>
+
+                {propLineItems.map((item, idx) => (
+                  <div key={idx} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1.5fr auto", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={e => {
+                        const updated = [...propLineItems];
+                        updated[idx].description = e.target.value;
+                        setPropLineItems(updated);
+                      }}
+                      className="form-input"
+                      placeholder="Line item description"
+                      required
+                    />
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={e => {
+                        const updated = [...propLineItems];
+                        updated[idx].quantity = Number(e.target.value) || 1;
+                        setPropLineItems(updated);
+                      }}
+                      className="form-input"
+                      placeholder="Qty"
+                      min="1"
+                    />
+                    <input
+                      type="number"
+                      value={item.unit_price}
+                      onChange={e => {
+                        const updated = [...propLineItems];
+                        updated[idx].unit_price = Number(e.target.value) || 0;
+                        setPropLineItems(updated);
+                      }}
+                      className="form-input"
+                      placeholder="Unit Price (R)"
+                    />
+                    {propLineItems.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setPropLineItems(propLineItems.filter((_, i) => i !== idx))}
+                        style={{ color: "#fb7185", borderColor: "rgba(244,63,94,0.3)" }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Scope of Work & Deliverables</label>
+                <textarea
+                  value={propScope}
+                  onChange={e => setPropScope(e.target.value)}
+                  className="form-input"
+                  rows={2}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewProposalModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Generating..." : "💾 Save & Issue Proposal"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE NEW CUSTOM INVOICE MODAL */}
+      {showNewInvoiceModal && (
+        <div className="modal-backdrop" onClick={() => setShowNewInvoiceModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "760px", width: "94%", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
+              <div className="panel-title">
+                <h3>🧾 Create Official Tax Invoice</h3>
+                <p>Invoice a municipality with custom line items, extras, and official remittance banking details</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowNewInvoiceModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={handleCreateInvoice}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Bill To Municipality</label>
+                  <select
+                    value={invTenantId}
+                    onChange={e => setInvTenantId(e.target.value)}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">-- Select Municipality --</option>
+                    {accessibleTenants.map(t => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Billing Period</label>
+                  <input
+                    type="text"
+                    value={invBillingPeriod}
+                    onChange={e => setInvBillingPeriod(e.target.value)}
+                    className="form-input"
+                    placeholder="e.g. August 2026"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Payment Due Days</label>
+                <input
+                  type="number"
+                  value={invDueDays}
+                  onChange={e => setInvDueDays(e.target.value)}
+                  className="form-input"
+                  min="1"
+                  max="90"
+                />
+              </div>
+
+              {/* Invoice Dynamic Line Items */}
+              <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                  <label style={{ margin: 0, fontWeight: 700, color: "#f8fafc" }}>Invoice Items & Billable Extras</label>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setInvLineItems([...invLineItems, { description: "Additional SMS / WhatsApp Message Pass-through", quantity: 1000, unit_price: 0.35 }])}
+                    style={{ padding: "3px 8px", fontSize: "11.5px" }}
+                  >
+                    ➕ Add Line Item
+                  </button>
+                </div>
+
+                {invLineItems.map((item, idx) => (
+                  <div key={idx} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1.5fr auto", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
+                    <input
+                      type="text"
+                      value={item.description}
+                      onChange={e => {
+                        const updated = [...invLineItems];
+                        updated[idx].description = e.target.value;
+                        setInvLineItems(updated);
+                      }}
+                      className="form-input"
+                      placeholder="Item description"
+                      required
+                    />
+                    <input
+                      type="number"
+                      value={item.quantity}
+                      onChange={e => {
+                        const updated = [...invLineItems];
+                        updated[idx].quantity = Number(e.target.value) || 1;
+                        setInvLineItems(updated);
+                      }}
+                      className="form-input"
+                      placeholder="Qty"
+                      min="1"
+                    />
+                    <input
+                      type="number"
+                      value={item.unit_price}
+                      onChange={e => {
+                        const updated = [...invLineItems];
+                        updated[idx].unit_price = Number(e.target.value) || 0;
+                        setInvLineItems(updated);
+                      }}
+                      className="form-input"
+                      placeholder="Unit Price (R)"
+                    />
+                    {invLineItems.length > 1 && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => setInvLineItems(invLineItems.filter((_, i) => i !== idx))}
+                        style={{ color: "#fb7185", borderColor: "rgba(244,63,94,0.3)" }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Subtotal & VAT Preview */}
+                <div style={{ marginTop: "12px", textAlign: "right", fontSize: "13px", color: "#94a3b8" }}>
+                  <div>Subtotal: <strong style={{ color: "#f8fafc" }}>{money(invLineItems.reduce((acc, i) => acc + (i.quantity * i.unit_price), 0))}</strong></div>
+                  <div>VAT (15%): <strong style={{ color: "#f8fafc" }}>{money(invLineItems.reduce((acc, i) => acc + (i.quantity * i.unit_price), 0) * 0.15)}</strong></div>
+                  <div style={{ fontSize: "15px", color: "#38bdf8", fontWeight: 700, marginTop: "4px" }}>
+                    Total Due: {money(invLineItems.reduce((acc, i) => acc + (i.quantity * i.unit_price), 0) * 1.15)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Banking Details on Invoice */}
+              <div style={{ padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)", marginBottom: "20px" }}>
+                <h4 style={{ margin: "0 0 10px 0", fontSize: "13.5px", color: "#34d399", display: "flex", alignItems: "center", gap: "6px" }}>
+                  🏦 Remittance Banking Details (Embedded in PDF)
+                </h4>
+                <div className="info-grid">
+                  <div className="form-group">
+                    <label>Bank Name</label>
+                    <input type="text" value={invBankingBank} onChange={e => setInvBankingBank(e.target.value)} className="form-input" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Account Name</label>
+                    <input type="text" value={invBankingAccName} onChange={e => setInvBankingAccName(e.target.value)} className="form-input" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Account Number</label>
+                    <input type="text" value={invBankingAccNum} onChange={e => setInvBankingAccNum(e.target.value)} className="form-input" required />
+                  </div>
+                  <div className="form-group">
+                    <label>Branch Code</label>
+                    <input type="text" value={invBankingBranch} onChange={e => setInvBankingBranch(e.target.value)} className="form-input" required />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewInvoiceModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Issuing..." : "🧾 Issue & Generate Tax Invoice"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PDF / OFFICIAL DOCUMENT VIEW MODAL & PRINT ENGINE */}
+      {viewingPdfDoc && (
+        <div className="modal-backdrop" onClick={() => setViewingPdfDoc(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "800px", width: "95%", maxHeight: "92vh", overflowY: "auto", background: "white", color: "#0f172a", borderRadius: "12px", padding: "36px" }} onClick={e => e.stopPropagation()}>
+            
+            {/* Header & Print Action */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "24px" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                  <div style={{ width: "36px", height: "36px", borderRadius: "8px", background: "linear-gradient(135deg, #10b981, #0ea5e9)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 900, fontSize: "18px" }}>
+                    R
+                  </div>
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 800, color: "#0f172a", fontFamily: "Outfit, sans-serif" }}>
+                      MOLMOS (PTY) LTD
+                    </h2>
+                    <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>
+                      Khokhisa Municipal Revenue Operating System
+                    </span>
+                  </div>
+                </div>
+                <div style={{ fontSize: "11.5px", color: "#475569", lineHeight: "1.4" }}>
+                  Registration: 2026/894210/07 | VAT No: 4890284719<br />
+                  Sandton City Financial Tower, Johannesburg, Gauteng, 2196<br />
+                  Email: billing@molmos.co.za | Tel: +27 (0)11 555 0199
+                </div>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <div style={{
+                  display: "inline-block",
+                  padding: "4px 12px",
+                  borderRadius: "6px",
+                  fontSize: "13px",
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                  background: viewingPdfDoc.type === "INVOICE" ? "#eff6ff" : "#f5f3ff",
+                  color: viewingPdfDoc.type === "INVOICE" ? "#2563eb" : "#7c3aed",
+                  border: `1px solid ${viewingPdfDoc.type === "INVOICE" ? "#bfdbfe" : "#ddd6fe"}`,
+                  marginBottom: "8px",
+                }}>
+                  {viewingPdfDoc.type === "INVOICE" ? "TAX INVOICE" : "COMMERCIAL PROPOSAL"}
+                </div>
+                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", fontFamily: "monospace" }}>
+                  {viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number}
+                </div>
+                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                  Date: {viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.issue_date : viewingPdfDoc.data.created_at?.split("T")[0]}
+                </div>
+              </div>
+            </div>
+
+            {/* Bill To & Municipal Info */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "28px", padding: "16px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+              <div>
+                <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
+                  {viewingPdfDoc.type === "INVOICE" ? "Billed To (Municipality):" : "Prepared For (Municipality):"}
+                </div>
+                <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
+                  {viewingPdfDoc.data.tenant_name || "City Municipality"}
+                </div>
+                <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
+                  Municipal Code: <strong>{viewingPdfDoc.data.tenant_code || "JHB"}</strong><br />
+                  Attention: Chief Financial Officer / Revenue Unit<br />
+                  Republic of South Africa
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
+                  Contract & Terms:
+                </div>
+                <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.5" }}>
+                  {viewingPdfDoc.type === "INVOICE" ? (
+                    <>
+                      Billing Period: <strong>{viewingPdfDoc.data.billing_period}</strong><br />
+                      Payment Due Date: <strong style={{ color: "#dc2626" }}>{viewingPdfDoc.data.due_date}</strong><br />
+                      Status: <strong>{viewingPdfDoc.data.status}</strong>
+                    </>
+                  ) : (
+                    <>
+                      Engagement: <strong>{viewingPdfDoc.data.engagement_model}</strong><br />
+                      Tier: <strong>{viewingPdfDoc.data.subscription_tier}</strong><br />
+                      Valid Until: <strong>{viewingPdfDoc.data.valid_until || "30 Days"}</strong>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Line Items Table */}
+            <div style={{ marginBottom: "28px" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                <thead>
+                  <tr style={{ background: "#0f172a", color: "white" }}>
+                    <th style={{ padding: "10px 14px", borderRadius: "6px 0 0 0" }}>#</th>
+                    <th style={{ padding: "10px 14px" }}>Description</th>
+                    <th style={{ padding: "10px 14px", textAlign: "center" }}>Qty</th>
+                    <th style={{ padding: "10px 14px", textAlign: "right" }}>Unit Price</th>
+                    <th style={{ padding: "10px 14px", textAlign: "right", borderRadius: "0 6px 0 0" }}>Total Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(viewingPdfDoc.data.line_items || []).map((it: any, i: number) => (
+                    <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                      <td style={{ padding: "12px 14px", color: "#64748b" }}>{i + 1}</td>
+                      <td style={{ padding: "12px 14px", color: "#0f172a", fontWeight: 600 }}>{it.description}</td>
+                      <td style={{ padding: "12px 14px", textAlign: "center", color: "#475569" }}>{it.quantity}</td>
+                      <td style={{ padding: "12px 14px", textAlign: "right", color: "#475569" }}>{money(it.unit_price)}</td>
+                      <td style={{ padding: "12px 14px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>
+                        {money(it.total || (it.quantity * it.unit_price))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Total Calculation Breakdown */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+                <div style={{ width: "280px", fontSize: "13px", lineHeight: "1.6" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                    <span>Subtotal:</span>
+                    <span>{money(viewingPdfDoc.data.subtotal || viewingPdfDoc.data.total_amount)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                    <span>VAT (15%):</span>
+                    <span>{money(viewingPdfDoc.data.vat_amount || 0)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 800, color: "#0f172a", borderTop: "2px solid #0f172a", paddingTop: "6px", marginTop: "6px" }}>
+                    <span>Total Due (ZAR):</span>
+                    <span>{money(viewingPdfDoc.data.total_amount)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Banking Details on PDF */}
+            <div style={{ padding: "16px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", marginBottom: "28px" }}>
+              <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                🏦 Official Remittance Banking Details (EFT / Wire Settlement)
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px", color: "#1e293b" }}>
+                <div>
+                  Bank: <strong>{viewingPdfDoc.data.banking_details?.bank_name || "First National Bank (FNB)"}</strong><br />
+                  Account Name: <strong>{viewingPdfDoc.data.banking_details?.account_name || "Molmos (Pty) Ltd"}</strong><br />
+                  Account Number: <strong style={{ fontFamily: "monospace", fontSize: "13px" }}>{viewingPdfDoc.data.banking_details?.account_number || "62899432101"}</strong>
+                </div>
+                <div>
+                  Branch Code: <strong>{viewingPdfDoc.data.banking_details?.branch_code || "250655"}</strong><br />
+                  Account Type: <strong>{viewingPdfDoc.data.banking_details?.account_type || "Business Cheque"}</strong><br />
+                  Payment Ref: <strong style={{ color: "#2563eb", fontFamily: "monospace" }}>{viewingPdfDoc.data.invoice_number || viewingPdfDoc.data.proposal_number}</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Print & Close Actions */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
+              <div style={{ fontSize: "11px", color: "#64748b" }}>
+                Generated electronically by Khokhisa Municipal OS • Compliant with MFMA & South African Revenue Service (SARS) standards
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => window.print()}
+                  style={{ background: "#0f172a", color: "white", borderColor: "#0f172a", fontWeight: 600 }}
+                >
+                  🖨️ Print / Save as PDF
+                </button>
+                <button className="btn btn-secondary" onClick={() => setViewingPdfDoc(null)}>
+                  Close
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

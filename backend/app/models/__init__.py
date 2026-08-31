@@ -867,6 +867,8 @@ class AuditEvent(Base):
     )
 
 
+from app.models.billing import Invoice, Proposal
+
 __all__ = [
     "Tenant",
     "User",
@@ -885,4 +887,6 @@ __all__ = [
     "FinancialTransaction",
     "ImportBatch",
     "ImportRow",
+    "Proposal",
+    "Invoice",
 ]
