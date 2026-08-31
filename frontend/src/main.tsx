@@ -1216,22 +1216,27 @@ function App() {
       <header className="mobile-header">
         <div className="brand-section" style={{ margin: 0, padding: 0, alignItems: "center" }}>
           <div className="brand-icon" style={{ width: "36px", height: "36px" }}>
-            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "26px", height: "26px" }}>
-              {/* Green Money Sack */}
-              <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a"/>
-              <rect x="42" y="16" width="16" height="6" rx="3" fill="#22c55e"/>
-              <path d="M50 20 C32 20, 22 36, 22 56 C22 72, 34 76, 50 76 C66 76, 78 72, 78 56 C78 36, 68 20, 50 20 Z" fill="#16a34a"/>
-              <text x="50" y="58" textAnchor="middle" fill="#ffffff" fontSize="32" fontWeight="900" fontFamily="Outfit, sans-serif">
-                R
-              </text>
-              {/* Rosette Medal */}
-              <circle cx="20" cy="46" r="14" fill="#f59e0b"/>
-              <circle cx="20" cy="46" r="9" fill="#ffffff"/>
-              <circle cx="20" cy="46" r="6" fill="#f59e0b"/>
-              {/* Collection Arrow */}
-              <path d="M74 36 L96 36 L85 52 Z" fill="#f59e0b"/>
-              {/* Recovery Hand */}
-              <path d="M20 83 C20 73, 30 65, 45 66 C58 67, 62 70, 62 74 C62 77, 54 77, 44 76 C40 76, 30 78, 25 84 L22 96 L68 96 C78 96, 88 90, 96 74 C97 73, 99 74, 98 76 C94 86, 82 98, 64 98 L20 98 Z" fill="#fca5a5"/>
+            <svg viewBox="0 0 110 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "32px", height: "32px" }}>
+              {/* Vault / Arrears Safe Body */}
+              <rect x="12" y="38" width="48" height="42" rx="10" fill="#1e293b" stroke="#334155" strokeWidth="2.5"/>
+              <circle cx="36" cy="59" r="13" fill="#0f172a" stroke="#10b981" strokeWidth="2"/>
+              <circle cx="36" cy="59" r="8" fill="#f59e0b"/>
+              <text x="36" y="63" textAnchor="middle" fill="#ffffff" fontSize="10" fontWeight="900" fontFamily="Outfit, sans-serif">R</text>
+              {/* Sparkle */}
+              <path d="M38 18 L40 24 L46 26 L40 28 L38 34 L36 28 L30 26 L36 24 Z" fill="#fbbf24"/>
+              {/* Cash Bubbles */}
+              <circle cx="48" cy="28" r="6.5" fill="rgba(16, 185, 129, 0.25)" stroke="#10b981" strokeWidth="1.5"/>
+              <circle cx="32" cy="24" r="5" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" strokeWidth="1.5"/>
+              {/* Stream */}
+              <path d="M72 63 C64 58, 54 54, 46 56" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" strokeDasharray="5 2.5"/>
+              {/* Collector Character */}
+              <circle cx="88" cy="38" r="8" fill="#0ea5e9"/>
+              <path d="M88 46 L88 67" stroke="#0ea5e9" strokeWidth="4" strokeLinecap="round"/>
+              <path d="M88 67 L81 84 M88 67 L94 84" stroke="#0ea5e9" strokeWidth="3.5" strokeLinecap="round"/>
+              <path d="M88 53 L74 61 L70 64" stroke="#0ea5e9" strokeWidth="3" strokeLinecap="round"/>
+              <rect x="69" y="61" width="4" height="4" rx="1" fill="#38bdf8"/>
+              <path d="M74 62 C78 74, 88 80, 95 78" stroke="#64748b" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+              <rect x="91" y="50" width="4" height="12" rx="1.5" fill="#10b981"/>
             </svg>
           </div>
           <div className="brand-info">
