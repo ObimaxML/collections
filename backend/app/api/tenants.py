@@ -189,3 +189,81 @@ def update_tenant_status(
     db.commit()
     db.refresh(tenant)
     return tenant
+
+
+@router.delete(
+    "/{tenant_id}",
+    status_code=200,
+)
+def delete_tenant(
+    tenant_id: UUID,
+    db: Session = Depends(get_db),
+):
+    """
+    SuperAdmin deletion of a municipality and its associated operational records.
+    """
+    from app.models import (
+        MunicipalAccount, Customer, Property,
+        CollectionCase, CollectionActivity, CaseActivity, ContactAttempt,
+        Promise, PaymentPlan, Payment, PaymentAllocation,
+        Proposal, Invoice, ImportBatch, ImportRow, AuditEvent
+    )
+
+    tenant = db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipality not found.",
+        )
+
+    tenant_name = tenant.name
+    tenant_code = tenant.code
+
+    # 1. Clear payment allocations for payments belonging to tenant
+    pmts = db.query(Payment).filter(Payment.tenant_id == tenant_id).all()
+    pmt_ids = [p.id for p in pmts]
+    if pmt_ids:
+        db.query(PaymentAllocation).filter(PaymentAllocation.payment_id.in_(pmt_ids)).delete(synchronize_session=False)
+
+    # 2. Clear case-linked dependencies
+    cases = db.query(CollectionCase).filter(CollectionCase.tenant_id == tenant_id).all()
+    case_ids = [c.id for c in cases]
+    if case_ids:
+        db.query(CollectionActivity).filter(CollectionActivity.case_id.in_(case_ids)).delete(synchronize_session=False)
+        db.query(CaseActivity).filter(CaseActivity.case_id.in_(case_ids)).delete(synchronize_session=False)
+        db.query(ContactAttempt).filter(ContactAttempt.case_id.in_(case_ids)).delete(synchronize_session=False)
+        
+        proms = db.query(Promise).filter(Promise.case_id.in_(case_ids)).all()
+        prom_ids = [pr.id for pr in proms]
+        if prom_ids:
+            db.query(PaymentAllocation).filter(PaymentAllocation.promise_id.in_(prom_ids)).delete(synchronize_session=False)
+        
+        db.query(Promise).filter(Promise.case_id.in_(case_ids)).delete(synchronize_session=False)
+        db.query(PaymentPlan).filter(PaymentPlan.case_id.in_(case_ids)).delete(synchronize_session=False)
+
+    # 3. Clear import rows and batches
+    batches = db.query(ImportBatch).filter(ImportBatch.tenant_id == tenant_id).all()
+    batch_ids = [b.id for b in batches]
+    if batch_ids:
+        db.query(ImportRow).filter(ImportRow.batch_id.in_(batch_ids)).delete(synchronize_session=False)
+    db.query(ImportBatch).filter(ImportBatch.tenant_id == tenant_id).delete(synchronize_session=False)
+
+    # 4. Clear payments, cases, accounts, customers, properties, proposals, invoices, audit events
+    db.query(Payment).filter(Payment.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(CollectionCase).filter(CollectionCase.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(MunicipalAccount).filter(MunicipalAccount.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(Customer).filter(Customer.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(Property).filter(Property.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(Proposal).filter(Proposal.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(Invoice).filter(Invoice.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(AuditEvent).filter(AuditEvent.tenant_id == tenant_id).delete(synchronize_session=False)
+
+    # 5. Delete tenant itself
+    db.delete(tenant)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": f"Municipality '{tenant_name}' ({tenant_code}) and all related records deleted successfully.",
+        "deleted_tenant_id": str(tenant_id),
+    }

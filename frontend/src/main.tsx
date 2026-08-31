@@ -398,6 +398,41 @@ function App() {
     }
   };
 
+  const handleDeleteTenant = async (tenantId: string, tenantName: string) => {
+    const confirmation = prompt(
+      `⚠️ PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete "${tenantName}" and all associated accounts, customers, properties, cases, and billing data?\n\nType DELETE to confirm:`,
+      ""
+    );
+    if (confirmation !== "DELETE") {
+      if (confirmation !== null) {
+        alert("Deletion cancelled. You must type DELETE to confirm.");
+      }
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/tenants/${tenantId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Error deleting municipality: ${data.detail || "Server error"}`);
+        return;
+      }
+      alert(data.message || `Municipality ${tenantName} deleted successfully!`);
+      if (editingTenant?.id === tenantId) {
+        setEditingTenant(null);
+      }
+      fetchTenants();
+      refreshData();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUpdateTenant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTenant) return;
@@ -2670,14 +2705,33 @@ function App() {
                             </span>
                           )}
                         </td>
-                        <td style={{ textAlign: "right" }}>
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
-                            onClick={() => setEditingTenant(t)}
-                          >
-                            ⚙️ Edit Terms
-                          </button>
+                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                          <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: "5px 12px", fontSize: "12px", fontWeight: 600 }}
+                              onClick={() => setEditingTenant(t)}
+                            >
+                              ⚙️ Edit Terms
+                            </button>
+                            {currentUser?.role === "SUPERADMIN" && (
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                style={{
+                                  padding: "5px 10px",
+                                  fontSize: "12px",
+                                  fontWeight: 600,
+                                  color: "#fb7185",
+                                  borderColor: "rgba(244, 63, 94, 0.3)",
+                                  background: "rgba(244, 63, 94, 0.08)",
+                                }}
+                                title="Delete Municipality & Clean Purge"
+                                onClick={() => handleDeleteTenant(t.id, t.name)}
+                              >
+                                🗑️ Delete
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -5078,13 +5132,32 @@ function App() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setEditingTenant(null)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? "Saving..." : "💾 Update Municipality"}
-                </button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "14px" }}>
+                <div>
+                  {currentUser?.role === "SUPERADMIN" && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      style={{
+                        color: "#fb7185",
+                        borderColor: "rgba(244, 63, 94, 0.4)",
+                        background: "rgba(244, 63, 94, 0.1)",
+                        fontWeight: 600,
+                      }}
+                      onClick={() => handleDeleteTenant(editingTenant.id, editingTenant.name)}
+                    >
+                      🗑️ Delete Municipality
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setEditingTenant(null)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={loading}>
+                    {loading ? "Saving..." : "💾 Update Municipality"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
