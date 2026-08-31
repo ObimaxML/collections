@@ -1031,7 +1031,12 @@ function App() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert("Error autogenerating invoice: " + (data.detail || JSON.stringify(data)));
+        const errorMsg = typeof data.detail === "string" 
+          ? data.detail 
+          : Array.isArray(data.detail)
+            ? data.detail.map((d: any) => d.msg || JSON.stringify(d)).join(", ")
+            : JSON.stringify(data);
+        alert("Error autogenerating invoice: " + errorMsg);
         return;
       }
       alert(`🚀 Auto-generated Tax Invoice "${data.invoice_number}" for ${data.tenant_name || 'Municipality'}!`);

@@ -446,7 +446,7 @@ def create_invoice(
 
 @router.post("/invoices/autogenerate", response_model=InvoiceResponse, status_code=201)
 def autogenerate_invoice_from_tenant(
-    tenant_id: UUID,
+    tenant_id: str,
     billing_period: str | None = None,
     due_days: int = 30,
     db: Session = Depends(get_db),
@@ -455,9 +455,24 @@ def autogenerate_invoice_from_tenant(
     Autogenerates an official tax invoice based on the municipality's configured engagement model,
     subscription tier, monthly fee, recovery books, and banking details.
     """
-    tenant = db.get(Tenant, tenant_id)
+    target_tenant_id = None
+    if tenant_id and tenant_id.upper() != "GLOBAL":
+        try:
+            target_tenant_id = UUID(tenant_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid municipality ID: {tenant_id}")
+    
+    tenant = None
+    if target_tenant_id:
+        tenant = db.get(Tenant, target_tenant_id)
+    else:
+        # If GLOBAL, select the first active municipality or default tenant
+        tenant = db.execute(
+            select(Tenant).where(Tenant.subscription_status == "ACTIVE").order_by(Tenant.name)
+        ).scalars().first() or db.execute(select(Tenant).order_by(Tenant.name)).scalars().first()
+
     if not tenant:
-        raise HTTPException(status_code=404, detail="Municipality not found.")
+        raise HTTPException(status_code=404, detail="No active municipality found to generate invoice for.")
 
     period = billing_period or datetime.now().strftime("%B %Y")
     issue_d = date.today()
@@ -467,36 +482,48 @@ def autogenerate_invoice_from_tenant(
     items = []
     subtotal = Decimal("0.00")
 
-    if tenant.engagement_model == "SAAS_SELF_SERVICE":
-        fee = tenant.monthly_subscription_fee or Decimal("20000.00")
+    # Monthly SaaS Platform License Fee (applies to both models if configured)
+    monthly_fee = tenant.monthly_subscription_fee or (Decimal("45000.00") if tenant.subscription_tier == "ENTERPRISE" else Decimal("25000.00"))
+    if monthly_fee and monthly_fee > 0:
         items.append({
-            "description": f"Khokhisa {tenant.subscription_tier} Municipal SaaS Platform License ({period})",
+            "description": f"Khokhisa {tenant.subscription_tier or 'Enterprise'} Municipal SaaS Platform License ({period})",
             "quantity": 1.0,
-            "unit_price": float(fee),
-            "total": float(fee),
+            "unit_price": float(monthly_fee),
+            "total": float(monthly_fee),
         })
-        subtotal += fee
-    else:
-        # Managed service: calculate recovered commission from recent payments
+        subtotal += monthly_fee
+
+    # If Managed Service: Also calculate recovered collections commission from matched payments
+    if tenant.engagement_model == "MANAGED_SERVICE":
         from app.models import Payment
         recovered = db.scalar(
             select(func.coalesce(func.sum(Payment.amount), Decimal("0.00")))
             .where(
-                Payment.tenant_id == tenant_id,
+                Payment.tenant_id == tenant.id,
                 Payment.reconciliation_status == "MATCHED",
             )
         ) or Decimal("0.00")
 
-        comm_pct = tenant.commission_rate or Decimal("10.00")
-        commission_fee = (Decimal(str(recovered)) * (comm_pct / Decimal("100.00"))).quantize(Decimal("0.01"))
-        
-        items.append({
-            "description": f"Managed Debt Collections Commission ({comm_pct}% on R{recovered:,.2f} Reconciled Cash)",
-            "quantity": 1.0,
-            "unit_price": float(commission_fee),
-            "total": float(commission_fee),
-        })
-        subtotal += commission_fee
+        comm_pct = tenant.commission_rate or Decimal("15.00")
+        if recovered > 0:
+            commission_fee = (Decimal(str(recovered)) * (comm_pct / Decimal("100.00"))).quantize(Decimal("0.01"))
+            items.append({
+                "description": f"Managed Debt Collections Success Fee ({comm_pct}% on R{recovered:,.2f} Reconciled Cash)",
+                "quantity": 1.0,
+                "unit_price": float(commission_fee),
+                "total": float(commission_fee),
+            })
+            subtotal += commission_fee
+        elif not items:
+            # If no payments yet and no monthly fee, provide starter base retainer
+            starter_fee = Decimal("15000.00")
+            items.append({
+                "description": f"Khokhisa Managed Debt Recovery Base Retainer ({period})",
+                "quantity": 1.0,
+                "unit_price": float(starter_fee),
+                "total": float(starter_fee),
+            })
+            subtotal += starter_fee
 
     vat_rate = Decimal("15.00")
     vat_amount = (subtotal * Decimal("0.15")).quantize(Decimal("0.01"))
@@ -519,7 +546,7 @@ def autogenerate_invoice_from_tenant(
 
     invoice = Invoice(
         id=uuid4(),
-        tenant_id=tenant_id,
+        tenant_id=tenant.id,
         invoice_number=invoice_number,
         billing_period=period,
         status="ISSUED",
