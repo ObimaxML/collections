@@ -1145,11 +1145,9 @@ function App() {
                       <th>Score</th>
                       <th>Account</th>
                       <th>Debtor Name</th>
-                      <th>Mobile</th>
                       <th>Arrears</th>
                       <th>DPD</th>
                       <th>Status</th>
-                      <th>Next Action</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -1159,11 +1157,9 @@ function App() {
                         <td><strong style={{ color: "#818cf8" }}>{item.priority_score}</strong></td>
                         <td><strong>{item.account_number}</strong></td>
                         <td><span style={{ fontWeight: 600, color: "#f8fafc" }}>{item.customer_name ?? "—"}</span></td>
-                        <td style={{ color: "#38bdf8" }}>{formatPhone(item.mobile)}</td>
                         <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
                         <td>{item.days_in_arrears} days</td>
                         <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
-                        <td><span style={{ fontSize: "12px", color: "#38bdf8" }}>{item.next_action}</span></td>
                         <td>
                           <button className="table-action-btn" onClick={() => openAccountWorkbench(item.account_id)}>
                             Open 360°
@@ -1309,12 +1305,10 @@ function App() {
                           <th>Rank</th>
                           <th>Account</th>
                           <th>Debtor Name</th>
-                          <th>Mobile</th>
                           <th>Arrears</th>
                           <th>DPD</th>
                           <th>Strategy</th>
                           <th>Status</th>
-                          <th>Recommended Next Action</th>
                           <th>Action</th>
                         </tr>
                       </thead>
@@ -1328,16 +1322,10 @@ function App() {
                                 {item.customer_name || "—"}
                               </div>
                             </td>
-                            <td>
-                              <span style={{ color: "#38bdf8", fontWeight: 600, fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                                📱 {formatPhone(item.mobile)}
-                              </span>
-                            </td>
                             <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
                             <td>{item.days_in_arrears} DPD</td>
                             <td><span style={{ fontSize: "12px", color: "#cbd5e1" }}>{item.strategy_code ?? "STANDARD"}</span></td>
                             <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
-                            <td><strong style={{ color: "#38bdf8", fontSize: "12px" }}>{item.next_action}</strong></td>
                             <td>
                               {currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR" ? (
                                 <button className="btn btn-secondary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>

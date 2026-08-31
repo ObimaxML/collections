@@ -55,15 +55,21 @@ def get_work_queue(
     tenant_id=None,
     limit: int = 100,
 ):
+    from app.models import Customer
+
     query = (
         select(
             CollectionCase,
             MunicipalAccount,
+            Customer,
         )
         .join(
             MunicipalAccount,
-            CollectionCase.account_id
-            == MunicipalAccount.id,
+            CollectionCase.account_id == MunicipalAccount.id,
+        )
+        .outerjoin(
+            Customer,
+            MunicipalAccount.customer_id == Customer.id,
         )
         .where(
             CollectionCase.status.notin_(
@@ -86,12 +92,21 @@ def get_work_queue(
 
     queue = []
 
-    for case, account in results:
+    for case, account, customer in results:
+        cust_name = None
+        cust_mobile = None
+        if customer:
+            name_parts = [p for p in [customer.first_name, customer.last_name] if p]
+            cust_name = " ".join(name_parts) if name_parts else (customer.first_name or customer.last_name)
+            cust_mobile = customer.mobile
+
         queue.append(
             {
                 "case_id": str(case.id),
                 "account_id": str(account.id),
                 "account_number": account.account_number,
+                "customer_name": cust_name,
+                "mobile": cust_mobile,
                 "status": case.status,
                 "priority": case.priority,
                 "calculated_priority": calculate_priority(
