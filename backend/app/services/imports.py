@@ -725,6 +725,45 @@ def import_accounts(
 
             db.flush()
 
+            # Ensure an active CollectionCase exists for the account
+            existing_case = db.execute(
+                select(CollectionCase).where(
+                    CollectionCase.account_id == account.id,
+                    CollectionCase.tenant_id == tenant_id,
+                )
+            ).scalar_one_or_none()
+
+            has_mobile = bool(customer and customer.mobile and customer.mobile.strip())
+            from app.services.work_queue import calculate_priority
+            case_priority = calculate_priority(account, has_mobile=has_mobile)
+
+            # Determine recovery strategy based on arrears and contactability
+            strategy_code = "STANDARD_RECOVERY"
+            if account.arrears >= 100000:
+                strategy_code = "INTENSIVE_RECOVERY"
+            elif account.arrears >= 20000:
+                strategy_code = "ACTIVE_RECOVERY"
+            elif account.arrears <= 5000:
+                strategy_code = "LIGHT_TOUCH"
+
+            if existing_case is None:
+                new_case = CollectionCase(
+                    id=uuid.uuid4(),
+                    tenant_id=tenant_id,
+                    account_id=account.id,
+                    status="NEW",
+                    priority=case_priority,
+                    strategy_code=strategy_code,
+                    assigned_to=None,
+                    opened_at=datetime.now(timezone.utc),
+                )
+                db.add(new_case)
+            else:
+                existing_case.priority = case_priority
+                existing_case.strategy_code = strategy_code
+
+            db.flush()
+
         except Exception as exc:
             errors.append(
                 {
