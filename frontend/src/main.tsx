@@ -260,6 +260,7 @@ function App() {
   const [newTenantContactPosition, setNewTenantContactPosition] = useState("");
   const [newTenantContactPhone, setNewTenantContactPhone] = useState("");
   const [editingTenant, setEditingTenant] = useState<any>(null);
+  const [showOnboardTenantModal, setShowOnboardTenantModal] = useState(false);
   const [editingDebtor, setEditingDebtor] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -2585,211 +2586,23 @@ function App() {
               );
             })()}
 
-            {/* Onboard New Municipality Card */}
-            <div className="glass-panel" style={{ marginBottom: "28px" }}>
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>🏛️ Onboard New Municipality & Engagement Model</h3>
-                  <p>Register a South African municipality for either <strong>Khokhisa Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
-                </div>
-              </div>
-
-              <form onSubmit={handleCreateTenant} style={{ maxWidth: "880px" }}>
-                <div className="info-grid" style={{ marginBottom: "16px" }}>
-                  <div className="form-group">
-                    <label>Municipality / Portfolio Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. City of Johannesburg Metropolitan Municipality"
-                      value={newTenantName}
-                      onChange={e => setNewTenantName(e.target.value)}
-                      className="form-input"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Municipal Code (Unique Identifier)</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. JHB, EKU, TSH"
-                      value={newTenantCode}
-                      onChange={e => setNewTenantCode(e.target.value)}
-                      className="form-input"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="info-grid" style={{ marginBottom: "16px" }}>
-                  <div className="form-group">
-                    <label>Engagement & Operating Model</label>
-                    <select
-                      value={newTenantModel}
-                      onChange={e => setNewTenantModel(e.target.value as any)}
-                      className="form-select"
-                      style={{
-                        background: newTenantModel === "MANAGED_SERVICE" ? "linear-gradient(135deg, #065f46, #047857)" : "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                        borderColor: newTenantModel === "MANAGED_SERVICE" ? "#10b981" : "#3b82f6",
-                        color: "#ffffff",
-                        fontWeight: 600,
-                      }}
-                    >
-                      <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Khokhisa Managed Service (Outsourced Agency Debt Recovery)</option>
-                      <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 SaaS Subscription (Municipality Uses System Internally)</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Subscription Tier</label>
-                    <select
-                      value={newTenantTier}
-                      onChange={e => setNewTenantTier(e.target.value)}
-                      className="form-select"
-                    >
-                      <option value="ENTERPRISE">Enterprise (Full Feature Suite & Multi-Channel)</option>
-                      <option value="PROFESSIONAL">Professional (Standard Analytics & Work Queue)</option>
-                      <option value="STARTER">Starter Tier</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label>⚡ Initial Portfolio Status</label>
-                    <select
-                      value={newTenantStatus}
-                      onChange={e => setNewTenantStatus(e.target.value)}
-                      className="form-select"
-                      style={{
-                        fontWeight: 600,
-                        color: newTenantStatus === "ACTIVE" ? "#34d399" : newTenantStatus === "TRIAL" ? "#38bdf8" : newTenantStatus === "SUSPENDED" ? "#f87171" : "#fbbf24"
-                      }}
-                    >
-                      <option value="ACTIVE">🟢 ACTIVE (Live Production)</option>
-                      <option value="TRIAL">🔵 TRIAL (Evaluation / POC Mode)</option>
-                      <option value="SUSPENDED">🔴 SUSPENDED (Hold Access)</option>
-                      <option value="EXPIRED">🟡 EXPIRED (Contract Concluded)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: "20px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px" }}>
-                  <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "12px", fontSize: "13.5px" }}>
-                    💼 Commercial Terms (Monthly SaaS License Fee & Khokhisa Recovery Commission)
-                  </div>
-                  <div className="info-grid" style={{ marginBottom: "12px" }}>
-                    <div className="form-group">
-                      <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
-                      <input
-                        type="number"
-                        step="100"
-                        placeholder="e.g. 45000"
-                        value={newTenantMonthlyFee}
-                        onChange={e => setNewTenantMonthlyFee(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
-                    </div>
-                    <div className="form-group">
-                      <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="e.g. 10.00"
-                        value={newTenantCommission}
-                        onChange={e => setNewTenantCommission(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based contingency fee retained upon debt collection.</small>
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>Billing & Contract Contact Email</label>
-                    <input
-                      type="email"
-                      placeholder="revenue.cfo@municipality.gov.za"
-                      value={newTenantBillingEmail}
-                      onChange={e => setNewTenantBillingEmail(e.target.value)}
-                      className="form-input"
-                    />
-                  </div>
-                </div>
-
-                {/* Address & Contact Information (Optional) */}
-                <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
-                  <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "10px", fontSize: "13px" }}>
-                    📍 Municipal Address & Official Representation (Included on Invoices & Proposals)
-                  </div>
-                  <div className="info-grid" style={{ marginBottom: "12px" }}>
-                    <div className="form-group">
-                      <label>Physical Address (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 158 Civic Boulevard, Braamfontein, Johannesburg, 2001"
-                        value={newTenantPhysicalAddress}
-                        onChange={e => setNewTenantPhysicalAddress(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Postal Address (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. P.O. Box 1049, Johannesburg, 2000"
-                        value={newTenantPostalAddress}
-                        onChange={e => setNewTenantPostalAddress(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="info-grid">
-                    <div className="form-group">
-                      <label>Contact Person (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Manelisi Xulu"
-                        value={newTenantContactPerson}
-                        onChange={e => setNewTenantContactPerson(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Position / Role (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Chief Financial Officer / Head of Revenue"
-                        value={newTenantContactPosition}
-                        onChange={e => setNewTenantContactPosition(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Contact Telephone / Mobile (Optional)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. +27 (0)11 358 3000 / 082 123 4567"
-                        value={newTenantContactPhone}
-                        onChange={e => setNewTenantContactPhone(e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
-                  {loading ? "Registering..." : "🏛️ Onboard Municipality & Activate Contract"}
-                </button>
-              </form>
-            </div>
-
             {/* Municipalities Portfolio Management Table */}
             <div className="glass-panel" style={{ marginBottom: "28px" }}>
-              <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                 <div className="panel-title">
                   <h3>🏛️ Municipal Clients & SaaS Portfolios ({tenants.length})</h3>
                   <p>Manage subscription tiers, engagement models (Internal SaaS vs Khokhisa Managed), and billing terms</p>
                 </div>
+                {currentUser?.role === "SUPERADMIN" && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 700 }}
+                    onClick={() => setShowOnboardTenantModal(true)}
+                  >
+                    🏛️ Onboard Municipality & Activate Contract
+                  </button>
+                )}
               </div>
 
               <div className="table-container">
@@ -5322,26 +5135,36 @@ function App() {
 
               <div className="info-grid" style={{ marginBottom: "16px" }}>
                 <div className="form-group">
+                  <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
+                  <input
+                    type="number"
+                    step="100"
+                    value={editingTenant.monthly_subscription_fee ?? 45000}
+                    onChange={e => setEditingTenant({ ...editingTenant, monthly_subscription_fee: Number(e.target.value) })}
+                    className="form-input"
+                  />
+                  <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring software subscription fee.</small>
+                </div>
+                <div className="form-group">
+                  <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingTenant.commission_rate ?? 10.00}
+                    onChange={e => setEditingTenant({ ...editingTenant, commission_rate: Number(e.target.value) })}
+                    className="form-input"
+                  />
+                  <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Contingency recovery fee on collected cash.</small>
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
                   <label>Billing & Notice Email</label>
                   <input
                     type="email"
                     value={editingTenant.billing_contact_email || ""}
                     onChange={e => setEditingTenant({ ...editingTenant, billing_contact_email: e.target.value })}
-                    className="form-input"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Commercial Pricing (Commission % or Monthly ZAR)</label>
-                  <input
-                    type="number"
-                    value={editingTenant.engagement_model === "MANAGED_SERVICE" ? (editingTenant.commission_rate || 10) : (editingTenant.monthly_subscription_fee || 0)}
-                    onChange={e => {
-                      if (editingTenant.engagement_model === "MANAGED_SERVICE") {
-                        setEditingTenant({ ...editingTenant, commission_rate: Number(e.target.value) });
-                      } else {
-                        setEditingTenant({ ...editingTenant, monthly_subscription_fee: Number(e.target.value) });
-                      }
-                    }}
                     className="form-input"
                   />
                 </div>
@@ -5441,7 +5264,216 @@ function App() {
         </div>
       )}
 
-      {/* Edit Debtor Modal Dialog */}
+      {/* ONBOARD MUNICIPALITY & ACTIVATE CONTRACT MODAL */}
+      {showOnboardTenantModal && (
+        <div className="modal-backdrop" onClick={() => setShowOnboardTenantModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "780px", width: "94%", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
+              <div className="panel-title">
+                <h3>🏛️ Onboard New Municipality & Activate Contract</h3>
+                <p>Register a South African municipality for either <strong>Khokhisa Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowOnboardTenantModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              await handleCreateTenant(e);
+              setShowOnboardTenantModal(false);
+            }}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Municipality / Portfolio Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. City of Johannesburg Metropolitan Municipality"
+                    value={newTenantName}
+                    onChange={e => setNewTenantName(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Municipal Code (Unique Identifier)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. JHB, EKU, TSH"
+                    value={newTenantCode}
+                    onChange={e => setNewTenantCode(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Engagement & Operating Model</label>
+                  <select
+                    value={newTenantModel}
+                    onChange={e => setNewTenantModel(e.target.value as any)}
+                    className="form-select"
+                    style={{
+                      background: newTenantModel === "MANAGED_SERVICE" ? "linear-gradient(135deg, #065f46, #047857)" : "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                      borderColor: newTenantModel === "MANAGED_SERVICE" ? "#10b981" : "#3b82f6",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                    }}
+                  >
+                    <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Khokhisa Managed Service (Outsourced Agency Debt Recovery)</option>
+                    <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 SaaS Subscription (Municipality Uses System Internally)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Subscription Tier</label>
+                  <select
+                    value={newTenantTier}
+                    onChange={e => setNewTenantTier(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="ENTERPRISE">Enterprise (Full Feature Suite & Multi-Channel)</option>
+                    <option value="PROFESSIONAL">Professional (Standard Analytics & Work Queue)</option>
+                    <option value="STARTER">Starter Tier</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>⚡ Initial Portfolio Status</label>
+                  <select
+                    value={newTenantStatus}
+                    onChange={e => setNewTenantStatus(e.target.value)}
+                    className="form-select"
+                    style={{
+                      fontWeight: 600,
+                      color: newTenantStatus === "ACTIVE" ? "#34d399" : newTenantStatus === "TRIAL" ? "#38bdf8" : newTenantStatus === "SUSPENDED" ? "#f87171" : "#fbbf24"
+                    }}
+                  >
+                    <option value="ACTIVE">🟢 ACTIVE (Live Production)</option>
+                    <option value="TRIAL">🔵 TRIAL (Evaluation / POC Mode)</option>
+                    <option value="SUSPENDED">🔴 SUSPENDED (Hold Access)</option>
+                    <option value="EXPIRED">🟡 EXPIRED (Contract Concluded)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "20px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px" }}>
+                <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "12px", fontSize: "13.5px" }}>
+                  💼 Commercial Terms (Monthly SaaS License Fee & Khokhisa Recovery Commission)
+                </div>
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
+                    <input
+                      type="number"
+                      step="100"
+                      placeholder="e.g. 45000"
+                      value={newTenantMonthlyFee}
+                      onChange={e => setNewTenantMonthlyFee(e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
+                  </div>
+                  <div className="form-group">
+                    <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 10.00"
+                      value={newTenantCommission}
+                      onChange={e => setNewTenantCommission(e.target.value)}
+                      className="form-input"
+                      required
+                    />
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based contingency fee retained upon debt collection.</small>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label>Billing & Contract Contact Email</label>
+                  <input
+                    type="email"
+                    placeholder="revenue.cfo@municipality.gov.za"
+                    value={newTenantBillingEmail}
+                    onChange={e => setNewTenantBillingEmail(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              {/* Address & Official Representation Fields */}
+              <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "10px", fontSize: "13px" }}>
+                  📍 Municipal Address & Official Representation (Rendered on Invoices & Proposals)
+                </div>
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label>Physical Address (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 158 Civic Boulevard, Braamfontein, Johannesburg, 2001"
+                      value={newTenantPhysicalAddress}
+                      onChange={e => setNewTenantPhysicalAddress(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Postal Address (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. P.O. Box 1049, Johannesburg, 2000"
+                      value={newTenantPostalAddress}
+                      onChange={e => setNewTenantPostalAddress(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="info-grid">
+                  <div className="form-group">
+                    <label>Contact Person (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Manelisi Xulu"
+                      value={newTenantContactPerson}
+                      onChange={e => setNewTenantContactPerson(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Position / Role (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Chief Financial Officer / Head of Revenue"
+                      value={newTenantContactPosition}
+                      onChange={e => setNewTenantContactPosition(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Contact Telephone / Mobile (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +27 (0)11 358 3000 / 082 123 4567"
+                      value={newTenantContactPhone}
+                      onChange={e => setNewTenantContactPhone(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "16px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowOnboardTenantModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
+                  {loading ? "Registering..." : "🏛️ Onboard Municipality & Activate Contract"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {editingDebtor && (
         <div className="modal-backdrop" onClick={() => setEditingDebtor(null)}>
           <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "94%", margin: "auto", animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={e => e.stopPropagation()}>
