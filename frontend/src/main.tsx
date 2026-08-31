@@ -4814,7 +4814,7 @@ function App() {
       {/* PDF / OFFICIAL DOCUMENT VIEW MODAL & PRINT ENGINE */}
       {viewingPdfDoc && (
         <div className="modal-backdrop" onClick={() => setViewingPdfDoc(null)}>
-          <div className="modal-content glass-panel" style={{ maxWidth: "800px", width: "95%", maxHeight: "92vh", overflowY: "auto", background: "white", color: "#0f172a", borderRadius: "12px", padding: "36px" }} onClick={e => e.stopPropagation()}>
+          <div id="official-pdf-doc-content" className="modal-content glass-panel" style={{ maxWidth: "800px", width: "95%", maxHeight: "92vh", overflowY: "auto", background: "white", color: "#0f172a", borderRadius: "12px", padding: "36px" }} onClick={e => e.stopPropagation()}>
             
             {/* Header & Print Action */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "24px" }}>
@@ -4873,15 +4873,12 @@ function App() {
 
                   <div>
                     <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                      <h2 style={{ margin: 0, fontSize: "21px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, -apple-system, sans-serif", letterSpacing: "-0.5px" }}>
+                      <h2 style={{ margin: 0, fontSize: "23px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, -apple-system, sans-serif", letterSpacing: "-0.5px" }}>
                         KHOKHISA
                       </h2>
-                      <span style={{ fontSize: "11px", fontWeight: 700, color: "#0284c7", letterSpacing: "1px", textTransform: "uppercase" }}>
-                        • REVENUE OS
-                      </span>
                     </div>
-                    <div style={{ fontSize: "11.5px", color: "#475569", fontWeight: 600, letterSpacing: "0.2px" }}>
-                      Operated by Molmos (Pty) Ltd | Financial & Municipal Recovery Division
+                    <div style={{ fontSize: "12px", color: "#0284c7", fontWeight: 700, letterSpacing: "0.4px" }}>
+                      Powered by Molmos
                     </div>
                   </div>
                 </div>
@@ -5019,18 +5016,42 @@ function App() {
               </div>
             </div>
 
-            {/* Print & Close Actions */}
+            {/* Print & Download & Close Actions */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
               <div style={{ fontSize: "11px", color: "#64748b" }}>
-                Generated electronically by Khokhisa Municipal OS • Compliant with MFMA & South African Revenue Service (SARS) standards
+                Generated electronically by Khokhisa • Compliant with MFMA & South African Revenue Service (SARS) standards
               </div>
               <div style={{ display: "flex", gap: "10px" }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={async () => {
+                    const el = document.getElementById("official-pdf-doc-content");
+                    if (!el) return;
+                    const docNum = viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number;
+                    try {
+                      const html2pdf = (await import("html2pdf.js")).default;
+                      const opt = {
+                        margin: 10,
+                        filename: `${viewingPdfDoc.type}_${docNum}.pdf`,
+                        image: { type: "jpeg", quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
+                      };
+                      (html2pdf() as any).set(opt).from(el).save();
+                    } catch (e) {
+                      window.print();
+                    }
+                  }}
+                  style={{ background: "#0284c7", borderColor: "#0284c7", fontWeight: 600 }}
+                >
+                  📥 Download as PDF File
+                </button>
                 <button
                   className="btn btn-secondary"
                   onClick={() => window.print()}
                   style={{ background: "#0f172a", color: "white", borderColor: "#0f172a", fontWeight: 600 }}
                 >
-                  🖨️ Print / Save as PDF
+                  🖨️ Print Document
                 </button>
                 <button className="btn btn-secondary" onClick={() => setViewingPdfDoc(null)}>
                   Close
