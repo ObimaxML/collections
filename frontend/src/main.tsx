@@ -5029,7 +5029,11 @@ function App() {
                     if (!el) return;
                     const docNum = viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number;
                     try {
-                      const html2pdf = (await import("html2pdf.js")).default;
+                      let html2pdfInstance = (window as any).html2pdf;
+                      if (!html2pdfInstance) {
+                        const mod = await import("html2pdf.js");
+                        html2pdfInstance = mod.default || mod;
+                      }
                       const opt = {
                         margin: 10,
                         filename: `${viewingPdfDoc.type}_${docNum}.pdf`,
@@ -5037,7 +5041,7 @@ function App() {
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
                       };
-                      (html2pdf() as any).set(opt).from(el).save();
+                      html2pdfInstance().set(opt).from(el).save();
                     } catch (e) {
                       window.print();
                     }
