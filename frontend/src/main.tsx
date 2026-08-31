@@ -953,12 +953,17 @@ function App() {
         method: "POST",
         body: fd,
       });
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error(`Server returned non-JSON response (${res.status} ${res.statusText}): ${text.slice(0, 120)}`);
+      }
       if (!res.ok) {
-        const err = await res.json();
-        alert(err.detail || "Failed to inspect file.");
+        alert(data.detail || "Failed to inspect file.");
         return;
       }
-      const data = await res.json();
       setImportMappingData(data);
       setCustomColumnMapping(data.mapping || {});
       setImportStage("mapping");
@@ -980,7 +985,17 @@ function App() {
         method: "POST",
         body: fd,
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        throw new Error(`Server returned non-JSON response (${res.status} ${res.statusText}): ${text.slice(0, 120)}`);
+      }
+      if (!res.ok) {
+        alert(data.detail || "Failed to complete import.");
+        return;
+      }
       setImportResult(data);
       setImportStage("result");
       refreshData();
