@@ -958,17 +958,17 @@ function App() {
       try {
         data = JSON.parse(text);
       } catch (parseErr) {
-        throw new Error(`Server returned non-JSON response (${res.status} ${res.statusText}): ${text.slice(0, 120)}`);
+        throw new Error(`HTTP ${res.status} ${res.statusText} - ${text.slice(0, 150)}`);
       }
       if (!res.ok) {
-        alert(data.detail || "Failed to inspect file.");
+        alert("File inspection failed: " + (data.detail || JSON.stringify(data)));
         return;
       }
       setImportMappingData(data);
       setCustomColumnMapping(data.mapping || {});
       setImportStage("mapping");
     } catch (e: any) {
-      alert("Error inspecting file: " + e.message);
+      alert("Error inspecting file: " + (e.message || e.toString()));
     } finally {
       setLoading(false);
     }
