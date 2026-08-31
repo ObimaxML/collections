@@ -55,6 +55,12 @@ class ProposalResponse(BaseModel):
     tenant_id: UUID
     tenant_name: str | None = None
     tenant_code: str | None = None
+    tenant_physical_address: str | None = None
+    tenant_postal_address: str | None = None
+    tenant_contact_person: str | None = None
+    tenant_contact_position: str | None = None
+    tenant_contact_phone: str | None = None
+    tenant_billing_email: str | None = None
     proposal_number: str
     title: str
     engagement_model: str
@@ -105,6 +111,12 @@ class InvoiceResponse(BaseModel):
     tenant_id: UUID
     tenant_name: str | None = None
     tenant_code: str | None = None
+    tenant_physical_address: str | None = None
+    tenant_postal_address: str | None = None
+    tenant_contact_person: str | None = None
+    tenant_contact_position: str | None = None
+    tenant_contact_phone: str | None = None
+    tenant_billing_email: str | None = None
     proposal_id: UUID | None
     invoice_number: str
     billing_period: str

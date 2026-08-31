@@ -14,6 +14,11 @@ class TenantCreate(BaseModel):
     monthly_subscription_fee: Decimal | None = Decimal("0.00")
     subscription_status: str = Field(default="ACTIVE")        # ACTIVE, TRIAL, SUSPENDED, EXPIRED
     billing_contact_email: str | None = None
+    physical_address: str | None = None
+    postal_address: str | None = None
+    contact_person: str | None = None
+    contact_position: str | None = None
+    contact_phone: str | None = None
     contract_start_date: date | None = None
     contract_end_date: date | None = None
 
@@ -27,6 +32,11 @@ class TenantUpdate(BaseModel):
     monthly_subscription_fee: Decimal | None = None
     subscription_status: str | None = None
     billing_contact_email: str | None = None
+    physical_address: str | None = None
+    postal_address: str | None = None
+    contact_person: str | None = None
+    contact_position: str | None = None
+    contact_phone: str | None = None
     contract_start_date: date | None = None
     contract_end_date: date | None = None
 
@@ -41,6 +51,11 @@ class TenantResponse(BaseModel):
     monthly_subscription_fee: Decimal | None
     subscription_status: str
     billing_contact_email: str | None
+    physical_address: str | None = None
+    postal_address: str | None = None
+    contact_person: str | None = None
+    contact_position: str | None = None
+    contact_phone: str | None = None
     contract_start_date: date | None
     contract_end_date: date | None
     created_at: datetime

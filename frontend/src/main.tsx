@@ -249,6 +249,11 @@ function App() {
   const [newTenantCommission, setNewTenantCommission] = useState("10.00");
   const [newTenantMonthlyFee, setNewTenantMonthlyFee] = useState("0.00");
   const [newTenantBillingEmail, setNewTenantBillingEmail] = useState("");
+  const [newTenantPhysicalAddress, setNewTenantPhysicalAddress] = useState("");
+  const [newTenantPostalAddress, setNewTenantPostalAddress] = useState("");
+  const [newTenantContactPerson, setNewTenantContactPerson] = useState("");
+  const [newTenantContactPosition, setNewTenantContactPosition] = useState("");
+  const [newTenantContactPhone, setNewTenantContactPhone] = useState("");
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -341,6 +346,11 @@ function App() {
           commission_rate: newTenantModel === "MANAGED_SERVICE" ? Number(newTenantCommission) : 0,
           monthly_subscription_fee: newTenantModel === "SAAS_SELF_SERVICE" ? Number(newTenantMonthlyFee) : 0,
           billing_contact_email: newTenantBillingEmail || null,
+          physical_address: newTenantPhysicalAddress || null,
+          postal_address: newTenantPostalAddress || null,
+          contact_person: newTenantContactPerson || null,
+          contact_position: newTenantContactPosition || null,
+          contact_phone: newTenantContactPhone || null,
           subscription_status: "ACTIVE",
         }),
       });
@@ -353,6 +363,11 @@ function App() {
       setNewTenantName("");
       setNewTenantCode("");
       setNewTenantBillingEmail("");
+      setNewTenantPhysicalAddress("");
+      setNewTenantPostalAddress("");
+      setNewTenantContactPerson("");
+      setNewTenantContactPosition("");
+      setNewTenantContactPhone("");
       fetchTenants();
     } catch (err: any) {
       alert("Could not reach backend API");
@@ -378,6 +393,11 @@ function App() {
           monthly_subscription_fee: Number(editingTenant.monthly_subscription_fee || 0),
           subscription_status: editingTenant.subscription_status,
           billing_contact_email: editingTenant.billing_contact_email,
+          physical_address: editingTenant.physical_address,
+          postal_address: editingTenant.postal_address,
+          contact_person: editingTenant.contact_person,
+          contact_position: editingTenant.contact_position,
+          contact_phone: editingTenant.contact_phone,
         }),
       });
       const data = await res.json();
@@ -2435,6 +2455,68 @@ function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Address & Contact Information (Optional) */}
+                <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
+                  <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "10px", fontSize: "13px" }}>
+                    📍 Municipal Address & Official Representation (Included on Invoices & Proposals)
+                  </div>
+                  <div className="info-grid" style={{ marginBottom: "12px" }}>
+                    <div className="form-group">
+                      <label>Physical Address (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 158 Civic Boulevard, Braamfontein, Johannesburg, 2001"
+                        value={newTenantPhysicalAddress}
+                        onChange={e => setNewTenantPhysicalAddress(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Postal Address (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. P.O. Box 1049, Johannesburg, 2000"
+                        value={newTenantPostalAddress}
+                        onChange={e => setNewTenantPostalAddress(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="info-grid">
+                    <div className="form-group">
+                      <label>Contact Person (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Manelisi Xulu"
+                        value={newTenantContactPerson}
+                        onChange={e => setNewTenantContactPerson(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Position / Role (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Chief Financial Officer / Head of Revenue"
+                        value={newTenantContactPosition}
+                        onChange={e => setNewTenantContactPosition(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Contact Telephone / Mobile (Optional)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. +27 (0)11 358 3000 / 082 123 4567"
+                        value={newTenantContactPhone}
+                        onChange={e => setNewTenantContactPhone(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
                   {loading ? "Registering..." : "🏛️ Onboard Municipality & Activate Contract"}
@@ -4731,6 +4813,170 @@ function App() {
         </div>
       )}
 
+      {/* EDIT MUNICIPALITY TERMS & ADDRESS MODAL */}
+      {editingTenant && (
+        <div className="modal-backdrop" onClick={() => setEditingTenant(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "720px", width: "94%", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
+              <div className="panel-title">
+                <h3>⚙️ Edit Municipality Contract & Representation</h3>
+                <p>Update engagement models, commercial rates, physical/postal addresses, and designated officials</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setEditingTenant(null)}>✕</button>
+            </div>
+
+            <form onSubmit={handleUpdateTenant}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Municipality Name</label>
+                  <input
+                    type="text"
+                    value={editingTenant.name}
+                    onChange={e => setEditingTenant({ ...editingTenant, name: e.target.value })}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Municipal Code</label>
+                  <input
+                    type="text"
+                    value={editingTenant.code}
+                    onChange={e => setEditingTenant({ ...editingTenant, code: e.target.value })}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Engagement Model</label>
+                  <select
+                    value={editingTenant.engagement_model}
+                    onChange={e => setEditingTenant({ ...editingTenant, engagement_model: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="MANAGED_SERVICE">🛡️ Molmos Managed Debt Collection Agency</option>
+                    <option value="SAAS_SELF_SERVICE">💻 Internal Municipal SaaS Platform</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Subscription Tier</label>
+                  <select
+                    value={editingTenant.subscription_tier}
+                    onChange={e => setEditingTenant({ ...editingTenant, subscription_tier: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="ENTERPRISE">Enterprise</option>
+                    <option value="PROFESSIONAL">Professional</option>
+                    <option value="STARTER">Starter</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Billing & Notice Email</label>
+                  <input
+                    type="email"
+                    value={editingTenant.billing_contact_email || ""}
+                    onChange={e => setEditingTenant({ ...editingTenant, billing_contact_email: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Commercial Pricing (Commission % or Monthly ZAR)</label>
+                  <input
+                    type="number"
+                    value={editingTenant.engagement_model === "MANAGED_SERVICE" ? (editingTenant.commission_rate || 10) : (editingTenant.monthly_subscription_fee || 0)}
+                    onChange={e => {
+                      if (editingTenant.engagement_model === "MANAGED_SERVICE") {
+                        setEditingTenant({ ...editingTenant, commission_rate: Number(e.target.value) });
+                      } else {
+                        setEditingTenant({ ...editingTenant, monthly_subscription_fee: Number(e.target.value) });
+                      }
+                    }}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              {/* Address & Official Representation Fields */}
+              <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
+                <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "10px", fontSize: "13px" }}>
+                  📍 Municipal Address & Official Representation (Rendered on Invoices & Proposals)
+                </div>
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label>Physical Address</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 158 Civic Boulevard, Braamfontein, Johannesburg, 2001"
+                      value={editingTenant.physical_address || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, physical_address: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Postal Address</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. P.O. Box 1049, Johannesburg, 2000"
+                      value={editingTenant.postal_address || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, postal_address: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="info-grid">
+                  <div className="form-group">
+                    <label>Contact Person / Official</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Manelisi Xulu"
+                      value={editingTenant.contact_person || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, contact_person: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Position / Office</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Chief Financial Officer / Head of Revenue"
+                      value={editingTenant.contact_position || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, contact_position: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Contact Phone / Tel</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. +27 (0)11 358 3000 / 082 123 4567"
+                      value={editingTenant.contact_phone || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, contact_phone: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingTenant(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? "Saving..." : "💾 Update Municipality"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* PDF / OFFICIAL DOCUMENT VIEW MODAL & PRINT ENGINE */}
       {viewingPdfDoc && (
         <div className="modal-backdrop" onClick={() => setViewingPdfDoc(null)}>
@@ -4814,12 +5060,31 @@ function App() {
                   <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
                     {viewingPdfDoc.type === "INVOICE" ? "Billed To (Municipality):" : "Prepared For (Municipality):"}
                   </div>
-                  <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
+                  <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a", marginBottom: "3px" }}>
                     {viewingPdfDoc.data.tenant_name || "City Municipality"}
                   </div>
-                  <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
+                  <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.45" }}>
                     Municipal Code: <strong>{viewingPdfDoc.data.tenant_code || "JHB"}</strong><br />
-                    Attention: Chief Financial Officer / Revenue Unit
+                    {viewingPdfDoc.data.tenant_contact_person ? (
+                      <>
+                        Attention: <strong>{viewingPdfDoc.data.tenant_contact_person}</strong>
+                        {viewingPdfDoc.data.tenant_contact_position ? ` (${viewingPdfDoc.data.tenant_contact_position})` : ""}<br />
+                      </>
+                    ) : (
+                      <>Attention: Chief Financial Officer / Revenue Unit<br /></>
+                    )}
+                    {viewingPdfDoc.data.tenant_physical_address && (
+                      <>Physical Address: {viewingPdfDoc.data.tenant_physical_address}<br /></>
+                    )}
+                    {viewingPdfDoc.data.tenant_postal_address && (
+                      <>Postal Address: {viewingPdfDoc.data.tenant_postal_address}<br /></>
+                    )}
+                    {(viewingPdfDoc.data.tenant_contact_phone || viewingPdfDoc.data.tenant_billing_email) && (
+                      <div style={{ marginTop: "4px", color: "#334155" }}>
+                        {viewingPdfDoc.data.tenant_contact_phone && <>Tel: {viewingPdfDoc.data.tenant_contact_phone} &nbsp;|&nbsp; </>}
+                        {viewingPdfDoc.data.tenant_billing_email && <>Email: {viewingPdfDoc.data.tenant_billing_email}</>}
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -59,6 +59,26 @@ class Tenant(Base):
         String(255),
         nullable=True,
     )
+    physical_address: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+    postal_address: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True,
+    )
+    contact_person: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    contact_position: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    contact_phone: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+    )
     contract_start_date: Mapped[date | None] = mapped_column(
         Date,
         nullable=True,

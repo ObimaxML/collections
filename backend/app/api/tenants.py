@@ -63,6 +63,11 @@ def create_tenant(
         monthly_subscription_fee=payload.monthly_subscription_fee,
         subscription_status=payload.subscription_status,
         billing_contact_email=payload.billing_contact_email,
+        physical_address=payload.physical_address,
+        postal_address=payload.postal_address,
+        contact_person=payload.contact_person,
+        contact_position=payload.contact_position,
+        contact_phone=payload.contact_phone,
         contract_start_date=payload.contract_start_date,
         contract_end_date=payload.contract_end_date,
         created_at=datetime.now(timezone.utc),
@@ -105,7 +110,7 @@ def update_tenant(
     db: Session = Depends(get_db),
 ):
     """
-    Update municipality SaaS subscription, engagement model, billing terms, or contract status.
+    Update municipality SaaS subscription, engagement model, billing terms, address, contact details, or contract status.
     """
     tenant = db.get(Tenant, tenant_id)
     if not tenant:
@@ -135,6 +140,16 @@ def update_tenant(
         tenant.subscription_status = payload.subscription_status
     if payload.billing_contact_email is not None:
         tenant.billing_contact_email = payload.billing_contact_email
+    if payload.physical_address is not None:
+        tenant.physical_address = payload.physical_address
+    if payload.postal_address is not None:
+        tenant.postal_address = payload.postal_address
+    if payload.contact_person is not None:
+        tenant.contact_person = payload.contact_person
+    if payload.contact_position is not None:
+        tenant.contact_position = payload.contact_position
+    if payload.contact_phone is not None:
+        tenant.contact_phone = payload.contact_phone
     if payload.contract_start_date is not None:
         tenant.contract_start_date = payload.contract_start_date
     if payload.contract_end_date is not None:
