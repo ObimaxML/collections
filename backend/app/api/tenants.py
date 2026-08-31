@@ -158,3 +158,34 @@ def update_tenant(
     db.commit()
     db.refresh(tenant)
     return tenant
+
+
+@router.patch(
+    "/{tenant_id}/status",
+    response_model=TenantResponse,
+)
+def update_tenant_status(
+    tenant_id: UUID,
+    status: str,
+    db: Session = Depends(get_db),
+):
+    """
+    SuperAdmin quick action to update SaaS subscription status (e.g. TRIAL, ACTIVE, SUSPENDED, EXPIRED).
+    """
+    tenant = db.get(Tenant, tenant_id)
+    if not tenant:
+        raise HTTPException(
+            status_code=404,
+            detail="Municipality not found.",
+        )
+    valid_statuses = ["ACTIVE", "TRIAL", "SUSPENDED", "EXPIRED"]
+    status_upper = status.strip().upper()
+    if status_upper not in valid_statuses:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status '{status}'. Must be one of {valid_statuses}",
+        )
+    tenant.subscription_status = status_upper
+    db.commit()
+    db.refresh(tenant)
+    return tenant

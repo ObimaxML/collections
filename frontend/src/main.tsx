@@ -246,6 +246,7 @@ function App() {
   const [newTenantCode, setNewTenantCode] = useState("");
   const [newTenantModel, setNewTenantModel] = useState<"MANAGED_SERVICE" | "SAAS_SELF_SERVICE">("MANAGED_SERVICE");
   const [newTenantTier, setNewTenantTier] = useState("ENTERPRISE");
+  const [newTenantStatus, setNewTenantStatus] = useState("ACTIVE");
   const [newTenantCommission, setNewTenantCommission] = useState("10.00");
   const [newTenantMonthlyFee, setNewTenantMonthlyFee] = useState("0.00");
   const [newTenantBillingEmail, setNewTenantBillingEmail] = useState("");
@@ -351,7 +352,7 @@ function App() {
           contact_person: newTenantContactPerson || null,
           contact_position: newTenantContactPosition || null,
           contact_phone: newTenantContactPhone || null,
-          subscription_status: "ACTIVE",
+          subscription_status: newTenantStatus,
         }),
       });
       const data = await res.json();
@@ -362,6 +363,7 @@ function App() {
       alert(`Municipality ${data.name} (${data.code}) onboarded successfully under ${data.engagement_model === "MANAGED_SERVICE" ? "Molmos Managed Collections" : "Internal SaaS Subscription"}!`);
       setNewTenantName("");
       setNewTenantCode("");
+      setNewTenantStatus("ACTIVE");
       setNewTenantBillingEmail("");
       setNewTenantPhysicalAddress("");
       setNewTenantPostalAddress("");
@@ -371,6 +373,26 @@ function App() {
       fetchTenants();
     } catch (err: any) {
       alert("Could not reach backend API");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleQuickChangeTenantStatus = async (tenantId: string, status: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/tenants/${tenantId}/status?status=${status}`, {
+        method: "PATCH",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Error updating SaaS status: ${data.detail}`);
+        return;
+      }
+      alert(`Municipality ${data.name} SaaS status changed to "${data.subscription_status}"!`);
+      fetchTenants();
+    } catch (err: any) {
+      alert("Network error: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -2400,6 +2422,24 @@ function App() {
                       <option value="STARTER">Starter Tier</option>
                     </select>
                   </div>
+
+                  <div className="form-group">
+                    <label>⚡ Initial Portfolio Status</label>
+                    <select
+                      value={newTenantStatus}
+                      onChange={e => setNewTenantStatus(e.target.value)}
+                      className="form-select"
+                      style={{
+                        fontWeight: 600,
+                        color: newTenantStatus === "ACTIVE" ? "#34d399" : newTenantStatus === "TRIAL" ? "#38bdf8" : newTenantStatus === "SUSPENDED" ? "#f87171" : "#fbbf24"
+                      }}
+                    >
+                      <option value="ACTIVE">🟢 ACTIVE (Live Production)</option>
+                      <option value="TRIAL">🔵 TRIAL (Evaluation / POC Mode)</option>
+                      <option value="SUSPENDED">🔴 SUSPENDED (Hold Access)</option>
+                      <option value="EXPIRED">🟡 EXPIRED (Contract Concluded)</option>
+                    </select>
+                  </div>
                 </div>
 
                 {newTenantModel === "MANAGED_SERVICE" ? (
@@ -2575,9 +2615,60 @@ function App() {
                           )}
                         </td>
                         <td>
-                          <span className={`status-pill ${t.subscription_status === "ACTIVE" ? "status-paying" : "status-broken"}`}>
-                            {t.subscription_status || "ACTIVE"}
-                          </span>
+                          {currentUser?.role === "SUPERADMIN" ? (
+                            <select
+                              value={t.subscription_status || "ACTIVE"}
+                              onChange={e => handleQuickChangeTenantStatus(t.id, e.target.value)}
+                              className="form-select"
+                              style={{
+                                padding: "4px 8px",
+                                fontSize: "11.5px",
+                                fontWeight: 700,
+                                borderRadius: "6px",
+                                cursor: "pointer",
+                                width: "auto",
+                                display: "inline-block",
+                                background: t.subscription_status === "ACTIVE" 
+                                  ? "rgba(16, 185, 129, 0.15)" 
+                                  : t.subscription_status === "TRIAL"
+                                  ? "rgba(14, 165, 233, 0.15)"
+                                  : t.subscription_status === "SUSPENDED"
+                                  ? "rgba(244, 63, 94, 0.15)"
+                                  : "rgba(234, 179, 8, 0.15)",
+                                color: t.subscription_status === "ACTIVE" 
+                                  ? "#34d399" 
+                                  : t.subscription_status === "TRIAL"
+                                  ? "#38bdf8"
+                                  : t.subscription_status === "SUSPENDED"
+                                  ? "#fb7185"
+                                  : "#fde047",
+                                borderColor: t.subscription_status === "ACTIVE" 
+                                  ? "rgba(16, 185, 129, 0.3)" 
+                                  : t.subscription_status === "TRIAL"
+                                  ? "rgba(14, 165, 233, 0.3)"
+                                  : t.subscription_status === "SUSPENDED"
+                                  ? "rgba(244, 63, 94, 0.3)"
+                                  : "rgba(234, 179, 8, 0.3)",
+                              }}
+                            >
+                              <option value="ACTIVE" style={{ background: "#0f172a", color: "#34d399" }}>🟢 ACTIVE</option>
+                              <option value="TRIAL" style={{ background: "#0f172a", color: "#38bdf8" }}>🔵 TRIAL</option>
+                              <option value="SUSPENDED" style={{ background: "#0f172a", color: "#fb7185" }}>🔴 SUSPENDED</option>
+                              <option value="EXPIRED" style={{ background: "#0f172a", color: "#fde047" }}>🟡 EXPIRED</option>
+                            </select>
+                          ) : (
+                            <span className={`status-pill ${
+                              t.subscription_status === "ACTIVE" 
+                                ? "status-paying" 
+                                : t.subscription_status === "TRIAL"
+                                ? "status-engaged"
+                                : t.subscription_status === "SUSPENDED"
+                                ? "status-broken"
+                                : "status-new"
+                            }`}>
+                              {t.subscription_status || "ACTIVE"}
+                            </span>
+                          )}
                         </td>
                         <td style={{ textAlign: "right" }}>
                           <button
@@ -4871,6 +4962,29 @@ function App() {
                     <option value="ENTERPRISE">Enterprise</option>
                     <option value="PROFESSIONAL">Professional</option>
                     <option value="STARTER">Starter</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>⚡ Subscription Status</label>
+                  <select
+                    value={editingTenant.subscription_status || "ACTIVE"}
+                    onChange={e => setEditingTenant({ ...editingTenant, subscription_status: e.target.value })}
+                    className="form-select"
+                    style={{
+                      fontWeight: 700,
+                      color: editingTenant.subscription_status === "ACTIVE" 
+                        ? "#34d399" 
+                        : editingTenant.subscription_status === "TRIAL"
+                        ? "#38bdf8"
+                        : editingTenant.subscription_status === "SUSPENDED"
+                        ? "#fb7185"
+                        : "#fde047"
+                    }}
+                  >
+                    <option value="ACTIVE">🟢 ACTIVE (Live Production)</option>
+                    <option value="TRIAL">🔵 TRIAL (Evaluation / POC Mode)</option>
+                    <option value="SUSPENDED">🔴 SUSPENDED (Hold Access)</option>
+                    <option value="EXPIRED">🟡 EXPIRED (Contract Concluded)</option>
                   </select>
                 </div>
               </div>
