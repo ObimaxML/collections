@@ -809,7 +809,7 @@ function App() {
                 </g>
               </svg>
             </div>
-            <h2>CollectionsOS</h2>
+            <h2>Khokhisa</h2>
             <p>Municipal Debt Recovery & Revenue System</p>
           </div>
 
@@ -926,7 +926,7 @@ function App() {
             </svg>
           </div>
           <div className="brand-info">
-            <h1 style={{ fontSize: "16px" }}>CollectionsOS</h1>
+            <h1 style={{ fontSize: "16px" }}>Khokhisa</h1>
           </div>
         </div>
         <button
@@ -949,7 +949,7 @@ function App() {
       {/* Sidebar */}
       <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
         <div className="brand-section">
-          <div className="brand-icon" title="CollectionsOS - South Africa Municipal Debt Recovery OS" style={{ width: "42px", height: "42px" }}>
+          <div className="brand-icon" title="Khokhisa - South Africa Municipal Debt Recovery OS" style={{ width: "42px", height: "42px" }}>
             <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "32px", height: "32px" }}>
               {/* Green Money Sack */}
               <path d="M42 16 C38 6, 62 6, 58 16 Z" fill="#16a34a"/>
@@ -969,8 +969,7 @@ function App() {
             </svg>
           </div>
           <div className="brand-info">
-            <h1>CollectionsOS</h1>
-            <span>{currentUser?.role ?? "ENTERPRISE"}</span>
+            <h1>Khokhisa</h1>
           </div>
         </div>
 
@@ -1061,7 +1060,24 @@ function App() {
         {currentUser && (
           <div style={{ marginTop: "auto", padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", border: "1px solid var(--border-subtle)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ fontSize: "13px", fontWeight: 600, color: "white" }}>{currentUser.full_name}</div>
+              <div>
+                <div className="user-profile-name" style={{ fontSize: "13px", fontWeight: 600 }}>{currentUser.full_name}</div>
+                <div style={{ marginTop: "3px" }}>
+                  <span className="user-role-badge" style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.5px",
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    background: currentUser.role === "SUPERADMIN" ? "rgba(234, 179, 8, 0.15)" : currentUser.role === "ADMIN" ? "rgba(59, 130, 246, 0.15)" : "rgba(16, 185, 129, 0.15)",
+                    color: currentUser.role === "SUPERADMIN" ? "#facc15" : currentUser.role === "ADMIN" ? "#60a5fa" : "#34d399",
+                    border: `1px solid ${currentUser.role === "SUPERADMIN" ? "rgba(234, 179, 8, 0.3)" : currentUser.role === "ADMIN" ? "rgba(59, 130, 246, 0.3)" : "rgba(16, 185, 129, 0.3)"}`
+                  }}>
+                    {currentUser.role}
+                  </span>
+                </div>
+              </div>
               <button
                 className="btn btn-secondary btn-sm"
                 title="Sign Out"
