@@ -5,9 +5,14 @@ from decimal import Decimal, InvalidOperation
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models import (
+    MunicipalAccount,
+    Payment,
+)
 from app.services.imports import (
     build_column_mapping as service_build_column_mapping,
     build_mapping_details,
@@ -348,6 +353,484 @@ async def preview_payment_import(
         "ready_for_import": not missing,
         "tenant_resolution": tenant_results,
         "preview": preview,
+    }
+
+
+def validate_payment_import(
+    df: pd.DataFrame,
+    db: Session,
+    mapping: dict[str, str],
+) -> dict:
+    """
+    Validate a payment import without writing
+    anything to the database.
+    """
+
+    required_targets = {
+        "tenant_id",
+        "account_number",
+        "amount",
+        "payment_date",
+        "external_reference",
+    }
+
+    missing_mapping = [
+        target
+        for target in required_targets
+        if target not in mapping
+    ]
+
+    if missing_mapping:
+        return {
+            "ready_for_import": False,
+            "total_rows": len(df),
+            "valid_rows": 0,
+            "invalid_rows": len(df),
+            "missing_mapping": missing_mapping,
+            "error_count": 0,
+            "errors": [],
+            "summary": {
+                "unknown_tenants": 0,
+                "unknown_accounts": 0,
+                "invalid_amounts": 0,
+                "invalid_dates": 0,
+                "missing_references": 0,
+                "duplicate_references_in_file": 0,
+                "duplicate_references_in_database": 0,
+            },
+        }
+
+    errors = []
+
+    unknown_tenants = 0
+    unknown_accounts = 0
+    invalid_amounts = 0
+    invalid_dates = 0
+    missing_references = 0
+    duplicate_references_in_file = 0
+    duplicate_references_in_database = 0
+
+    valid_rows = 0
+
+    seen_references = set()
+
+    # Cache tenant lookups
+    tenant_cache = {}
+
+    # Cache account lookups
+    account_cache = {}
+
+    for index, row in df.iterrows():
+
+        row_number = index + 2
+
+        row_errors = []
+
+        # -----------------------------------------------------
+        # Tenant
+        # -----------------------------------------------------
+
+        tenant_value = get_mapped_value(
+            row,
+            mapping,
+            "tenant_id",
+        )
+
+        tenant_key = (
+            str(tenant_value).strip()
+            if tenant_value is not None
+            else ""
+        )
+
+        tenant = None
+
+        if tenant_key:
+
+            if tenant_key not in tenant_cache:
+                tenant_cache[tenant_key] = (
+                    resolve_tenant(
+                        db,
+                        tenant_key,
+                    )
+                )
+
+            tenant = tenant_cache[
+                tenant_key
+            ]
+
+        if tenant is None:
+            unknown_tenants += 1
+
+            row_errors.append(
+                {
+                    "field": "tenant_id",
+                    "message": (
+                        f"Tenant not found: "
+                        f"{tenant_value}"
+                    ),
+                }
+            )
+
+        # -----------------------------------------------------
+        # Account
+        # -----------------------------------------------------
+
+        account_value = get_mapped_value(
+            row,
+            mapping,
+            "account_number",
+        )
+
+        account_number = (
+            str(account_value).strip()
+            if account_value is not None
+            else ""
+        )
+
+        if not account_number:
+            unknown_accounts += 1
+
+            row_errors.append(
+                {
+                    "field": "account_number",
+                    "message": (
+                        "Account number is required."
+                    ),
+                }
+            )
+
+        # -----------------------------------------------------
+        # Account existence
+        # -----------------------------------------------------
+
+        if tenant is not None and account_number:
+
+            account_key = (
+                str(tenant.id),
+                account_number,
+            )
+
+            if account_key not in account_cache:
+
+                account_cache[account_key] = db.scalar(
+                    select(MunicipalAccount).where(
+                        MunicipalAccount.tenant_id
+                        == tenant.id,
+                        MunicipalAccount.account_number
+                        == account_number,
+                    )
+                )
+
+            account = account_cache[
+                account_key
+            ]
+
+            if account is None:
+                unknown_accounts += 1
+
+                row_errors.append(
+                    {
+                        "field": "account_number",
+                        "message": (
+                            f"Account not found: "
+                            f"{account_number}"
+                        ),
+                    }
+                )
+
+        # -----------------------------------------------------
+        # Amount
+        # -----------------------------------------------------
+
+        amount_value = get_mapped_value(
+            row,
+            mapping,
+            "amount",
+        )
+
+        try:
+            if amount_value is None:
+                raise ValueError()
+
+            amount = Decimal(
+                str(amount_value)
+                .replace("R", "")
+                .replace("r", "")
+                .replace(",", "")
+                .strip()
+            )
+
+            if amount <= Decimal("0.00"):
+                raise ValueError()
+
+        except (
+            InvalidOperation,
+            ValueError,
+            AttributeError,
+        ):
+
+            invalid_amounts += 1
+
+            row_errors.append(
+                {
+                    "field": "amount",
+                    "message": (
+                        "Invalid payment amount."
+                    ),
+                }
+            )
+
+        # -----------------------------------------------------
+        # Payment date
+        # -----------------------------------------------------
+
+        payment_date_value = get_mapped_value(
+            row,
+            mapping,
+            "payment_date",
+        )
+
+        parsed_date = pd.to_datetime(
+            payment_date_value,
+            errors="coerce",
+        )
+
+        if pd.isna(parsed_date):
+
+            invalid_dates += 1
+
+            row_errors.append(
+                {
+                    "field": "payment_date",
+                    "message": (
+                        "Invalid payment date."
+                    ),
+                }
+            )
+
+        # -----------------------------------------------------
+        # External reference
+        # -----------------------------------------------------
+
+        reference_value = get_mapped_value(
+            row,
+            mapping,
+            "external_reference",
+        )
+
+        external_reference = (
+            str(reference_value).strip()
+            if reference_value is not None
+            else ""
+        )
+
+        if not external_reference:
+
+            missing_references += 1
+
+            row_errors.append(
+                {
+                    "field": "external_reference",
+                    "message": (
+                        "External reference "
+                        "is required."
+                    ),
+                }
+            )
+
+        # -----------------------------------------------------
+        # Duplicate references within file
+        # -----------------------------------------------------
+
+        if external_reference:
+
+            if external_reference in seen_references:
+
+                duplicate_references_in_file += 1
+
+                row_errors.append(
+                    {
+                        "field": "external_reference",
+                        "message": (
+                            "Duplicate reference "
+                            "within import file."
+                        ),
+                    }
+                )
+
+            else:
+                seen_references.add(
+                    external_reference
+                )
+
+        # -----------------------------------------------------
+        # Duplicate references within database
+        # -----------------------------------------------------
+
+        if (
+            tenant is not None
+            and external_reference
+        ):
+
+            existing_payment = db.scalar(
+                select(Payment).where(
+                    Payment.tenant_id == tenant.id,
+                    Payment.external_reference
+                    == external_reference,
+                )
+            )
+
+            if existing_payment:
+
+                duplicate_references_in_database += 1
+
+                row_errors.append(
+                    {
+                        "field": "external_reference",
+                        "message": (
+                            "Payment reference already "
+                            "exists in the database."
+                        ),
+                    }
+                )
+
+        # -----------------------------------------------------
+        # Row result
+        # -----------------------------------------------------
+
+        if row_errors:
+
+            errors.append(
+                {
+                    "row": row_number,
+                    "status": "INVALID",
+                    "errors": row_errors,
+                }
+            )
+
+        else:
+            valid_rows += 1
+
+    invalid_rows = (
+        len(df) - valid_rows
+    )
+
+    return {
+        "ready_for_import": (
+            invalid_rows == 0
+            and not missing_mapping
+        ),
+        "total_rows": len(df),
+        "valid_rows": valid_rows,
+        "invalid_rows": invalid_rows,
+        "missing_mapping": missing_mapping,
+        "error_count": len(errors),
+        "summary": {
+            "unknown_tenants": (
+                unknown_tenants
+            ),
+            "unknown_accounts": (
+                unknown_accounts
+            ),
+            "invalid_amounts": (
+                invalid_amounts
+            ),
+            "invalid_dates": (
+                invalid_dates
+            ),
+            "missing_references": (
+                missing_references
+            ),
+            "duplicate_references_in_file": (
+                duplicate_references_in_file
+            ),
+            "duplicate_references_in_database": (
+                duplicate_references_in_database
+            ),
+        },
+        "errors": errors[:100],
+    }
+
+
+@router.post("/import/validate")
+async def validate_payment_import_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    content = await file.read()
+
+    filename = (
+        file.filename or ""
+    ).lower()
+
+    # ---------------------------------------------------------
+    # Read file
+    # ---------------------------------------------------------
+
+    try:
+
+        if filename.endswith(".csv"):
+
+            df = pd.read_csv(
+                io.BytesIO(content)
+            )
+
+        elif filename.endswith(".xlsx"):
+
+            df = pd.read_excel(
+                io.BytesIO(content)
+            )
+
+        else:
+
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Only CSV and XLSX files "
+                    "are supported."
+                ),
+            )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Could not read file: {exc}"
+            ),
+        ) from exc
+
+    # ---------------------------------------------------------
+    # Normalise columns
+    # ---------------------------------------------------------
+
+    df = normalise_columns(df)
+
+    # ---------------------------------------------------------
+    # Automatic mapping
+    # ---------------------------------------------------------
+
+    mapping = build_column_mapping(
+        list(df.columns)
+    )
+
+    # ---------------------------------------------------------
+    # Validate
+    # ---------------------------------------------------------
+
+    validation = validate_payment_import(
+        df=df,
+        db=db,
+        mapping=mapping,
+    )
+
+    return {
+        "filename": file.filename,
+        "mapping": mapping,
+        **validation,
     }
 
 
