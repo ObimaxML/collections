@@ -2136,21 +2136,22 @@ function App() {
                     <tbody>
                       {[
                         { key: "account_number", label: "Account Number", required: true },
-                        { key: "account_status", label: "Account Status", required: false },
-                        { key: "balance", label: "Balance (ZAR)", required: false },
-                        { key: "arrears", label: "Arrears Amount (ZAR)", required: false },
-                        { key: "days_in_arrears", label: "Days in Arrears", required: false },
-                        { key: "first_name", label: "Customer First Name", required: false },
-                        { key: "last_name", label: "Customer Last Name", required: false },
-                        { key: "id_number", label: "SA ID Number", required: false },
-                        { key: "mobile", label: "Mobile Number", required: false },
+                        { key: "first_name", label: "Customer First Name / Legal Entity", required: false },
+                        { key: "last_name", label: "Customer Last Name / Suffix", required: false },
+                        { key: "id_number", label: "SA ID Number / Registration", required: false },
+                        { key: "mobile", label: "Mobile / Phone Number", required: false },
                         { key: "email", label: "Email Address", required: false },
-                        { key: "property_reference", label: "Property Ref / Stand No", required: false },
-                        { key: "address", label: "Street Address", required: false },
+                        { key: "property_reference", label: "Property Ref / Stand (ERF)", required: false },
+                        { key: "address", label: "Physical / Municipal Address", required: false },
+                        { key: "balance", label: "Total Balance (ZAR)", required: false },
+                        { key: "arrears", label: "Overdue Arrears (ZAR)", required: false },
+                        { key: "days_in_arrears", label: "Days in Arrears (DPD)", required: false },
                         { key: "last_payment_date", label: "Last Payment Date", required: false },
-                        { key: "last_payment_amount", label: "Last Payment Amount", required: false },
+                        { key: "last_payment_amount", label: "Last Payment Amount (ZAR)", required: false },
+                        { key: "account_status", label: "Account Status", required: false },
                       ].map(field => {
                         const mappedCol = customColumnMapping[field.key] || importMappingData.mapping[field.key];
+                        const availableCols = (importMappingData.columns || []).filter((c: string) => !c.toLowerCase().endsWith(".1") && !c.toLowerCase().endsWith(" .1"));
                         return (
                           <tr key={field.key} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
                             <td style={{ padding: "10px 14px", fontWeight: 600 }}>{field.label} <span style={{ color: "#64748b", fontSize: "11px" }}>({field.key})</span></td>
@@ -2174,7 +2175,7 @@ function App() {
                                 }}
                               >
                                 <option value="">-- Not Mapped --</option>
-                                {importMappingData.columns.map((c: string) => (
+                                {availableCols.map((c: string) => (
                                   <option key={c} value={c}>{c}</option>
                                 ))}
                               </select>

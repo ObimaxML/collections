@@ -13,6 +13,10 @@ from app.models import (
     AuditEvent,
 )
 
+# Standard canonical debt book schema requested for all imports:
+# account_number, first_name, last_name, id_number, mobile, email, property_reference,
+# address, balance, arrears, days_in_arrears, last_payment_date, last_payment_amount, account_status
+
 REQUIRED_COLUMNS = {
     "account_number",
 }
@@ -31,34 +35,6 @@ COLUMN_ALIASES = {
         "acc_no",
         "acc no",
         "account",
-    ],
-    "account_status": [
-        "account_status",
-        "account status",
-        "status",
-    ],
-    "balance": [
-        "balance",
-        "account_balance",
-        "account balance",
-        "total_balance",
-        "total balance",
-    ],
-    "arrears": [
-        "90 days plus",
-        "90_days_plus",
-        "90+ days",
-        "90+ days plus",
-        "arrears",
-        "arrears_amount",
-        "arrears amount",
-        "overdue_amount",
-    ],
-    "days_in_arrears": [
-        "days_in_arrears",
-        "days in arrears",
-        "arrears_days",
-        "arrears days",
     ],
     "first_name": [
         "first_name",
@@ -85,24 +61,16 @@ COLUMN_ALIASES = {
         "identity number",
         "id",
     ],
-    "company_registration": [
-        "company_registration",
-        "company registration",
-        "registration_number",
-        "registration number",
-        "reg_no",
-        "reg no",
-    ],
     "mobile": [
+        "mobile",
+        "mobile_number",
+        "mobile number",
         "cellular phone",
         "cellular_phone",
         "cell phone",
         "cell_phone",
         "cellular",
         "cell",
-        "mobile",
-        "mobile_number",
-        "mobile number",
         "telephone 1",
         "telephone_1",
         "telephone 2",
@@ -112,11 +80,11 @@ COLUMN_ALIASES = {
         "phone_number",
     ],
     "email": [
-        "e_mail",
-        "e-mail",
         "email",
         "email_address",
         "email address",
+        "e_mail",
+        "e-mail",
     ],
     "property_reference": [
         "property_reference",
@@ -127,13 +95,36 @@ COLUMN_ALIASES = {
         "stand",
     ],
     "address": [
+        "address",
         "physical_address",
         "physical address",
-        "address",
         "property_address",
         "property address",
         "street_address",
         "suburb",
+    ],
+    "balance": [
+        "balance",
+        "account_balance",
+        "account balance",
+        "total_balance",
+        "total balance",
+    ],
+    "arrears": [
+        "arrears",
+        "90 days plus",
+        "90_days_plus",
+        "90+ days",
+        "90+ days plus",
+        "arrears_amount",
+        "arrears amount",
+        "overdue_amount",
+    ],
+    "days_in_arrears": [
+        "days_in_arrears",
+        "days in arrears",
+        "arrears_days",
+        "arrears days",
     ],
     "last_payment_date": [
         "last_payment_date",
@@ -144,6 +135,19 @@ COLUMN_ALIASES = {
         "last_payment_amount",
         "last payment amount",
         "payment_amount",
+    ],
+    "account_status": [
+        "account_status",
+        "account status",
+        "status",
+    ],
+    "company_registration": [
+        "company_registration",
+        "company registration",
+        "registration_number",
+        "registration number",
+        "reg_no",
+        "reg no",
     ],
 }
 
@@ -262,9 +266,11 @@ def parse_date(value):
 
 
 def build_column_mapping(columns):
+    # Filter out duplicate excel generated columns like 'Balance .1' or 'Balance.1'
+    filtered_cols = [c for c in columns if not (str(c).strip().lower().endswith((".1", " .1", "_1")) and "telephone" not in str(c).lower())]
     normalised = {
         normalise_column(column): column
-        for column in columns
+        for column in filtered_cols
     }
     mapping = {}
     for target, aliases in COLUMN_ALIASES.items():
