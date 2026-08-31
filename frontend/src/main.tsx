@@ -799,6 +799,8 @@ function App() {
       }
       if (newStatus === "SUBMITTED_TO_MUNICIPALITY") {
         alert(`🚀 Proposal "${data.proposal_number}" submitted to municipality! Notification dispatched to ${targetEmail || data.tenant_name}.`);
+      } else if (newStatus === "APPROVED") {
+        alert(`🎉 Proposal "${data.proposal_number}" APPROVED! An official Tax Invoice has been automatically generated and is ready in your Invoices register.`);
       } else if (newStatus === "REJECTED") {
         alert(`❌ Proposal "${data.proposal_number}" has been marked as REJECTED.`);
       } else {

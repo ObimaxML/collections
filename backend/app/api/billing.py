@@ -245,15 +245,56 @@ def update_proposal_status(
 
     valid_statuses = {"DRAFT", "SUBMITTED_TO_MUNICIPALITY", "APPROVED", "REJECTED", "EXPIRED"}
     status_upper = status.strip().upper()
-    if status_upper not in valid_statuses:
-        raise HTTPException(status_code=400, detail=f"Invalid status: {status_upper}")
-
     proposal.status = status_upper
     tenant = db.get(Tenant, proposal.tenant_id)
-    
+
     if status_upper == "APPROVED":
         proposal.approved_by = actor
         proposal.approved_at = datetime.now(timezone.utc)
+
+        # Check if an invoice was already generated for this proposal
+        existing_inv = db.scalar(select(Invoice).where(Invoice.proposal_id == proposal.id))
+        if not existing_inv and tenant:
+            count = db.scalar(select(func.count()).select_from(Invoice)) or 0
+            seq = count + 1
+            now_str = datetime.now().strftime("%Y%m")
+            invoice_number = f"INV-{tenant.code}-{now_str}-{seq:03d}"
+
+            now_date = datetime.now().date()
+            due_date = now_date + timedelta(days=30)
+            billing_period = now_date.strftime("%B %Y")
+
+            default_banking = {
+                "bank_name": "Capitec Business",
+                "account_name": "Moloi Mosea Investments (Pty) Ltd",
+                "account_number": "62899432101",
+                "branch_code": "470010",
+                "account_type": "Business Cheque Account",
+                "swift_code": "CBLAZAJJ",
+                "payment_reference": invoice_number,
+            }
+
+            auto_invoice = Invoice(
+                id=uuid4(),
+                tenant_id=proposal.tenant_id,
+                proposal_id=proposal.id,
+                invoice_number=invoice_number,
+                billing_period=billing_period,
+                status="ISSUED",
+                issue_date=now_date,
+                due_date=due_date,
+                subtotal=proposal.subtotal,
+                vat_rate=proposal.vat_rate,
+                vat_amount=proposal.vat_amount,
+                total_amount=proposal.total_amount,
+                paid_amount=Decimal("0.00"),
+                line_items=proposal.line_items or [],
+                banking_details=default_banking,
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(auto_invoice)
+            logger.info(f"🧾 [AUTO-INVOICE GENERATED] Invoice {invoice_number} created automatically for approved Proposal {proposal.proposal_number}")
+
     elif status_upper == "REJECTED":
         proposal.approved_by = f"Rejected by {actor}"
         proposal.approved_at = datetime.now(timezone.utc)
