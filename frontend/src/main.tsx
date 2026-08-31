@@ -62,6 +62,9 @@ interface Account360 {
     id_number: string | null;
     mobile: string | null;
     email: string | null;
+    popia_consent_status?: string | null;
+    popia_dnc_status?: boolean;
+    data_retention_expiry?: string | null;
   } | null;
   property: {
     property_reference: string | null;
@@ -2685,6 +2688,21 @@ function App() {
                   <label>Address</label>
                   <span className="info-value">{account360.property?.address ?? "No linked property"}</span>
                 </div>
+              </div>
+
+              {/* POPIA Compliance & Consent Banner */}
+              <div style={{ marginTop: "12px", padding: "8px 12px", background: account360.customer?.popia_dnc_status ? "rgba(239, 68, 68, 0.15)" : "rgba(34, 197, 94, 0.08)", border: `1px solid ${account360.customer?.popia_dnc_status ? "rgba(239, 68, 68, 0.35)" : "rgba(34, 197, 94, 0.25)"}`, borderRadius: "6px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px" }}>
+                <div>
+                  <span style={{ fontWeight: 600, color: account360.customer?.popia_dnc_status ? "#fca5a5" : "#86efac" }}>
+                    🛡️ POPIA Status: {account360.customer?.popia_consent_status || "STATUTORY_COLLECTION"}
+                  </span>
+                  {account360.customer?.popia_dnc_status && (
+                    <span style={{ marginLeft: "8px", padding: "2px 6px", borderRadius: "4px", background: "#ef4444", color: "#ffffff", fontWeight: 700, fontSize: "10.5px" }}>
+                      ⛔ DO NOT CONTACT (DNC)
+                    </span>
+                  )}
+                </div>
+                <span style={{ color: "#94a3b8", fontSize: "11px" }}>Lawful Basis: MFMA Sec 96 (Statutory Duty)</span>
               </div>
             </div>
 

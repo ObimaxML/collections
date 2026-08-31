@@ -30,6 +30,7 @@ from app.api.financial import (
     router as financial_router,
 )
 from app.api.imports import router as imports_router
+from app.api.popia import router as popia_router
 from app.core.config import settings
 from app.db.session import Base
 
@@ -157,6 +158,10 @@ app.include_router(
 )
 app.include_router(
     imports_router,
+    prefix="/api",
+)
+app.include_router(
+    popia_router,
     prefix="/api",
 )
 app.include_router(

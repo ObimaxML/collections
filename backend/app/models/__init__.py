@@ -204,6 +204,23 @@ class Customer(Base):
         String(255),
         nullable=True,
     )
+    popia_consent_status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="CONSENTED",
+    )  # CONSENTED, EXPLICIT_OPT_OUT, STATUTORY_COLLECTION, REJECTED
+    popia_consent_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    popia_dnc_status: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=False,
+    )  # Do-Not-Contact / Stop Communications
+    data_retention_expiry: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
     metadata_: Mapped[dict | None] = mapped_column(
         "metadata",
         JSON,
@@ -221,6 +238,69 @@ class Customer(Base):
         "MunicipalAccount",
         back_populates="customer",
     )
+    popia_requests = relationship(
+        "PopiaRequest",
+        back_populates="customer",
+    )
+
+
+class PopiaRequest(Base):
+    __tablename__ = "popia_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("customers.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    request_type: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+    )  # ACCESS_SUBJECT_DATA, RECTIFICATION, DELETION_OBJECTION, CONSENT_WITHDRAWAL, RESTRICTION
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="PENDING",
+    )  # PENDING, APPROVED, REJECTED, COMPLETED
+    requester_name: Mapped[str] = mapped_column(
+        String(150),
+        nullable=False,
+    )
+    requester_email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    justification_notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    actioned_by: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+    actioned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+    tenant = relationship("Tenant")
+    customer = relationship("Customer", back_populates="popia_requests")
 
 
 class Property(Base):
@@ -457,6 +537,12 @@ class CollectionActivity(Base):
     next_action: Mapped[str | None] = mapped_column(
         String(150),
         nullable=True,
+    )
+
+    popia_lawful_basis: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        default="MFMA_STATUTORY_REVENUE_RECOVERY",
     )
 
     next_action_date: Mapped[date | None] = mapped_column(

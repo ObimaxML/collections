@@ -49,6 +49,18 @@ CollectionsOS is architected to support two distinct commercial and operating de
    - Municipal collectors, team leads, and admins use the workbench, work queues, PTP tracking, and column ingestion engine directly.
    - **Commercial Structure**: Fixed monthly subscription licensing fee based on tier (`STARTER`, `PROFESSIONAL`, `ENTERPRISE`).
 
+### 🛡️ South African POPIA Compliance Framework (Protection of Personal Information Act)
+
+CollectionsOS adheres to the 8 Conditions for Lawful Processing under the South African **Protection of Personal Information Act (POPIA No. 4 of 2013)**:
+
+1. **Lawful Basis for Processing (Sec 11)**: Processing is justified under **Section 96 of the Municipal Finance Management Act (MFMA)** and municipal credit control bylaws as a statutory duty for revenue collection.
+2. **Data Minimisation & Purpose Specification (Sec 13)**: Only data necessary for debt recovery (Identity number, contact details, property stand reference, arrears ledger) is ingested.
+3. **Data Subject Rights & DNC Flagging (Sec 23 & 24)**:
+   - Built-in tracking for `popia_consent_status` (`CONSENTED`, `STATUTORY_COLLECTION`, `EXPLICIT_OPT_OUT`, `REJECTED`).
+   - `popia_dnc_status`: Instant **Do-Not-Contact (DNC)** enforcement across automated contact engines.
+   - Dedicated `popia_requests` ledger for managing data access, rectification, and objection requests.
+4. **Accountability & Immutable Audit Trail (Sec 19)**: Every contact attempt, consent alteration, and data access is timestamped and written to immutable `audit_events`.
+
 ---
 
 ## 🔄 Step-by-Step System Workflows & Processes
