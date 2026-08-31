@@ -1400,42 +1400,47 @@ function App() {
         </div>
       </header>
 
-      {/* In-App Logout Confirmation Banner */}
+      {/* In-App Logout Confirmation Banner (Fixed across the entire screen) */}
       {showLogoutBanner && (
         <div style={{
-          position: "sticky",
+          position: "fixed",
           top: "0",
-          zIndex: 100,
-          background: "linear-gradient(135deg, rgba(225, 29, 72, 0.95), rgba(159, 18, 57, 0.98))",
+          left: "0",
+          right: "0",
+          width: "100%",
+          zIndex: 9999,
+          background: "linear-gradient(135deg, #e11d48, #be123c)",
           color: "#ffffff",
-          padding: "12px 18px",
+          padding: "14px 24px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          boxShadow: "0 6px 20px rgba(0, 0, 0, 0.4)",
-          backdropFilter: "blur(12px)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
-          animation: "fadeIn 0.2s ease-out",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.2)",
+          backdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.25)",
+          animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
           flexWrap: "wrap",
-          gap: "10px"
+          gap: "12px",
+          boxSizing: "border-box",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "13.5px", fontWeight: 600 }}>
-            <span style={{ fontSize: "18px" }}>⚠️</span>
-            <span>Are you sure you want to sign out of <strong>Khokhisa</strong>?</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "14px", fontWeight: 700 }}>
+            <span style={{ fontSize: "20px" }}>⚠️</span>
+            <span>Are you sure you want to sign out and end your active session in <strong>Khokhisa</strong>?</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginLeft: "auto" }}>
             <button
               type="button"
               onClick={() => setShowLogoutBanner(false)}
               style={{
-                background: "rgba(255, 255, 255, 0.15)",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
+                background: "rgba(255, 255, 255, 0.18)",
+                border: "1px solid rgba(255, 255, 255, 0.35)",
                 color: "#ffffff",
-                padding: "6px 14px",
+                padding: "7px 16px",
                 borderRadius: "6px",
-                fontSize: "12.5px",
+                fontSize: "13px",
                 fontWeight: 600,
                 cursor: "pointer",
+                transition: "all 0.2s ease",
               }}
             >
               Cancel
@@ -1447,15 +1452,16 @@ function App() {
                 background: "#ffffff",
                 border: "none",
                 color: "#be123c",
-                padding: "6px 14px",
+                padding: "7px 18px",
                 borderRadius: "6px",
-                fontSize: "12.5px",
-                fontWeight: 700,
+                fontSize: "13px",
+                fontWeight: 800,
                 cursor: "pointer",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+                transition: "all 0.2s ease",
               }}
             >
-              Sign Out
+              🚪 Sign Out Now
             </button>
           </div>
         </div>
