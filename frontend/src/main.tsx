@@ -1417,7 +1417,7 @@ function App() {
                       <th>Account</th>
                       <th>Debtor Name</th>
                       <th>Arrears</th>
-                      <th>DPD</th>
+                      <th>DAYS PAST DUE</th>
                       <th>Status</th>
                       <th>Action</th>
                     </tr>
@@ -1429,8 +1429,8 @@ function App() {
                         <td><strong>{item.account_number}</strong></td>
                         <td><span style={{ fontWeight: 600, color: "#f8fafc" }}>{item.customer_name ?? "—"}</span></td>
                         <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
-                        <td>{item.days_in_arrears} days</td>
-                        <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
+                        <td><strong>{item.days_in_arrears}</strong></td>
+                        <td><span className={`status-pill ${getStatusPillClass(item.case_status)}`}>{formatCaseStatus(item.case_status)}</span></td>
                         <td>
                           <button className="table-action-btn" onClick={() => openAccountWorkbench(item.account_id)}>
                             Open 360°
@@ -1454,7 +1454,7 @@ function App() {
                           <div className="mobile-card-debtor">{item.customer_name || "Debtor Record"}</div>
                         </div>
                       </div>
-                      <span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span>
+                      <span className={`status-pill ${getStatusPillClass(item.case_status)}`}>{formatCaseStatus(item.case_status)}</span>
                     </div>
 
                     <div className="mobile-card-body">
@@ -1463,8 +1463,8 @@ function App() {
                         <span className="arrears-val">{money(item.arrears)}</span>
                       </div>
                       <div className="mobile-stat">
-                        <label>DPD (Aging)</label>
-                        <span>{item.days_in_arrears} Days</span>
+                        <label>DAYS PAST DUE</label>
+                        <span>{item.days_in_arrears}</span>
                       </div>
                       <div className="mobile-stat" style={{ gridColumn: "span 2" }}>
                         <label>Strategy / Next Action</label>
@@ -1530,8 +1530,8 @@ function App() {
                     <option value="ALL">All Case Statuses</option>
                     <option value="NEW">NEW</option>
                     <option value="ENGAGED">ENGAGED</option>
-                    <option value="PROMISE_MADE">PROMISE_MADE</option>
-                    <option value="ARRANGEMENT_ACTIVE">ARRANGEMENT_ACTIVE</option>
+                    <option value="PROMISE_MADE">PROMISE TO PAY</option>
+                    <option value="ARRANGEMENT_ACTIVE">ARRANGEMENT ACTIVE</option>
                     <option value="ESCALATED">ESCALATED</option>
                   </select>
 
@@ -1577,7 +1577,7 @@ function App() {
                           <th>Account</th>
                           <th>Debtor Name</th>
                           <th>Arrears</th>
-                          <th>DPD</th>
+                          <th>DAYS PAST DUE</th>
                           <th>Strategy</th>
                           <th>Status</th>
                           <th>Action</th>
@@ -1594,9 +1594,9 @@ function App() {
                               </div>
                             </td>
                             <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
-                            <td>{item.days_in_arrears} DPD</td>
+                            <td><strong>{item.days_in_arrears}</strong></td>
                             <td><span style={{ fontSize: "12px", color: "#cbd5e1" }}>{item.strategy_code ?? "STANDARD"}</span></td>
-                            <td><span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span></td>
+                            <td><span className={`status-pill ${getStatusPillClass(item.case_status)}`}>{formatCaseStatus(item.case_status)}</span></td>
                             <td>
                               {currentUser?.role === "ADMIN" || currentUser?.role === "AUDITOR" ? (
                                 <button className="btn btn-secondary btn-sm" onClick={() => openAccountWorkbench(item.account_id)}>
@@ -1628,7 +1628,7 @@ function App() {
                               </div>
                             </div>
                           </div>
-                          <span className={`status-pill status-${item.case_status.toLowerCase()}`}>{item.case_status}</span>
+                          <span className={`status-pill ${getStatusPillClass(item.case_status)}`}>{formatCaseStatus(item.case_status)}</span>
                         </div>
 
                         <div className="mobile-card-body">
@@ -1641,8 +1641,8 @@ function App() {
                             <span className="arrears-val">{money(item.arrears)}</span>
                           </div>
                           <div className="mobile-stat">
-                            <label>Aging (DPD)</label>
-                            <span>{item.days_in_arrears} Days in Arrears</span>
+                            <label>DAYS PAST DUE</label>
+                            <span>{item.days_in_arrears}</span>
                           </div>
                           <div className="mobile-stat">
                             <label>Account Strategy</label>
@@ -1761,7 +1761,7 @@ function App() {
                           <th>Status</th>
                           <th>Balance</th>
                           <th>Arrears</th>
-                          <th>DPD</th>
+                          <th>DAYS PAST DUE</th>
                           <th>Last Payment</th>
                           <th>Action</th>
                         </tr>
@@ -1770,10 +1770,10 @@ function App() {
                         {filteredAccounts.map(acc => (
                           <tr key={acc.id}>
                             <td><strong>{acc.account_number}</strong></td>
-                            <td><span className="status-pill status-new">{acc.account_status}</span></td>
+                            <td><span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span></td>
                             <td>{money(acc.balance)}</td>
                             <td style={{ color: "#f87171", fontWeight: 600 }}>{money(acc.arrears)}</td>
-                            <td>{acc.days_in_arrears} days</td>
+                            <td><strong>{acc.days_in_arrears}</strong></td>
                             <td>{acc.last_payment_date ? `${acc.last_payment_date} (${money(acc.last_payment_amount)})` : "None"}</td>
                             <td>
                               <button className="table-action-btn" onClick={() => openAccountWorkbench(acc.id)}>
@@ -1793,9 +1793,9 @@ function App() {
                         <div className="mobile-card-header">
                           <div>
                             <div className="mobile-card-acc">{acc.account_number}</div>
-                            <div className="mobile-card-debtor">Status: {acc.account_status}</div>
+                            <div className="mobile-card-debtor">Status: {formatCaseStatus(acc.account_status)}</div>
                           </div>
-                          <span className="status-pill status-new">{acc.account_status}</span>
+                          <span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span>
                         </div>
 
                         <div className="mobile-card-body">
@@ -1808,8 +1808,8 @@ function App() {
                             <span className="arrears-val">{money(acc.arrears)}</span>
                           </div>
                           <div className="mobile-stat">
-                            <label>Aging</label>
-                            <span>{acc.days_in_arrears} Days</span>
+                            <label>DAYS PAST DUE</label>
+                            <span>{acc.days_in_arrears}</span>
                           </div>
                           <div className="mobile-stat">
                             <label>Last Payment</label>
@@ -3723,8 +3723,8 @@ function App() {
               <div className="info-grid">
                 <div className="info-item"><label>Total Balance</label><span className="info-value">{money(account360.balance)}</span></div>
                 <div className="info-item"><label>Overdue Arrears</label><span className="info-value" style={{ color: "#f87171", fontWeight: 700 }}>{money(account360.arrears)}</span></div>
-                <div className="info-item"><label>Days in Arrears</label><span className="info-value">{account360.days_in_arrears} Days</span></div>
-                <div className="info-item"><label>Case Status</label><span className="info-value"><span className="status-pill status-engaged">{account360.active_case?.status ?? "NO CASE"}</span></span></div>
+                <div className="info-item"><label>Days in Arrears</label><span className="info-value">{account360.days_in_arrears}</span></div>
+                <div className="info-item"><label>Case Status</label><span className="info-value"><span className={`status-pill ${getStatusPillClass(account360.active_case?.status)}`}>{formatCaseStatus(account360.active_case?.status ?? "NO CASE")}</span></span></div>
               </div>
             </div>
 
@@ -4441,6 +4441,27 @@ function formatPhone(val: any) {
     return digits;
   }
   return str;
+}
+
+function formatCaseStatus(st: any) {
+  if (!st) return "—";
+  const str = String(st).trim();
+  if (str === "PROMISE_TO_PAY" || str === "PROMISE_MADE") return "PROMISE TO PAY";
+  if (str === "ARRANGEMENT_ACTIVE") return "ARRANGEMENT ACTIVE";
+  if (str === "CONTACT_ATTEMPTED") return "CONTACT ATTEMPTED";
+  return str.replace(/_/g, " ");
+}
+
+function getStatusPillClass(st: any) {
+  if (!st) return "status-new";
+  const lower = String(st).toLowerCase();
+  if (lower.includes("promise")) return "status-promise";
+  if (lower.includes("paying") || lower === "paid" || lower === "active") return "status-paying";
+  if (lower.includes("broken") || lower === "default") return "status-broken";
+  if (lower.includes("escalat") || lower === "delinquent") return "status-escalated";
+  if (lower.includes("arrangement")) return "status-arrangement";
+  if (lower.includes("engaged")) return "status-engaged";
+  return "status-new";
 }
 
 createRoot(document.getElementById("root")!).render(<App />);
