@@ -131,12 +131,12 @@ function App() {
   const [invLineItems, setInvLineItems] = useState<Array<{ description: string; quantity: number; unit_price: number }>>([
     { description: "Khokhisa Municipal SaaS Platform License Fee (Monthly)", quantity: 1, unit_price: 20000 },
   ]);
-  const [invBankingBank, setInvBankingBank] = useState("First National Bank (FNB)");
-  const [invBankingAccName, setInvBankingAccName] = useState("Molmos (Pty) Ltd - Khokhisa Collections");
+  const [invBankingBank, setInvBankingBank] = useState("Capitec Business");
+  const [invBankingAccName, setInvBankingAccName] = useState("Moloi Mosea Investments (Pty) Ltd");
   const [invBankingAccNum, setInvBankingAccNum] = useState("62899432101");
-  const [invBankingBranch, setInvBankingBranch] = useState("250655");
+  const [invBankingBranch, setInvBankingBranch] = useState("470010");
   const [invBankingType, setInvBankingType] = useState("Business Cheque Account");
-  const [invBankingSwift, setInvBankingSwift] = useState("FIRNZAJJ");
+  const [invBankingSwift, setInvBankingSwift] = useState("CBLAZAJJ");
 
   // New User Creation form for SuperAdmin / Admin
   const [newFullName, setNewFullName] = useState("");
@@ -4814,253 +4814,241 @@ function App() {
       {/* PDF / OFFICIAL DOCUMENT VIEW MODAL & PRINT ENGINE */}
       {viewingPdfDoc && (
         <div className="modal-backdrop" onClick={() => setViewingPdfDoc(null)}>
-          <div id="official-pdf-doc-content" className="modal-content glass-panel" style={{ maxWidth: "800px", width: "95%", maxHeight: "92vh", overflowY: "auto", background: "white", color: "#0f172a", borderRadius: "12px", padding: "36px" }} onClick={e => e.stopPropagation()}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "800px", width: "95%", maxHeight: "92vh", overflowY: "auto", background: "white", color: "#0f172a", borderRadius: "12px", padding: "36px" }} onClick={e => e.stopPropagation()}>
             
-            {/* Header & Print Action */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "24px" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "8px" }}>
-                  {/* Stylish Modern Fintech Emblem (Apple / Mastercard inspired minimalism) */}
-                  <div style={{
-                    width: "48px",
-                    height: "48px",
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "48px", height: "48px" }}>
-                      {/* Left Intersecting Gradient Sphere (Emerald/Teal) */}
-                      <circle cx="25" cy="32" r="19" fill="url(#leftSphereGrad)" fillOpacity="0.95"/>
-                      {/* Right Intersecting Gradient Sphere (Cobalt/Indigo) */}
-                      <circle cx="39" cy="32" r="19" fill="url(#rightSphereGrad)" fillOpacity="0.88" style={{ mixBlendMode: "multiply" }}/>
-                      
-                      {/* Central Geometric Overlap Core / Diamond Lens */}
-                      <path d="M32 17 C36 24, 36 40, 32 47 C28 40, 28 24, 32 17 Z" fill="url(#centerCoreGrad)" fillOpacity="0.92"/>
-                      
-                      {/* Crisp Minimalist Platinum Accent Ring */}
-                      <circle cx="32" cy="32" r="27" stroke="url(#ringGrad)" strokeWidth="1.8" strokeDasharray="3 2" opacity="0.6"/>
-                      
-                      {/* Modern Sculpted Currency Glyph */}
-                      <text x="32" y="38.5" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="900" fontFamily="Outfit, -apple-system, sans-serif" style={{ filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.6))" }}>
-                        K
-                      </text>
+            {/* Pure Document Area Captured for PDF / Print (No buttons inside) */}
+            <div id="official-pdf-printable-area">
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "20px", marginBottom: "24px" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "8px" }}>
+                    {/* Stylish Modern Fintech Emblem */}
+                    <div style={{
+                      width: "48px",
+                      height: "48px",
+                      position: "relative",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}>
+                      <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "48px", height: "48px" }}>
+                        <circle cx="25" cy="32" r="19" fill="url(#leftSphereGrad)" fillOpacity="0.95"/>
+                        <circle cx="39" cy="32" r="19" fill="url(#rightSphereGrad)" fillOpacity="0.88" style={{ mixBlendMode: "multiply" }}/>
+                        <path d="M32 17 C36 24, 36 40, 32 47 C28 40, 28 24, 32 17 Z" fill="url(#centerCoreGrad)" fillOpacity="0.92"/>
+                        <circle cx="32" cy="32" r="27" stroke="url(#ringGrad)" strokeWidth="1.8" strokeDasharray="3 2" opacity="0.6"/>
+                        <text x="32" y="38.5" textAnchor="middle" fill="#ffffff" fontSize="19" fontWeight="900" fontFamily="Outfit, -apple-system, sans-serif" style={{ filter: "drop-shadow(0 2px 4px rgba(15,23,42,0.6))" }}>
+                          K
+                        </text>
+                        <defs>
+                          <linearGradient id="leftSphereGrad" x1="6" y1="13" x2="44" y2="51" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#059669"/>
+                            <stop offset="1" stopColor="#0284c7"/>
+                          </linearGradient>
+                          <linearGradient id="rightSphereGrad" x1="20" y1="13" x2="58" y2="51" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#3b82f6"/>
+                            <stop offset="1" stopColor="#6366f1"/>
+                          </linearGradient>
+                          <linearGradient id="centerCoreGrad" x1="28" y1="17" x2="36" y2="47" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#10b981"/>
+                            <stop offset="0.5" stopColor="#38bdf8"/>
+                            <stop offset="1" stopColor="#4f46e5"/>
+                          </linearGradient>
+                          <linearGradient id="ringGrad" x1="5" y1="5" x2="59" y2="59" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#10b981"/>
+                            <stop offset="0.5" stopColor="#38bdf8"/>
+                            <stop offset="1" stopColor="#818cf8"/>
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </div>
 
-                      {/* Gradients */}
-                      <defs>
-                        <linearGradient id="leftSphereGrad" x1="6" y1="13" x2="44" y2="51" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#059669"/>
-                          <stop offset="1" stopColor="#0284c7"/>
-                        </linearGradient>
-                        <linearGradient id="rightSphereGrad" x1="20" y1="13" x2="58" y2="51" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#3b82f6"/>
-                          <stop offset="1" stopColor="#6366f1"/>
-                        </linearGradient>
-                        <linearGradient id="centerCoreGrad" x1="28" y1="17" x2="36" y2="47" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#10b981"/>
-                          <stop offset="0.5" stopColor="#38bdf8"/>
-                          <stop offset="1" stopColor="#4f46e5"/>
-                        </linearGradient>
-                        <linearGradient id="ringGrad" x1="5" y1="5" x2="59" y2="59" gradientUnits="userSpaceOnUse">
-                          <stop stopColor="#10b981"/>
-                          <stop offset="0.5" stopColor="#38bdf8"/>
-                          <stop offset="1" stopColor="#818cf8"/>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-
-                  <div>
-                    <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                    <div>
                       <h2 style={{ margin: 0, fontSize: "23px", fontWeight: 900, color: "#0f172a", fontFamily: "Outfit, -apple-system, sans-serif", letterSpacing: "-0.5px" }}>
                         KHOKHISA
                       </h2>
                     </div>
-                    <div style={{ fontSize: "12px", color: "#0284c7", fontWeight: 700, letterSpacing: "0.4px" }}>
-                      Powered by Molmos
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#64748b", lineHeight: "1.45" }}>
+                    Registration: 2014/032353/07 | VAT No: 4890284719<br />
+                    Sandton City Financial Tower, Johannesburg, Gauteng, 2196<br />
+                    Official Remittance Invoicing: billing@khokhisa.co.za | Tel: +27 (0)11 555 0199
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  <div style={{
+                    display: "inline-block",
+                    padding: "4px 12px",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    background: viewingPdfDoc.type === "INVOICE" ? "#eff6ff" : "#f5f3ff",
+                    color: viewingPdfDoc.type === "INVOICE" ? "#2563eb" : "#7c3aed",
+                    border: `1px solid ${viewingPdfDoc.type === "INVOICE" ? "#bfdbfe" : "#ddd6fe"}`,
+                    marginBottom: "8px",
+                  }}>
+                    {viewingPdfDoc.type === "INVOICE" ? "TAX INVOICE" : "COMMERCIAL PROPOSAL"}
+                  </div>
+                  <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", fontFamily: "monospace" }}>
+                    {viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                    Date: {viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.issue_date : viewingPdfDoc.data.created_at?.split("T")[0]}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bill To & Municipal Info */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "28px", padding: "16px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div>
+                  <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
+                    {viewingPdfDoc.type === "INVOICE" ? "Billed To (Municipality):" : "Prepared For (Municipality):"}
+                  </div>
+                  <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
+                    {viewingPdfDoc.data.tenant_name || "City Municipality"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
+                    Municipal Code: <strong>{viewingPdfDoc.data.tenant_code || "JHB"}</strong><br />
+                    Attention: Chief Financial Officer / Revenue Unit<br />
+                    Republic of South Africa
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
+                    Contract & Terms:
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.5" }}>
+                    {viewingPdfDoc.type === "INVOICE" ? (
+                      <>
+                        Billing Period: <strong>{viewingPdfDoc.data.billing_period}</strong><br />
+                        Payment Due Date: <strong style={{ color: "#dc2626" }}>{viewingPdfDoc.data.due_date}</strong><br />
+                        Status: <strong>{viewingPdfDoc.data.status}</strong>
+                      </>
+                    ) : (
+                      <>
+                        Engagement: <strong>{viewingPdfDoc.data.engagement_model}</strong><br />
+                        Tier: <strong>{viewingPdfDoc.data.subscription_tier}</strong><br />
+                        Valid Until: <strong>{viewingPdfDoc.data.valid_until || "30 Days"}</strong>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Line Items Table */}
+              <div style={{ marginBottom: "28px" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
+                  <thead>
+                    <tr style={{ background: "#0f172a", color: "white" }}>
+                      <th style={{ padding: "10px 14px", borderRadius: "6px 0 0 0" }}>#</th>
+                      <th style={{ padding: "10px 14px" }}>Description</th>
+                      <th style={{ padding: "10px 14px", textAlign: "center" }}>Qty</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right" }}>Unit Price</th>
+                      <th style={{ padding: "10px 14px", textAlign: "right", borderRadius: "0 6px 0 0" }}>Total Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(viewingPdfDoc.data.line_items || []).map((it: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
+                        <td style={{ padding: "12px 14px", color: "#64748b" }}>{i + 1}</td>
+                        <td style={{ padding: "12px 14px", color: "#0f172a", fontWeight: 600 }}>{it.description}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "center", color: "#475569" }}>{it.quantity}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#475569" }}>{money(it.unit_price)}</td>
+                        <td style={{ padding: "12px 14px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>
+                          {money(it.total || (it.quantity * it.unit_price))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Total Calculation Breakdown */}
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
+                  <div style={{ width: "280px", fontSize: "13px", lineHeight: "1.6" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                      <span>Subtotal:</span>
+                      <span>{money(viewingPdfDoc.data.subtotal || viewingPdfDoc.data.total_amount)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
+                      <span>VAT (15%):</span>
+                      <span>{money(viewingPdfDoc.data.vat_amount || 0)}</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 800, color: "#0f172a", borderTop: "2px solid #0f172a", paddingTop: "6px", marginTop: "6px" }}>
+                      <span>Total Due (ZAR):</span>
+                      <span>{money(viewingPdfDoc.data.total_amount)}</span>
                     </div>
                   </div>
                 </div>
-                <div style={{ fontSize: "11px", color: "#64748b", lineHeight: "1.45" }}>
-                  Registration: 2026/894210/07 | VAT No: 4890284719<br />
-                  Sandton City Financial Tower, Johannesburg, Gauteng, 2196<br />
-                  Official Remittance Invoicing: billing@khokhisa.co.za | Tel: +27 (0)11 555 0199
-                </div>
               </div>
 
-              <div style={{ textAlign: "right" }}>
-                <div style={{
-                  display: "inline-block",
-                  padding: "4px 12px",
-                  borderRadius: "6px",
-                  fontSize: "13px",
-                  fontWeight: 800,
-                  textTransform: "uppercase",
-                  background: viewingPdfDoc.type === "INVOICE" ? "#eff6ff" : "#f5f3ff",
-                  color: viewingPdfDoc.type === "INVOICE" ? "#2563eb" : "#7c3aed",
-                  border: `1px solid ${viewingPdfDoc.type === "INVOICE" ? "#bfdbfe" : "#ddd6fe"}`,
-                  marginBottom: "8px",
-                }}>
-                  {viewingPdfDoc.type === "INVOICE" ? "TAX INVOICE" : "COMMERCIAL PROPOSAL"}
+              {/* Banking Details on PDF */}
+              <div style={{ padding: "16px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", marginBottom: "20px" }}>
+                <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  🏦 Official Remittance Banking Details (EFT / Wire Settlement)
                 </div>
-                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0f172a", fontFamily: "monospace" }}>
-                  {viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number}
-                </div>
-                <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-                  Date: {viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.issue_date : viewingPdfDoc.data.created_at?.split("T")[0]}
-                </div>
-              </div>
-            </div>
-
-            {/* Bill To & Municipal Info */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "28px", padding: "16px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-              <div>
-                <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
-                  {viewingPdfDoc.type === "INVOICE" ? "Billed To (Municipality):" : "Prepared For (Municipality):"}
-                </div>
-                <div style={{ fontSize: "16px", fontWeight: 700, color: "#0f172a" }}>
-                  {viewingPdfDoc.data.tenant_name || "City Municipality"}
-                </div>
-                <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
-                  Municipal Code: <strong>{viewingPdfDoc.data.tenant_code || "JHB"}</strong><br />
-                  Attention: Chief Financial Officer / Revenue Unit<br />
-                  Republic of South Africa
-                </div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: "11px", textTransform: "uppercase", fontWeight: 700, color: "#64748b", marginBottom: "4px" }}>
-                  Contract & Terms:
-                </div>
-                <div style={{ fontSize: "12px", color: "#475569", lineHeight: "1.5" }}>
-                  {viewingPdfDoc.type === "INVOICE" ? (
-                    <>
-                      Billing Period: <strong>{viewingPdfDoc.data.billing_period}</strong><br />
-                      Payment Due Date: <strong style={{ color: "#dc2626" }}>{viewingPdfDoc.data.due_date}</strong><br />
-                      Status: <strong>{viewingPdfDoc.data.status}</strong>
-                    </>
-                  ) : (
-                    <>
-                      Engagement: <strong>{viewingPdfDoc.data.engagement_model}</strong><br />
-                      Tier: <strong>{viewingPdfDoc.data.subscription_tier}</strong><br />
-                      Valid Until: <strong>{viewingPdfDoc.data.valid_until || "30 Days"}</strong>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Line Items Table */}
-            <div style={{ marginBottom: "28px" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
-                <thead>
-                  <tr style={{ background: "#0f172a", color: "white" }}>
-                    <th style={{ padding: "10px 14px", borderRadius: "6px 0 0 0" }}>#</th>
-                    <th style={{ padding: "10px 14px" }}>Description</th>
-                    <th style={{ padding: "10px 14px", textAlign: "center" }}>Qty</th>
-                    <th style={{ padding: "10px 14px", textAlign: "right" }}>Unit Price</th>
-                    <th style={{ padding: "10px 14px", textAlign: "right", borderRadius: "0 6px 0 0" }}>Total Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(viewingPdfDoc.data.line_items || []).map((it: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: "1px solid #e2e8f0" }}>
-                      <td style={{ padding: "12px 14px", color: "#64748b" }}>{i + 1}</td>
-                      <td style={{ padding: "12px 14px", color: "#0f172a", fontWeight: 600 }}>{it.description}</td>
-                      <td style={{ padding: "12px 14px", textAlign: "center", color: "#475569" }}>{it.quantity}</td>
-                      <td style={{ padding: "12px 14px", textAlign: "right", color: "#475569" }}>{money(it.unit_price)}</td>
-                      <td style={{ padding: "12px 14px", textAlign: "right", color: "#0f172a", fontWeight: 700 }}>
-                        {money(it.total || (it.quantity * it.unit_price))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {/* Total Calculation Breakdown */}
-              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "16px" }}>
-                <div style={{ width: "280px", fontSize: "13px", lineHeight: "1.6" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
-                    <span>Subtotal:</span>
-                    <span>{money(viewingPdfDoc.data.subtotal || viewingPdfDoc.data.total_amount)}</span>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px", color: "#1e293b" }}>
+                  <div>
+                    Bank: <strong>{viewingPdfDoc.data.banking_details?.bank_name || "Capitec Business"}</strong><br />
+                    Account Name: <strong>{viewingPdfDoc.data.banking_details?.account_name || "Moloi Mosea Investments (Pty) Ltd"}</strong><br />
+                    Account Number: <strong style={{ fontFamily: "monospace", fontSize: "13px" }}>{viewingPdfDoc.data.banking_details?.account_number || "62899432101"}</strong>
                   </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", color: "#475569" }}>
-                    <span>VAT (15%):</span>
-                    <span>{money(viewingPdfDoc.data.vat_amount || 0)}</span>
-                  </div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: 800, color: "#0f172a", borderTop: "2px solid #0f172a", paddingTop: "6px", marginTop: "6px" }}>
-                    <span>Total Due (ZAR):</span>
-                    <span>{money(viewingPdfDoc.data.total_amount)}</span>
+                  <div>
+                    Branch Code: <strong>{viewingPdfDoc.data.banking_details?.branch_code || "470010"}</strong><br />
+                    Account Type: <strong>{viewingPdfDoc.data.banking_details?.account_type || "Business Cheque"}</strong><br />
+                    Payment Ref: <strong style={{ color: "#2563eb", fontFamily: "monospace" }}>{viewingPdfDoc.data.invoice_number || viewingPdfDoc.data.proposal_number}</strong>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Banking Details on PDF */}
-            <div style={{ padding: "16px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", marginBottom: "28px" }}>
-              <div style={{ fontSize: "12px", fontWeight: 800, color: "#166534", textTransform: "uppercase", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
-                🏦 Official Remittance Banking Details (EFT / Wire Settlement)
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "12px", color: "#1e293b" }}>
-                <div>
-                  Bank: <strong>{viewingPdfDoc.data.banking_details?.bank_name || "First National Bank (FNB)"}</strong><br />
-                  Account Name: <strong>{viewingPdfDoc.data.banking_details?.account_name || "Molmos (Pty) Ltd"}</strong><br />
-                  Account Number: <strong style={{ fontFamily: "monospace", fontSize: "13px" }}>{viewingPdfDoc.data.banking_details?.account_number || "62899432101"}</strong>
-                </div>
-                <div>
-                  Branch Code: <strong>{viewingPdfDoc.data.banking_details?.branch_code || "250655"}</strong><br />
-                  Account Type: <strong>{viewingPdfDoc.data.banking_details?.account_type || "Business Cheque"}</strong><br />
-                  Payment Ref: <strong style={{ color: "#2563eb", fontFamily: "monospace" }}>{viewingPdfDoc.data.invoice_number || viewingPdfDoc.data.proposal_number}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Print & Download & Close Actions */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #e2e8f0", paddingTop: "16px" }}>
-              <div style={{ fontSize: "11px", color: "#64748b" }}>
+              {/* Footer Note */}
+              <div style={{ fontSize: "11px", color: "#64748b", textAlign: "center", borderTop: "1px solid #e2e8f0", paddingTop: "12px" }}>
                 Generated electronically by Khokhisa • Compliant with MFMA & South African Revenue Service (SARS) standards
               </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={async () => {
-                    const el = document.getElementById("official-pdf-doc-content");
-                    if (!el) return;
-                    const docNum = viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number;
-                    try {
-                      let html2pdfInstance = (window as any).html2pdf;
-                      if (!html2pdfInstance) {
-                        const mod = await import("html2pdf.js");
-                        html2pdfInstance = mod.default || mod;
-                      }
-                      const opt = {
-                        margin: 10,
-                        filename: `${viewingPdfDoc.type}_${docNum}.pdf`,
-                        image: { type: "jpeg", quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true },
-                        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
-                      };
-                      html2pdfInstance().set(opt).from(el).save();
-                    } catch (e) {
-                      window.print();
+            </div>
+
+            {/* Print & Download Action Controls (Outside the Printable Document Container) */}
+            <div className="pdf-actions-footer" style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderTop: "2px dashed #cbd5e1", paddingTop: "18px", marginTop: "18px", gap: "12px" }}>
+              <button
+                className="btn btn-primary"
+                onClick={async () => {
+                  const el = document.getElementById("official-pdf-printable-area");
+                  if (!el) return;
+                  const docNum = viewingPdfDoc.type === "INVOICE" ? viewingPdfDoc.data.invoice_number : viewingPdfDoc.data.proposal_number;
+                  try {
+                    let html2pdfInstance = (window as any).html2pdf;
+                    if (!html2pdfInstance) {
+                      const mod = await import("html2pdf.js");
+                      html2pdfInstance = mod.default || mod;
                     }
-                  }}
-                  style={{ background: "#0284c7", borderColor: "#0284c7", fontWeight: 600 }}
-                >
-                  📥 Download as PDF File
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => window.print()}
-                  style={{ background: "#0f172a", color: "white", borderColor: "#0f172a", fontWeight: 600 }}
-                >
-                  🖨️ Print Document
-                </button>
-                <button className="btn btn-secondary" onClick={() => setViewingPdfDoc(null)}>
-                  Close
-                </button>
-              </div>
+                    const opt = {
+                      margin: [10, 10, 10, 10],
+                      filename: `${viewingPdfDoc.type}_${docNum}.pdf`,
+                      image: { type: "jpeg", quality: 0.98 },
+                      html2canvas: { scale: 2, useCORS: true, logging: false },
+                      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const }
+                    };
+                    html2pdfInstance().set(opt).from(el).save();
+                  } catch (e) {
+                    window.print();
+                  }
+                }}
+                style={{ background: "#0284c7", borderColor: "#0284c7", fontWeight: 700, padding: "10px 18px" }}
+              >
+                📥 Download as PDF File
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => window.print()}
+                style={{ background: "#0f172a", color: "white", borderColor: "#0f172a", fontWeight: 600, padding: "10px 18px" }}
+              >
+                🖨️ Print Document
+              </button>
+              <button className="btn btn-secondary" onClick={() => setViewingPdfDoc(null)} style={{ padding: "10px 18px" }}>
+                Close
+              </button>
             </div>
 
           </div>

@@ -353,12 +353,12 @@ def create_invoice(
     total_amount = subtotal + vat_amount
 
     default_banking = {
-        "bank_name": "First National Bank (FNB)",
-        "account_name": "Molmos (Pty) Ltd - Khokhisa Collections",
+        "bank_name": "Capitec Business",
+        "account_name": "Moloi Mosea Investments (Pty) Ltd",
         "account_number": "62899432101",
-        "branch_code": "250655",
+        "branch_code": "470010",
         "account_type": "Business Cheque Account",
-        "swift_code": "FIRNZAJJ",
+        "swift_code": "CBLAZAJJ",
         "payment_reference": invoice_number,
     }
 
