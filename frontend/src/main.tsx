@@ -1743,7 +1743,7 @@ function App() {
                         <tr>
                           <th>Rank</th>
                           <th>Account</th>
-                          <th>Debtor Name</th>
+                          <th>Debtor Name & Mobile</th>
                           <th>Arrears</th>
                           <th>DAYS PAST DUE</th>
                           <th>Strategy</th>
@@ -1760,6 +1760,15 @@ function App() {
                               <div style={{ fontWeight: 600, color: "#f8fafc", fontSize: "13.5px" }}>
                                 {item.customer_name || "—"}
                               </div>
+                              {item.mobile ? (
+                                <div style={{ fontSize: "11.5px", color: "#38bdf8", marginTop: "2px", fontWeight: 600 }}>
+                                  📱 {formatPhone(item.mobile)}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: "11px", color: "#64748b", marginTop: "2px" }}>
+                                  No phone on record
+                                </div>
+                              )}
                             </td>
                             <td style={{ color: "#f87171", fontWeight: 600 }}>{money(item.arrears)}</td>
                             <td><strong>{item.days_in_arrears}</strong></td>

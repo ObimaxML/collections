@@ -1733,10 +1733,13 @@ def get_work_queue(
             )
         ).scalars().first()
 
+        has_mobile = bool(customer and customer.mobile and customer.mobile.strip())
+
         priority_score = calculate_priority_score(
             case=case,
             account=account,
             promise=promise,
+            has_mobile=has_mobile,
         )
 
         next_action = determine_next_action(
@@ -1799,11 +1802,12 @@ def get_work_queue(
         )
 
     # -----------------------------------------------------
-    # Highest priority first
+    # Prioritize: 1) High priority score, 2) Has mobile contact, 3) Highest arrears
     # -----------------------------------------------------
     queue.sort(
         key=lambda item: (
             -item.priority_score,
+            0 if (item.mobile and item.mobile.strip()) else 1,
             -float(item.arrears),
             -item.days_in_arrears,
         )

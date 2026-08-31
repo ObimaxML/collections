@@ -4,48 +4,53 @@ from sqlalchemy.orm import Session
 from app.models import CollectionCase, MunicipalAccount
 
 
-def calculate_priority(account: MunicipalAccount) -> int:
+def calculate_priority(account: MunicipalAccount, has_mobile: bool = False) -> int:
     """
     Calculate a collection priority score from 1-100.
 
     Higher score = higher collection priority.
+    Heavily weighs highest arrears value and presence of reachable mobile contact.
     """
 
     score = 0
 
-    # Arrears value
-    if account.arrears >= 100000:
-        score += 40
-    elif account.arrears >= 50000:
+    # Mobile Contact Boost (reachable debtor phone = immediate actionable collector priority)
+    if has_mobile:
         score += 30
+
+    # Arrears value (highest recovery yields)
+    if account.arrears >= 500000:
+        score += 45
+    elif account.arrears >= 100000:
+        score += 35
+    elif account.arrears >= 50000:
+        score += 25
     elif account.arrears >= 20000:
-        score += 20
+        score += 18
     elif account.arrears >= 5000:
         score += 10
     elif account.arrears > 0:
         score += 5
 
-    # Days in arrears
+    # Days in arrears (DPD aging)
     if account.days_in_arrears >= 180:
-        score += 30
-    elif account.days_in_arrears >= 90:
-        score += 20
-    elif account.days_in_arrears >= 60:
         score += 15
+    elif account.days_in_arrears >= 90:
+        score += 12
+    elif account.days_in_arrears >= 60:
+        score += 8
     elif account.days_in_arrears >= 30:
-        score += 10
-    elif account.days_in_arrears > 0:
         score += 5
+    elif account.days_in_arrears > 0:
+        score += 2
 
     # Account balance
     if account.balance >= 100000:
-        score += 20
-    elif account.balance >= 50000:
-        score += 15
-    elif account.balance >= 20000:
         score += 10
+    elif account.balance >= 50000:
+        score += 7
     elif account.balance > 0:
-        score += 5
+        score += 3
 
     return min(score, 100)
 
@@ -158,8 +163,8 @@ def refresh_case_priorities(
     return updated
 
 
-def calculate_priority_score(case: CollectionCase, account: MunicipalAccount, promise=None) -> int:
-    return calculate_priority(account)
+def calculate_priority_score(case: CollectionCase, account: MunicipalAccount, promise=None, has_mobile: bool = False) -> int:
+    return calculate_priority(account, has_mobile=has_mobile)
 
 
 def determine_next_action(case: CollectionCase, promise=None) -> str:
