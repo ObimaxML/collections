@@ -25,6 +25,8 @@ interface Summary {
   total_accounts: number;
   active_cases: number;
   broken_promises: number;
+  current_not_overdue?: number;
+  current_not_overdue_accounts?: number;
 }
 
 interface WorkItem {
@@ -269,6 +271,7 @@ function App() {
   const [accSearch, setAccSearch] = useState("");
   const [accMobileSearch, setAccMobileSearch] = useState("");
   const [accStatusFilter, setAccStatusFilter] = useState("ALL");
+  const [accOverdueFilter, setAccOverdueFilter] = useState<"ALL" | "OVERDUE" | "NOT_OVERDUE">("ALL");
   const [accMinArrears, setAccMinArrears] = useState("");
 
   // Load tenants dynamically on start
@@ -1526,8 +1529,16 @@ function App() {
         </header>
 
         {/* METRICS ROW */}
-        <section className="metrics-grid">
-          <div className="metric-card">
+        <section className="metrics-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))" }}>
+          <div
+            className="metric-card"
+            style={{ cursor: "pointer", transition: "all 0.2s" }}
+            onClick={() => {
+              setAccOverdueFilter("ALL");
+              setView("accounts");
+            }}
+            title="Click to view all municipal debt book accounts"
+          >
             <div className="metric-header">
               <span className="metric-title">Total Debt Book</span>
               <span className="metric-badge badge-blue">Portfolio</span>
@@ -1536,13 +1547,58 @@ function App() {
             <div className="metric-subtitle">{summary?.total_accounts ?? 0} active accounts</div>
           </div>
 
-          <div className="metric-card">
+          <div
+            className="metric-card"
+            style={{ cursor: "pointer", transition: "all 0.2s" }}
+            onClick={() => {
+              setAccOverdueFilter("OVERDUE");
+              setView("accounts");
+            }}
+            title="Click to view all overdue accounts in arrears"
+          >
             <div className="metric-header">
               <span className="metric-title">Total Arrears</span>
               <span className="metric-badge badge-amber">Overdue</span>
             </div>
-            <div className="metric-value">{money(summary?.total_arrears)}</div>
-            <div className="metric-subtitle">Collectable exposure</div>
+            <div className="metric-value" style={{ color: "#f87171" }}>{money(summary?.total_arrears)}</div>
+            <div className="metric-subtitle">Collectable overdue debt</div>
+          </div>
+
+          <div
+            className="metric-card"
+            style={{
+              cursor: "pointer",
+              transition: "all 0.2s",
+              border: "1px solid rgba(56, 189, 248, 0.4)",
+              background: "rgba(56, 189, 248, 0.06)",
+            }}
+            onClick={() => {
+              setAccOverdueFilter("NOT_OVERDUE");
+              setAccSearch("");
+              setAccMobileSearch("");
+              setAccStatusFilter("ALL");
+              setAccMinArrears("");
+              setView("accounts");
+            }}
+            title="Click to view all current accounts with no overdue arrears"
+          >
+            <div className="metric-header">
+              <span className="metric-title">Current (Not Overdue)</span>
+              <span className="metric-badge" style={{ background: "rgba(56, 189, 248, 0.2)", color: "#38bdf8" }}>✓ Up to Date</span>
+            </div>
+            <div className="metric-value" style={{ color: "#38bdf8" }}>
+              {(() => {
+                const currentNotOverdue = summary?.current_not_overdue !== undefined
+                  ? summary.current_not_overdue
+                  : Math.max(0, (summary?.debt_book || 0) - (summary?.total_arrears || 0));
+                return money(currentNotOverdue);
+              })()}
+            </div>
+            <div className="metric-subtitle">
+              {summary?.current_not_overdue_accounts !== undefined
+                ? `${summary.current_not_overdue_accounts} accounts in good standing`
+                : "Accounts with R0 overdue arrears (Click to view)"}
+            </div>
           </div>
 
           <div className="metric-card">
@@ -1554,7 +1610,12 @@ function App() {
             <div className="metric-subtitle">Recovery Rate: {summary?.recovery_rate ?? 0}%</div>
           </div>
 
-          <div className="metric-card">
+          <div
+            className="metric-card"
+            style={{ cursor: "pointer", transition: "all 0.2s" }}
+            onClick={() => setView("workqueue")}
+            title="Click to open full Collector Priority Queue"
+          >
             <div className="metric-header">
               <span className="metric-title">Active Cases</span>
               <span className="metric-badge badge-rose">{summary?.broken_promises ?? 0} Broken PTP</span>
@@ -1865,21 +1926,30 @@ function App() {
             const matchesStatus = accStatusFilter === "ALL" || acc.account_status === accStatusFilter;
             const matchesMinArrears = !accMinArrears || Number(acc.arrears) >= Number(accMinArrears);
 
-            return matchesSearch && matchesMobile && matchesStatus && matchesMinArrears;
+            const isOverdue = Number(acc.arrears) > 0;
+            const matchesOverdue = accOverdueFilter === "ALL" ||
+              (accOverdueFilter === "OVERDUE" && isOverdue) ||
+              (accOverdueFilter === "NOT_OVERDUE" && !isOverdue);
+
+            return matchesSearch && matchesMobile && matchesStatus && matchesMinArrears && matchesOverdue;
           });
 
           return (
             <div className="glass-panel">
               <div className="panel-header" style={{ flexWrap: "wrap", gap: "16px" }}>
                 <div className="panel-title">
-                  <h3>Municipal Debt Book ({filteredAccounts.length} / {accounts.length} Accounts)</h3>
+                  <h3>
+                    Municipal Debt Book ({filteredAccounts.length} / {accounts.length} Accounts)
+                    {accOverdueFilter === "NOT_OVERDUE" && <span style={{ color: "#38bdf8", fontSize: "14px", marginLeft: "10px", fontWeight: 600 }}>• Showing Current (Not Overdue) Accounts</span>}
+                    {accOverdueFilter === "OVERDUE" && <span style={{ color: "#f87171", fontSize: "14px", marginLeft: "10px", fontWeight: 600 }}>• Showing Overdue Arrears Accounts</span>}
+                  </h3>
                   <p>Complete debtor ledger with balance, arrears, and collection statuses</p>
                 </div>
               </div>
 
               {/* Debt Book Filter Toolbar */}
               <div className="filter-toolbar">
-                <div className="search-box" style={{ minWidth: "220px" }}>
+                <div className="search-box" style={{ minWidth: "200px" }}>
                   <input
                     type="text"
                     placeholder="🔍 Search account or name..."
@@ -1892,7 +1962,7 @@ function App() {
                   )}
                 </div>
 
-                <div className="search-box" style={{ minWidth: "180px" }}>
+                <div className="search-box" style={{ minWidth: "160px" }}>
                   <input
                     type="text"
                     placeholder="📱 Filter by Mobile..."
@@ -1906,6 +1976,17 @@ function App() {
                 </div>
 
                 <div className="filter-selects">
+                  <select
+                    value={accOverdueFilter}
+                    onChange={e => setAccOverdueFilter(e.target.value as any)}
+                    className="form-select filter-select"
+                    style={{ borderColor: accOverdueFilter === "NOT_OVERDUE" ? "#38bdf8" : undefined }}
+                  >
+                    <option value="ALL">All Ledger Types</option>
+                    <option value="OVERDUE">🚨 Overdue Arrears</option>
+                    <option value="NOT_OVERDUE">✅ Current (Not Overdue)</option>
+                  </select>
+
                   <select
                     value={accStatusFilter}
                     onChange={e => setAccStatusFilter(e.target.value)}
@@ -1924,16 +2005,17 @@ function App() {
                     value={accMinArrears}
                     onChange={e => setAccMinArrears(e.target.value)}
                     className="form-input filter-input"
-                    style={{ width: "130px" }}
+                    style={{ width: "120px" }}
                   />
 
-                  {(accSearch || accMobileSearch || accStatusFilter !== "ALL" || accMinArrears) && (
+                  {(accSearch || accMobileSearch || accStatusFilter !== "ALL" || accOverdueFilter !== "ALL" || accMinArrears) && (
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => {
                         setAccSearch("");
                         setAccMobileSearch("");
                         setAccStatusFilter("ALL");
+                        setAccOverdueFilter("ALL");
                         setAccMinArrears("");
                       }}
                     >

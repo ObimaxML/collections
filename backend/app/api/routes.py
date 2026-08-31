@@ -391,6 +391,24 @@ def dashboard_summary(
     broken_promises = promise_query.scalar() or 0
 
     # ---------------------------------------------------------
+    # Current / Not Overdue metrics (Arrears == 0 or Balance > Arrears)
+    # ---------------------------------------------------------
+    current_not_overdue_query = db.query(
+        func.coalesce(func.sum(MunicipalAccount.balance - MunicipalAccount.arrears), 0),
+        func.count(MunicipalAccount.id),
+    ).filter(
+        MunicipalAccount.arrears == 0
+    )
+    if tenant_id:
+        current_not_overdue_query = current_not_overdue_query.filter(
+            MunicipalAccount.tenant_id == tenant_id
+        )
+    
+    current_not_overdue_sum, current_not_overdue_accounts = (
+        current_not_overdue_query.first() or (0, 0)
+    )
+
+    # ---------------------------------------------------------
     # Return dashboard summary
     # ---------------------------------------------------------
 
@@ -403,6 +421,8 @@ def dashboard_summary(
         "total_accounts": total_accounts,
         "active_cases": active_cases,
         "broken_promises": broken_promises,
+        "current_not_overdue": float(current_not_overdue_sum),
+        "current_not_overdue_accounts": current_not_overdue_accounts,
     }
 
 
