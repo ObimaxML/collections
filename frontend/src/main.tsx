@@ -1932,46 +1932,66 @@ function App() {
                     </button>
                   </div>
 
-                  {/* Revenue Analytics Cards */}
-                  <div className="stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "12px" }}>
+                  {/* Revenue KPI Cards Row */}
+                  <div className="metrics-grid" style={{ marginBottom: "24px" }}>
                     
-                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(59, 130, 246, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(59, 130, 246, 0.3)" }}>
-                      <div className="stat-label" style={{ color: "#60a5fa" }}>💻 SaaS MRR (Monthly Recurring)</div>
-                      <div className="stat-value" style={{ color: "#f8fafc", fontSize: "24px" }}>
+                    <div className="metric-card">
+                      <div className="metric-header">
+                        <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          💻 SaaS MRR
+                        </span>
+                        <span className="metric-badge badge-blue">Monthly Recurring</span>
+                      </div>
+                      <div className="metric-value" style={{ color: "#38bdf8" }}>
                         R {monthlySaasMRR.toLocaleString()}
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
+                      <div className="metric-subtitle">
                         From <strong>{saasTenants.length}</strong> active SaaS municipal clients
                       </div>
                     </div>
 
-                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(99, 102, 241, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(99, 102, 241, 0.3)" }}>
-                      <div className="stat-label" style={{ color: "#a5b4fc" }}>🚀 SaaS Projected ARR</div>
-                      <div className="stat-value" style={{ color: "#a5b4fc", fontSize: "24px" }}>
+                    <div className="metric-card">
+                      <div className="metric-header">
+                        <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          🚀 SaaS ARR
+                        </span>
+                        <span className="metric-badge badge-indigo" style={{ background: "rgba(99, 102, 241, 0.15)", color: "#a5b4fc" }}>
+                          Annualized
+                        </span>
+                      </div>
+                      <div className="metric-value" style={{ color: "#818cf8" }}>
                         R {projectedSaasARR.toLocaleString()}
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
-                        Annualized contracted software licenses
-                      </div>
+                      <div className="metric-subtitle">Contracted subscription ARR</div>
                     </div>
 
-                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(16, 185, 129, 0.3)" }}>
-                      <div className="stat-label" style={{ color: "#34d399" }}>🛡️ Managed Agency ARR (Est.)</div>
-                      <div className="stat-value" style={{ color: "#34d399", fontSize: "24px" }}>
+                    <div className="metric-card">
+                      <div className="metric-header">
+                        <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          🛡️ Managed ARR (Est.)
+                        </span>
+                        <span className="metric-badge badge-green">Commission</span>
+                      </div>
+                      <div className="metric-value" style={{ color: "#34d399" }}>
                         R {Math.round(estManagedAnnualCommission).toLocaleString()}
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
-                        Based on ~{avgManagedCommission.toFixed(1)}% recovery commission on books
+                      <div className="metric-subtitle">
+                        ~{avgManagedCommission.toFixed(1)}% recovery commission on books
                       </div>
                     </div>
 
-                    <div className="stat-card" style={{ background: "linear-gradient(145deg, rgba(234, 179, 8, 0.12), rgba(15, 23, 42, 0.7))", borderColor: "rgba(234, 179, 8, 0.3)" }}>
-                      <div className="stat-label" style={{ color: "#facc15" }}>👑 Total Potential Annual Revenue</div>
-                      <div className="stat-value" style={{ color: "#fef08a", fontSize: "24px" }}>
+                    <div className="metric-card" style={{ borderColor: "rgba(234, 179, 8, 0.4)", background: "linear-gradient(145deg, rgba(234, 179, 8, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)" }}>
+                      <div className="metric-header">
+                        <span className="metric-title" style={{ color: "#facc15", display: "flex", alignItems: "center", gap: "6px" }}>
+                          👑 Total Potential ARR
+                        </span>
+                        <span className="metric-badge badge-amber">Combined ARR</span>
+                      </div>
+                      <div className="metric-value" style={{ color: "#fef08a" }}>
                         R {Math.round(totalProjectedAnnualRevenue).toLocaleString()}
                       </div>
-                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginTop: "4px" }}>
-                        Combined SaaS ARR + Managed Agency Fees
+                      <div className="metric-subtitle" style={{ color: "#fde047" }}>
+                        SaaS ARR + Managed Agency pipeline
                       </div>
                     </div>
 
