@@ -1237,11 +1237,13 @@ select option {
     gap: 8px;
   }
 
-  .top-actions .btn {
+  .top-actions .run-engine-btn {
+    width: 100% !important;
     flex: 1;
     justify-content: center;
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 700;
   }
 
   .metrics-grid {

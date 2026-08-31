@@ -1276,9 +1276,9 @@ function App() {
     <div className="app-container">
       {/* Mobile Top Header */}
       <header className="mobile-header">
-        <div className="brand-section" style={{ margin: 0, padding: 0, display: "flex", alignItems: "center", gap: "12px" }}>
-          <div className="brand-icon" style={{ width: "42px", height: "42px", flexShrink: 0 }}>
-            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "42px", height: "42px" }}>
+        <div className="brand-section" style={{ margin: 0, padding: 0, display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="brand-icon" style={{ width: "36px", height: "36px", flexShrink: 0 }}>
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: "36px", height: "36px" }}>
               <circle cx="25" cy="32" r="18" fill="#059669" fillOpacity="0.95"/>
               <circle cx="39" cy="32" r="18" fill="#3b82f6" fillOpacity="0.9"/>
               <path d="M32 17 C36.5 24, 36.5 40, 32 47 C27.5 40, 27.5 24, 32 17 Z" fill="#38bdf8"/>
@@ -1288,19 +1288,72 @@ function App() {
             </svg>
           </div>
           <div className="brand-info" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
-            <h1 style={{ fontSize: "17px", margin: 0, lineHeight: "1.1", fontWeight: 700 }}>Khokhisa</h1>
-            <span style={{ fontSize: "9.5px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "2px", background: "none", padding: 0 }}>
+            <h1 style={{ fontSize: "16px", margin: 0, lineHeight: "1.1", fontWeight: 700 }}>Khokhisa</h1>
+            <span style={{ fontSize: "9px", color: "#38bdf8", fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", marginTop: "1px", background: "none", padding: 0 }}>
               DEBT RECOVERY OS
             </span>
           </div>
         </div>
-        <button
-          className="mobile-menu-btn"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle Menu"
-        >
-          {mobileMenuOpen ? "✕" : "☰"}
-        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          {/* Mode Button with no background border */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
+            style={{
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              padding: "6px 8px",
+              fontSize: "18px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-main)",
+            }}
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+
+          {/* Refresh Button with no background border */}
+          <button
+            type="button"
+            onClick={refreshData}
+            title="Refresh Data"
+            style={{
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              padding: "6px 8px",
+              fontSize: "17px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-main)",
+            }}
+          >
+            🔄
+          </button>
+
+          {/* Hamburger Menu Button */}
+          <button
+            className="mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Menu"
+            style={{
+              background: "transparent",
+              border: "none",
+              boxShadow: "none",
+              fontSize: "22px",
+              padding: "6px 8px",
+            }}
+          >
+            {mobileMenuOpen ? "✕" : "☰"}
+          </button>
+        </div>
       </header>
 
       {/* Mobile Backdrop Overlay */}
@@ -1512,7 +1565,7 @@ function App() {
           <div className="top-actions">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary desktop-only"
               onClick={toggleTheme}
               title={`Switch to ${theme === "dark" ? "Light" : "Dark"} Mode`}
               style={{
@@ -1528,8 +1581,8 @@ function App() {
             >
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
-            <button className="btn btn-secondary" onClick={refreshData}>🔄 Refresh</button>
-            <button className="btn btn-primary" onClick={triggerCaseEngine} disabled={loading}>
+            <button className="btn btn-secondary desktop-only" onClick={refreshData}>🔄 Refresh</button>
+            <button className="btn btn-primary run-engine-btn" onClick={triggerCaseEngine} disabled={loading} style={{ width: "100%", justifyContent: "center" }}>
               ⚡ Run Case Engine
             </button>
           </div>
