@@ -16,7 +16,7 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://collections:change_me@db:5432/collections}
       SECRET_KEY: ${SECRET_KEY:-change_this_in_production}
-      CORS_ORIGINS: '["http://localhost:5173"]'
+      CORS_ORIGINS: '["*"]'
     ports:
       - "8000:8000"
     volumes:
