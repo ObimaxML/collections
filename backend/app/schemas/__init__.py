@@ -115,6 +115,8 @@ class MunicipalAccountResponse(BaseModel):
     days_in_arrears: int
     last_payment_date: date | None
     last_payment_amount: Decimal
+    customer_name: str | None = None
+    mobile: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

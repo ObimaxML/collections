@@ -595,12 +595,43 @@ def list_accounts(
     tenant_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
-    query = select(MunicipalAccount)
+    query = (
+        select(MunicipalAccount, Customer)
+        .outerjoin(Customer, MunicipalAccount.customer_id == Customer.id)
+    )
     if tenant_id:
         query = query.where(MunicipalAccount.tenant_id == tenant_id)
-    return db.execute(
+    
+    rows = db.execute(
         query.order_by(MunicipalAccount.arrears.desc())
-    ).scalars().all()
+    ).all()
+
+    result = []
+    for acc, cust in rows:
+        c_name = None
+        c_mobile = None
+        if cust:
+            c_name = f"{cust.first_name or ''} {cust.last_name or ''}".strip() or None
+            c_mobile = cust.mobile
+        
+        result.append(
+            MunicipalAccountResponse(
+                id=acc.id,
+                tenant_id=acc.tenant_id,
+                customer_id=acc.customer_id,
+                property_id=acc.property_id,
+                account_number=acc.account_number,
+                account_status=acc.account_status,
+                balance=acc.balance,
+                arrears=acc.arrears,
+                days_in_arrears=acc.days_in_arrears,
+                last_payment_date=acc.last_payment_date,
+                last_payment_amount=acc.last_payment_amount,
+                customer_name=c_name,
+                mobile=c_mobile,
+            )
+        )
+    return result
 
 
 @router.get(
@@ -939,17 +970,15 @@ CASE_TRANSITIONS = {
 )
 def update_case_status(
     case_id: UUID,
-    tenant_id: UUID,
     payload: CaseStatusUpdate,
+    tenant_id: UUID | None = None,
     db: Session = Depends(get_db),
 ):
-    case = db.execute(
-        select(CollectionCase)
-        .where(
-            CollectionCase.id == case_id,
-            CollectionCase.tenant_id == tenant_id,
-        )
-    ).scalar_one_or_none()
+    query = select(CollectionCase).where(CollectionCase.id == case_id)
+    if tenant_id:
+        query = query.where(CollectionCase.tenant_id == tenant_id)
+    
+    case = db.execute(query).scalar_one_or_none()
 
     if not case:
         raise HTTPException(

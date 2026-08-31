@@ -267,6 +267,7 @@ function App() {
   const [wqStrategyFilter, setWqStrategyFilter] = useState("ALL");
 
   const [accSearch, setAccSearch] = useState("");
+  const [accMobileSearch, setAccMobileSearch] = useState("");
   const [accStatusFilter, setAccStatusFilter] = useState("ALL");
   const [accMinArrears, setAccMinArrears] = useState("");
 
@@ -1843,13 +1844,19 @@ function App() {
 
         {view === "accounts" && (() => {
           const filteredAccounts = accounts.filter(acc => {
-            const matchesSearch = !accSearch ||
-              (acc.account_number && acc.account_number.toLowerCase().includes(accSearch.toLowerCase()));
+            const term = accSearch.trim().toLowerCase();
+            const matchesSearch = !term ||
+              (acc.account_number && acc.account_number.toLowerCase().includes(term)) ||
+              (acc.customer_name && acc.customer_name.toLowerCase().includes(term)) ||
+              (acc.mobile && acc.mobile.toLowerCase().includes(term));
             
+            const matchesMobile = !accMobileSearch.trim() ||
+              (acc.mobile && acc.mobile.includes(accMobileSearch.trim()));
+
             const matchesStatus = accStatusFilter === "ALL" || acc.account_status === accStatusFilter;
             const matchesMinArrears = !accMinArrears || Number(acc.arrears) >= Number(accMinArrears);
 
-            return matchesSearch && matchesStatus && matchesMinArrears;
+            return matchesSearch && matchesMobile && matchesStatus && matchesMinArrears;
           });
 
           return (
@@ -1863,16 +1870,29 @@ function App() {
 
               {/* Debt Book Filter Toolbar */}
               <div className="filter-toolbar">
-                <div className="search-box">
+                <div className="search-box" style={{ minWidth: "220px" }}>
                   <input
                     type="text"
-                    placeholder="🔍 Search account number..."
+                    placeholder="🔍 Search account or name..."
                     value={accSearch}
                     onChange={e => setAccSearch(e.target.value)}
                     className="form-input"
                   />
                   {accSearch && (
                     <button className="clear-search-btn" onClick={() => setAccSearch("")}>✕</button>
+                  )}
+                </div>
+
+                <div className="search-box" style={{ minWidth: "180px" }}>
+                  <input
+                    type="text"
+                    placeholder="📱 Filter by Mobile..."
+                    value={accMobileSearch}
+                    onChange={e => setAccMobileSearch(e.target.value)}
+                    className="form-input"
+                  />
+                  {accMobileSearch && (
+                    <button className="clear-search-btn" onClick={() => setAccMobileSearch("")}>✕</button>
                   )}
                 </div>
 
@@ -1895,14 +1915,15 @@ function App() {
                     value={accMinArrears}
                     onChange={e => setAccMinArrears(e.target.value)}
                     className="form-input filter-input"
-                    style={{ width: "140px" }}
+                    style={{ width: "130px" }}
                   />
 
-                  {(accSearch || accStatusFilter !== "ALL" || accMinArrears) && (
+                  {(accSearch || accMobileSearch || accStatusFilter !== "ALL" || accMinArrears) && (
                     <button
                       className="btn btn-secondary btn-sm"
                       onClick={() => {
                         setAccSearch("");
+                        setAccMobileSearch("");
                         setAccStatusFilter("ALL");
                         setAccMinArrears("");
                       }}
@@ -1925,6 +1946,7 @@ function App() {
                       <thead>
                         <tr>
                           <th>Account Number</th>
+                          <th>Debtor Name & Mobile</th>
                           <th>Status</th>
                           <th>Balance</th>
                           <th>Arrears</th>
@@ -1937,6 +1959,14 @@ function App() {
                         {filteredAccounts.map(acc => (
                           <tr key={acc.id}>
                             <td><strong>{acc.account_number}</strong></td>
+                            <td>
+                              <div style={{ fontWeight: 600, color: "#e2e8f0" }}>{acc.customer_name || "—"}</div>
+                              {acc.mobile && (
+                                <div style={{ fontSize: "11px", color: "#38bdf8", marginTop: "2px" }}>
+                                  📱 {formatPhone(acc.mobile)}
+                                </div>
+                              )}
+                            </td>
                             <td><span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span></td>
                             <td>{money(acc.balance)}</td>
                             <td style={{ color: "#f87171", fontWeight: 600 }}>{money(acc.arrears)}</td>
@@ -1960,7 +1990,12 @@ function App() {
                         <div className="mobile-card-header">
                           <div>
                             <div className="mobile-card-acc">{acc.account_number}</div>
-                            <div className="mobile-card-debtor">Status: {formatCaseStatus(acc.account_status)}</div>
+                            <div className="mobile-card-debtor">{acc.customer_name || `Status: ${formatCaseStatus(acc.account_status)}`}</div>
+                            {acc.mobile && (
+                              <div style={{ fontSize: "11px", color: "#38bdf8", marginTop: "2px" }}>
+                                📱 {formatPhone(acc.mobile)}
+                              </div>
+                            )}
                           </div>
                           <span className={`status-pill ${getStatusPillClass(acc.account_status)}`}>{formatCaseStatus(acc.account_status)}</span>
                         </div>
@@ -4511,12 +4546,81 @@ function App() {
 
             {/* Financial Status */}
             <div className="drawer-section">
-              <div className="drawer-section-title">💰 Account Arrears Breakdown</div>
+              <div className="drawer-section-title">💰 Account Arrears Breakdown & Recovery Status</div>
               <div className="info-grid">
                 <div className="info-item"><label>Total Balance</label><span className="info-value">{money(account360.balance)}</span></div>
                 <div className="info-item"><label>Overdue Arrears</label><span className="info-value" style={{ color: "#f87171", fontWeight: 700 }}>{money(account360.arrears)}</span></div>
                 <div className="info-item"><label>Days in Arrears</label><span className="info-value">{account360.days_in_arrears}</span></div>
-                <div className="info-item"><label>Case Status</label><span className="info-value"><span className={`status-pill ${getStatusPillClass(account360.active_case?.status)}`}>{formatCaseStatus(account360.active_case?.status ?? "NO CASE")}</span></span></div>
+                <div className="info-item">
+                  <label>Recovery Case Status</label>
+                  <div style={{ marginTop: "4px" }}>
+                    {account360.active_case ? (() => {
+                      const activeCase = account360.active_case!;
+                      return (currentUser?.role === "ADMIN" || currentUser?.role === "COLLECTOR" || currentUser?.role === "SUPERADMIN") ? (
+                        <select
+                          value={activeCase.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value;
+                            setLoading(true);
+                            try {
+                              const res = await fetch(`${API}/cases/${activeCase.id}/status`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  status: newStatus,
+                                  actor: currentUser?.full_name || "Admin",
+                                  notes: `Case status manually changed to ${newStatus} by ${currentUser?.role}`,
+                                }),
+                              });
+                              const data = await res.json();
+                              if (!res.ok) {
+                                alert(`Error changing case status: ${data.detail || "Status transition error"}`);
+                                return;
+                              }
+                              alert(`Case status updated to ${newStatus}!`);
+                              openAccountWorkbench(account360.id);
+                              refreshData();
+                            } catch (err: any) {
+                              alert("Network error: " + err.message);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          className="form-select"
+                          style={{
+                            padding: "4px 8px",
+                            fontSize: "12px",
+                            fontWeight: 700,
+                            borderRadius: "6px",
+                            cursor: "pointer",
+                            background: "rgba(255, 255, 255, 0.05)",
+                            borderColor: "rgba(56, 189, 248, 0.4)",
+                            color: "#f8fafc",
+                          }}
+                        >
+                          <option value="NEW" style={{ background: "#0f172a" }}>🆕 NEW</option>
+                          <option value="VALIDATED" style={{ background: "#0f172a" }}>🔍 VALIDATED</option>
+                          <option value="CONTACT_ATTEMPTED" style={{ background: "#0f172a" }}>📞 CONTACT_ATTEMPTED</option>
+                          <option value="ENGAGED" style={{ background: "#0f172a" }}>💬 ENGAGED</option>
+                          <option value="PROMISE_TO_PAY" style={{ background: "#0f172a" }}>🤝 PROMISE_TO_PAY</option>
+                          <option value="ARRANGEMENT" style={{ background: "#0f172a" }}>📋 ARRANGEMENT</option>
+                          <option value="PAYING" style={{ background: "#0f172a" }}>💵 PAYING</option>
+                          <option value="BROKEN_PROMISE" style={{ background: "#0f172a" }}>⚠️ BROKEN_PROMISE</option>
+                          <option value="DISPUTED" style={{ background: "#0f172a" }}>⚖️ DISPUTED</option>
+                          <option value="ESCALATED" style={{ background: "#0f172a" }}>🚨 ESCALATED</option>
+                          <option value="PAID" style={{ background: "#0f172a" }}>✅ PAID</option>
+                          <option value="CLOSED" style={{ background: "#0f172a" }}>🔒 CLOSED</option>
+                        </select>
+                      ) : (
+                        <span className={`status-pill ${getStatusPillClass(activeCase.status)}`}>
+                          {formatCaseStatus(activeCase.status)}
+                        </span>
+                      );
+                    })() : (
+                      <span className="status-pill status-new">NO ACTIVE CASE</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
