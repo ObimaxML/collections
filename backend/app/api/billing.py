@@ -274,6 +274,9 @@ def update_proposal_status(
                 "payment_reference": invoice_number,
             }
 
+            prop_subtotal = (proposal.total_amount - (proposal.vat_amount or Decimal("0.00")))
+            vat_rate = Decimal("15.00") if (proposal.vat_amount and proposal.vat_amount > 0) else Decimal("0.00")
+
             auto_invoice = Invoice(
                 id=uuid4(),
                 tenant_id=proposal.tenant_id,
@@ -283,9 +286,9 @@ def update_proposal_status(
                 status="ISSUED",
                 issue_date=now_date,
                 due_date=due_date,
-                subtotal=proposal.subtotal,
-                vat_rate=proposal.vat_rate,
-                vat_amount=proposal.vat_amount,
+                subtotal=prop_subtotal,
+                vat_rate=vat_rate,
+                vat_amount=proposal.vat_amount or Decimal("0.00"),
                 total_amount=proposal.total_amount,
                 paid_amount=Decimal("0.00"),
                 line_items=proposal.line_items or [],
