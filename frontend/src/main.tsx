@@ -8312,20 +8312,20 @@ function App() {
 
               <div className="info-grid" style={{ marginBottom: "16px" }}>
                 <div className="form-group">
-                  <label>Engagement & Operating Model</label>
+                  <label>Platform Operating Mode</label>
                   <select
                     value={newTenantModel}
                     onChange={e => setNewTenantModel(e.target.value as any)}
                     className="form-select"
                     style={{
-                      background: newTenantModel === "MANAGED_SERVICE" ? "linear-gradient(135deg, #065f46, #047857)" : "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                      borderColor: newTenantModel === "MANAGED_SERVICE" ? "#10b981" : "#3b82f6",
+                      background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                      borderColor: "#3b82f6",
                       color: "#ffffff",
                       fontWeight: 600,
                     }}
                   >
-                    <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>🛡️ Khokhisa Managed Service (Outsourced Agency Debt Recovery)</option>
-                    <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 SaaS Subscription (Municipality Uses System Internally)</option>
+                    <option value="SAAS_SELF_SERVICE" style={{ background: "#0f172a" }}>💻 Cloud SaaS Platform (Internal Entity / Municipal Revenue Ops)</option>
+                    <option value="MANAGED_SERVICE" style={{ background: "#0f172a" }}>👥 Panel & Agency Managed (Authorized Collectors Work Queue)</option>
                   </select>
                 </div>
 
@@ -8336,7 +8336,7 @@ function App() {
                     onChange={e => setNewTenantTier(e.target.value)}
                     className="form-select"
                   >
-                    <option value="ENTERPRISE">Enterprise (Full Feature Suite & Multi-Channel)</option>
+                    <option value="ENTERPRISE">Enterprise (Full Feature Suite, PII Audit & Compliance)</option>
                     <option value="PROFESSIONAL">Professional (Standard Analytics & Work Queue)</option>
                     <option value="STARTER">Starter Tier</option>
                   </select>
@@ -8363,11 +8363,11 @@ function App() {
 
               <div style={{ marginBottom: "20px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px" }}>
                 <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "12px", fontSize: "13.5px" }}>
-                  💼 Commercial Terms (Monthly SaaS License Fee & Khokhisa Recovery Commission)
+                  💼 Commercial & Platform Usage Terms
                 </div>
                 <div className="info-grid" style={{ marginBottom: "12px" }}>
                   <div className="form-group">
-                    <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
+                    <label style={{ color: "#60a5fa" }}>Monthly Platform Usage / SaaS License Fee (ZAR)</label>
                     <input
                       type="number"
                       step="100"
@@ -8380,7 +8380,7 @@ function App() {
                     <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
                   </div>
                   <div className="form-group">
-                    <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
+                    <label style={{ color: "#34d399" }}>Collector Success Commission Benchmark (%)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -8390,7 +8390,7 @@ function App() {
                       className="form-input"
                       required
                     />
-                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Success-based contingency fee retained upon debt collection.</small>
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Commission rate calculated for individual collectors upon verified trust settlement.</small>
                   </div>
                 </div>
                 <div className="form-group">

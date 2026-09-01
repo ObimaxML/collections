@@ -134,25 +134,16 @@ def create_proposal(
         })
         subtotal += total
 
-    # If no line items passed, autogenerate from engagement model
+    # If no line items passed, autogenerate platform subscription usage fees
     if not items_data:
-        if payload.engagement_model == "SAAS_SELF_SERVICE":
-            fee = payload.monthly_fee or Decimal("20000.00")
-            items_data.append({
-                "description": f"Khokhisa {payload.subscription_tier} SaaS License Subscription (Monthly)",
-                "quantity": 1.0,
-                "unit_price": float(fee),
-                "total": float(fee),
-            })
-            subtotal += fee
-        else:
-            comm = payload.commission_rate or Decimal("10.00")
-            items_data.append({
-                "description": f"Khokhisa Full-Service Managed Debt Recovery ({comm}% Contingency Commission on Recovered Cash)",
-                "quantity": 1.0,
-                "unit_price": 0.0,
-                "total": 0.0,
-            })
+        fee = payload.monthly_fee or (Decimal("45000.00") if payload.subscription_tier == "ENTERPRISE" else Decimal("25000.00"))
+        items_data.append({
+            "description": f"Khokhisa {payload.subscription_tier or 'Enterprise'} Cloud Software License & Platform Usage (Monthly)",
+            "quantity": 1.0,
+            "unit_price": float(fee),
+            "total": float(fee),
+        })
+        subtotal += fee
 
     vat_amount = (subtotal * Decimal("0.15")).quantize(Decimal("0.01"))
     total_amount = subtotal + vat_amount
@@ -482,48 +473,40 @@ def autogenerate_invoice_from_tenant(
     items = []
     subtotal = Decimal("0.00")
 
-    # Monthly SaaS Platform License Fee (applies to both models if configured)
+    # Platform Usage & SaaS Subscription License Fee
     monthly_fee = tenant.monthly_subscription_fee or (Decimal("45000.00") if tenant.subscription_tier == "ENTERPRISE" else Decimal("25000.00"))
     if monthly_fee and monthly_fee > 0:
         items.append({
-            "description": f"Khokhisa {tenant.subscription_tier or 'Enterprise'} Municipal SaaS Platform License ({period})",
+            "description": f"Khokhisa {tenant.subscription_tier or 'Standard'} Platform Usage & Cloud Software License ({period})",
             "quantity": 1.0,
             "unit_price": float(monthly_fee),
             "total": float(monthly_fee),
         })
         subtotal += monthly_fee
 
-    # If Managed Service: Also calculate recovered collections commission from matched payments
-    if tenant.engagement_model == "MANAGED_SERVICE":
-        from app.models import Payment
-        recovered = db.scalar(
-            select(func.coalesce(func.sum(Payment.amount), Decimal("0.00")))
-            .where(
-                Payment.tenant_id == tenant.id,
-                Payment.reconciliation_status == "MATCHED",
-            )
-        ) or Decimal("0.00")
-
-        comm_pct = tenant.commission_rate or Decimal("15.00")
-        if recovered > 0:
-            commission_fee = (Decimal(str(recovered)) * (comm_pct / Decimal("100.00"))).quantize(Decimal("0.01"))
-            items.append({
-                "description": f"Managed Debt Collections Success Fee ({comm_pct}% on R{recovered:,.2f} Reconciled Cash)",
-                "quantity": 1.0,
-                "unit_price": float(commission_fee),
-                "total": float(commission_fee),
-            })
-            subtotal += commission_fee
-        elif not items:
-            # If no payments yet and no monthly fee, provide starter base retainer
-            starter_fee = Decimal("15000.00")
-            items.append({
-                "description": f"Khokhisa Managed Debt Recovery Base Retainer ({period})",
-                "quantity": 1.0,
-                "unit_price": float(starter_fee),
-                "total": float(starter_fee),
-            })
-            subtotal += starter_fee
+    # Volume usage / seat usage line item if registered debtor accounts exceed tier threshold
+    from app.models import ConsumerAccount
+    acc_count = db.scalar(select(func.count()).select_from(ConsumerAccount).where(ConsumerAccount.tenant_id == tenant.id)) or 0
+    if acc_count > 10000:
+        overage = acc_count - 10000
+        overage_fee = (Decimal(str(overage)) * Decimal("0.85")).quantize(Decimal("0.01"))
+        items.append({
+            "description": f"High-Volume Data Processing Usage ({overage:,} accounts above 10k baseline @ R0.85/acct)",
+            "quantity": float(overage),
+            "unit_price": 0.85,
+            "total": float(overage_fee),
+        })
+        subtotal += overage_fee
+    elif not items:
+        # Default baseline platform usage fee
+        base_fee = Decimal("15000.00")
+        items.append({
+            "description": f"Khokhisa Cloud Platform Usage & Infrastructure ({period})",
+            "quantity": 1.0,
+            "unit_price": float(base_fee),
+            "total": float(base_fee),
+        })
+        subtotal += base_fee
 
     vat_rate = Decimal("15.00")
     vat_amount = (subtotal * Decimal("0.15")).quantize(Decimal("0.01"))
