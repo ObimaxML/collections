@@ -810,13 +810,38 @@ We may update commercial pricing or terms on 60 days' written notice, effective 
 """
 
 
+DEFAULT_DEBTOR_RIGHTS_SUMMARY = """# YOUR RIGHTS — A QUICK SUMMARY
+*(This is a summary for convenience. The full Privacy Policy and Terms of Use apply.)*
+
+This portal is run on behalf of your municipality and the debt collector it has appointed. The company that built the portal only provides the technology — it does not decide what you owe and cannot change your account.
+
+### 💳 Your Account and Payments
+- **View & Arrange:** You can view your balance, see payment history, and make payment arrangements here.
+- **Direct Settlement:** Payments go directly into the collector's trust account or the municipality's bank account — never to the company running this portal.
+- **Prescribed Fees:** Only a debt collector registered with the Council for Debt Collectors may charge you collection fees, and only up to the legal maximum.
+- **Disputes & Queries:** Questions or disputes about your balance must go to your municipality or the collector shown on your statement.
+
+### 🛡️ Your Conduct Rights (Debt Collectors Act Code of Conduct)
+- **Dignity & Respect:** Collectors must treat you with dignity and may not harass, threaten, or mislead you.
+- **Statutory Recourse:** If a collector behaves improperly, you can complain to the Council for Debt Collectors.
+
+### 🔒 Your Privacy Rights (POPIA)
+- **Protected Data:** Your personal information is used to manage and collect your municipal account, and is protected by security safeguards.
+- **Access & Correction:** You may ask what information is held about you, and ask for it to be corrected or, where the law allows, deleted. Send these requests to your municipality or use the request option in this portal.
+- **Breach Disclosure:** If your information is ever involved in a data breach, you will be informed as the law requires.
+- **Regulator Complaints:** You can complain to the Information Regulator (South Africa) if you believe your information has been mishandled.
+
+**Need help?** See Contact Us for support details.
+"""
+
+
 @router.get("/documents")
 def list_legal_documents(
     doc_type: str | None = None,
     db: Session = Depends(get_db),
 ):
     """
-    List active versioned legal documents (Terms of Use, Commercial Terms, POPIA notices, PAIA manual).
+    List active versioned legal documents (Terms of Use, Commercial Terms, POPIA notices, Debtor Rights, PAIA manual).
     """
     query = select(LegalDocument).where(LegalDocument.is_active == True)
     if doc_type:
@@ -829,7 +854,8 @@ def list_legal_documents(
         defaults = [
             ("TERMS_OF_USE", "Khokhisa Master Terms of Service & Operator Disclaimer", "v1.0", DEFAULT_TERMS_OF_USE),
             ("COMMERCIAL_TERMS", "Khokhisa SaaS Commercial Terms & Conditions", "v1.0", DEFAULT_COMMERCIAL_TERMS),
-            ("POPIA_PRIVACY_NOTICE", "POPIA Section 18 Privacy Notice & Data Subject Charter", "v2.1-ZA", DEFAULT_PRIVACY_POLICY),
+            ("POPIA_PRIVACY_NOTICE", "POPIA Section 18 Privacy Notice & Data Subject Charter", "v1.0", DEFAULT_PRIVACY_POLICY),
+            ("DEBTOR_RIGHTS_SUMMARY", "Your Rights — Debtor Quick Summary", "v1.0", DEFAULT_DEBTOR_RIGHTS_SUMMARY),
             ("PAIA_MANUAL", "Section 51 PAIA Compliance Manual", "v1.0-2026", DEFAULT_PAIA_MANUAL),
         ]
         for dtype, dtitle, dver, dcontent in defaults:
