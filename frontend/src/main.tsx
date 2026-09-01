@@ -4586,13 +4586,16 @@ function App() {
             <div className="glass-panel" style={{ marginBottom: "24px" }}>
               <div className="tabs" style={{ marginBottom: "20px" }}>
                 <div className={`tab ${complianceTab === "collectors" ? "active" : ""}`} onClick={() => setComplianceTab("collectors")}>
-                  👥 Collectors Compliance Roster ({complianceCollectors.length})
+                  <span>👥 Collectors Compliance Roster</span>
+                  <span className="tab-badge">{complianceCollectors.length}</span>
                 </div>
                 <div className={`tab ${complianceTab === "trust" ? "active" : ""}`} onClick={() => setComplianceTab("trust")}>
-                  🏦 Trust Account Verifications ({complianceCollectors.filter(c => c.trust_account).length})
+                  <span>🏦 Trust Account Verifications</span>
+                  <span className="tab-badge">{complianceCollectors.filter(c => c.trust_account).length}</span>
                 </div>
                 <div className={`tab ${complianceTab === "remittances" ? "active" : ""}`} onClick={() => setComplianceTab("remittances")}>
-                  💵 Trust Remittance Ledger ({complianceRemittances.length})
+                  <span>💵 Trust Remittance Ledger</span>
+                  <span className="tab-badge">{complianceRemittances.length}</span>
                 </div>
               </div>
 
@@ -5110,22 +5113,27 @@ function App() {
             <div className="glass-panel" style={{ marginBottom: "24px" }}>
               <div className="tabs" style={{ marginBottom: "20px" }}>
                 <div className={`tab ${legalComplianceTab === "popia_agreements" ? "active" : ""}`} onClick={() => setLegalComplianceTab("popia_agreements")}>
-                  📝 S21 Operator Agreements ({legalAgreements.length})
+                  <span>📝 S21 Operator Agreements</span>
+                  <span className="tab-badge">{legalAgreements.length}</span>
                 </div>
                 <div className={`tab ${legalComplianceTab === "pii_audit" ? "active" : ""}`} onClick={() => setLegalComplianceTab("pii_audit")}>
-                  🔍 S19 PII Access Audit Log ({legalPiiLogs.length})
+                  <span>🔍 S19 PII Access Audit Log</span>
+                  <span className="tab-badge">{legalPiiLogs.length}</span>
                 </div>
                 <div className={`tab ${legalComplianceTab === "mfma_mandates" ? "active" : ""}`} onClick={() => setLegalComplianceTab("mfma_mandates")}>
-                  🏛️ MFMA Contract Mandates ({legalMandates.length})
+                  <span>🏛️ MFMA Contract Mandates</span>
+                  <span className="tab-badge">{legalMandates.length}</span>
                 </div>
                 <div className={`tab ${legalComplianceTab === "breaches" ? "active" : ""}`} onClick={() => setLegalComplianceTab("breaches")}>
-                  🚨 S22 Incident Registry ({legalIncidents.length})
+                  <span>🚨 S22 Incident Registry</span>
+                  <span className="tab-badge">{legalIncidents.length}</span>
                 </div>
                 <div className={`tab ${legalComplianceTab === "legal_docs" ? "active" : ""}`} onClick={() => setLegalComplianceTab("legal_docs")}>
-                  📜 Legal Policies & PAIA ({legalDocuments.length})
+                  <span>📜 Legal Policies & PAIA</span>
+                  <span className="tab-badge">{legalDocuments.length}</span>
                 </div>
                 <div className={`tab ${legalComplianceTab === "contact_us" ? "active" : ""}`} onClick={() => setLegalComplianceTab("contact_us")}>
-                  📞 Contact & Regulatory Directory
+                  <span>📞 Contact & Regulatory Directory</span>
                 </div>
               </div>
 
