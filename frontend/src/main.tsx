@@ -157,12 +157,33 @@ function App() {
   const [editTenantIds, setEditTenantIds] = useState<string[]>([]);
   const [editPassword, setEditPassword] = useState("");
   const [editIsActive, setEditIsActive] = useState(true);
+  const [editUserCfdcNumber, setEditUserCfdcNumber] = useState("");
+  const [editUserCfdcExpiry, setEditUserCfdcExpiry] = useState("");
+  const [editUserTrustBank, setEditUserTrustBank] = useState("");
+  const [editUserTrustBranch, setEditUserTrustBranch] = useState("");
+  const [editUserTrustAccNum, setEditUserTrustAccNum] = useState("");
+  const [editUserTrustAccHolder, setEditUserTrustAccHolder] = useState("");
+  const [editUserTrustAuditDue, setEditUserTrustAuditDue] = useState("");
+  const [editUserTrustBankLetterUrl, setEditUserTrustBankLetterUrl] = useState("");
+  const [editUserTrustAuditorLetterUrl, setEditUserTrustAuditorLetterUrl] = useState("");
+  const [editUserTrustAuditReportUrl, setEditUserTrustAuditReportUrl] = useState("");
 
   // Self Settings state
   const [settingsFullName, setSettingsFullName] = useState("");
   const [settingsEmail, setSettingsEmail] = useState("");
   const [settingsPassword, setSettingsPassword] = useState("");
   const [settingsConfirmPassword, setSettingsConfirmPassword] = useState("");
+  const [myCollectorProfile, setMyCollectorProfile] = useState<any>(null);
+  const [myCfdcNumber, setMyCfdcNumber] = useState("");
+  const [myCfdcExpiry, setMyCfdcExpiry] = useState("");
+  const [myTrustBank, setMyTrustBank] = useState("");
+  const [myTrustBranch, setMyTrustBranch] = useState("");
+  const [myTrustAccNum, setMyTrustAccNum] = useState("");
+  const [myTrustAccHolder, setMyTrustAccHolder] = useState("");
+  const [myTrustAuditDue, setMyTrustAuditDue] = useState("");
+  const [myTrustBankLetterUrl, setMyTrustBankLetterUrl] = useState("");
+  const [myTrustAuditorLetterUrl, setMyTrustAuditorLetterUrl] = useState("");
+  const [myTrustAuditReportUrl, setMyTrustAuditReportUrl] = useState("");
 
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     return (localStorage.getItem("cos_theme") as "dark" | "light") || "dark";
@@ -746,6 +767,29 @@ function App() {
         }
       })
       .catch(console.error);
+
+    if (currentUser?.id && currentUser.role === "COLLECTOR") {
+      fetch(`${API}/compliance/collectors/me?user_id=${currentUser.id}`)
+        .then(r => r.json())
+        .then(data => {
+          setMyCollectorProfile(data);
+          if (data) {
+            setMyCfdcNumber(data.cfdc_registration_number || "");
+            setMyCfdcExpiry(data.cfdc_expiry_date || "");
+            if (data.trust_account) {
+              setMyTrustBank(data.trust_account.bank_name || "");
+              setMyTrustBranch(data.trust_account.branch_code || "");
+              setMyTrustAccNum(data.trust_account.account_number || "");
+              setMyTrustAccHolder(data.trust_account.account_holder_name || "");
+              setMyTrustAuditDue(data.trust_account.audit_due_date || "");
+              setMyTrustBankLetterUrl(data.trust_account.bank_confirmation_letter_url || "");
+              setMyTrustAuditorLetterUrl(data.trust_account.auditor_letter_url || "");
+              setMyTrustAuditReportUrl(data.trust_account.last_audit_report_url || "");
+            }
+          }
+        })
+        .catch(console.error);
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -793,6 +837,43 @@ function App() {
     setEditTenantIds(user.tenant_ids || (user.tenant_id ? [user.tenant_id] : []));
     setEditPassword("");
     setEditIsActive(user.is_active !== false);
+
+    // If collector, find or fetch compliance profile & trust account
+    const matchedProfile = complianceCollectors.find(c => c.user_id === user.id);
+    if (matchedProfile) {
+      setEditUserCfdcNumber(matchedProfile.cfdc_registration_number || "");
+      setEditUserCfdcExpiry(matchedProfile.cfdc_expiry_date || "");
+      if (matchedProfile.trust_account) {
+        setEditUserTrustBank(matchedProfile.trust_account.bank_name || "");
+        setEditUserTrustBranch(matchedProfile.trust_account.branch_code || "");
+        setEditUserTrustAccNum(matchedProfile.trust_account.account_number || "");
+        setEditUserTrustAccHolder(matchedProfile.trust_account.account_holder_name || "");
+        setEditUserTrustAuditDue(matchedProfile.trust_account.audit_due_date || "");
+        setEditUserTrustBankLetterUrl(matchedProfile.trust_account.bank_confirmation_letter_url || "");
+        setEditUserTrustAuditorLetterUrl(matchedProfile.trust_account.auditor_letter_url || "");
+        setEditUserTrustAuditReportUrl(matchedProfile.trust_account.last_audit_report_url || "");
+      } else {
+        setEditUserTrustBank("");
+        setEditUserTrustBranch("");
+        setEditUserTrustAccNum("");
+        setEditUserTrustAccHolder("");
+        setEditUserTrustAuditDue("");
+        setEditUserTrustBankLetterUrl("");
+        setEditUserTrustAuditorLetterUrl("");
+        setEditUserTrustAuditReportUrl("");
+      }
+    } else {
+      setEditUserCfdcNumber("");
+      setEditUserCfdcExpiry("");
+      setEditUserTrustBank("");
+      setEditUserTrustBranch("");
+      setEditUserTrustAccNum("");
+      setEditUserTrustAccHolder("");
+      setEditUserTrustAuditDue("");
+      setEditUserTrustBankLetterUrl("");
+      setEditUserTrustAuditorLetterUrl("");
+      setEditUserTrustAuditReportUrl("");
+    }
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
@@ -821,6 +902,40 @@ function App() {
         alert(`Error updating user: ${data.detail}`);
         return;
       }
+
+      // If user is a COLLECTOR, also update CFDC & Trust Account
+      if (editRole === "COLLECTOR" || editingUser.role === "COLLECTOR") {
+        const matchedProfile = complianceCollectors.find(c => c.user_id === editingUser.id);
+        if (matchedProfile) {
+          if (editUserCfdcNumber || editUserCfdcExpiry) {
+            await fetch(`${API}/compliance/collectors/${matchedProfile.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                cfdc_registration_number: editUserCfdcNumber,
+                cfdc_expiry_date: editUserCfdcExpiry || null,
+              }),
+            });
+          }
+          if (editUserTrustBank && editUserTrustAccNum) {
+            await fetch(`${API}/compliance/collectors/${matchedProfile.id}/trust-account`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                bank_name: editUserTrustBank,
+                branch_code: editUserTrustBranch,
+                account_number: editUserTrustAccNum,
+                account_holder_name: editUserTrustAccHolder || editFullName,
+                audit_due_date: editUserTrustAuditDue || new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+                bank_confirmation_letter_url: editUserTrustBankLetterUrl || "https://storage.khokhisa.co.za/trust/bank_letter.pdf",
+                auditor_letter_url: editUserTrustAuditorLetterUrl || "https://storage.khokhisa.co.za/trust/auditor_letter.pdf",
+                last_audit_report_url: editUserTrustAuditReportUrl || "https://storage.khokhisa.co.za/trust/last_audit.pdf",
+              }),
+            });
+          }
+        }
+      }
+
       alert(`User ${data.full_name} updated successfully!`);
       setEditingUser(null);
       refreshData();
@@ -861,11 +976,43 @@ function App() {
         alert(`Error saving settings: ${data.detail}`);
         return;
       }
-      alert("Profile updated successfully!");
+
+      // If current user is a COLLECTOR, save their CFDC & Trust Account
+      if (currentUser.role === "COLLECTOR" && myCollectorProfile) {
+        if (myCfdcNumber || myCfdcExpiry) {
+          await fetch(`${API}/compliance/collectors/${myCollectorProfile.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cfdc_registration_number: myCfdcNumber,
+              cfdc_expiry_date: myCfdcExpiry || null,
+            }),
+          });
+        }
+        if (myTrustBank && myTrustAccNum) {
+          await fetch(`${API}/compliance/collectors/${myCollectorProfile.id}/trust-account`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bank_name: myTrustBank,
+              branch_code: myTrustBranch,
+              account_number: myTrustAccNum,
+              account_holder_name: myTrustAccHolder || data.full_name,
+              audit_due_date: myTrustAuditDue || new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+              bank_confirmation_letter_url: myTrustBankLetterUrl || "https://storage.khokhisa.co.za/trust/bank_letter.pdf",
+              auditor_letter_url: myTrustAuditorLetterUrl || "https://storage.khokhisa.co.za/trust/auditor_letter.pdf",
+              last_audit_report_url: myTrustAuditReportUrl || "https://storage.khokhisa.co.za/trust/last_audit.pdf",
+            }),
+          });
+        }
+      }
+
+      alert("Profile and compliance credentials updated successfully!");
       setCurrentUser(data);
       localStorage.setItem("cos_user_v2", JSON.stringify(data));
       setSettingsPassword("");
       setSettingsConfirmPassword("");
+      refreshData();
     } catch (err: any) {
       alert("Could not update profile: " + err.message);
     } finally {
@@ -4493,6 +4640,138 @@ function App() {
                 </div>
               </div>
 
+              {/* COLLECTOR SPECIFIC COMPLIANCE & TRUST PROFILE */}
+              {currentUser.role === "COLLECTOR" && (
+                <div style={{ padding: "18px 20px", borderRadius: "10px", background: "rgba(56, 189, 248, 0.04)", border: "1px solid rgba(56, 189, 248, 0.2)", marginBottom: "24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: "15px", color: "#38bdf8" }}>🏛️ Council for Debt Collectors (CFDC) & Trust Account Profile</h4>
+                      <p style={{ color: "#94a3b8", fontSize: "12px", margin: "3px 0 0 0" }}>
+                        Statutory certification and dedicated separate trust account under Act 114 of 1998
+                      </p>
+                    </div>
+                    {myCollectorProfile && (
+                      <span style={{
+                        padding: "3px 8px",
+                        borderRadius: "6px",
+                        fontSize: "11px",
+                        fontWeight: 800,
+                        background: myCollectorProfile.compliance_status === "VERIFIED" ? "rgba(16, 185, 129, 0.2)" : "rgba(234, 179, 8, 0.2)",
+                        color: myCollectorProfile.compliance_status === "VERIFIED" ? "#34d399" : "#facc15",
+                        border: `1px solid ${myCollectorProfile.compliance_status === "VERIFIED" ? "rgba(16, 185, 129, 0.4)" : "rgba(234, 179, 8, 0.4)"}`,
+                      }}>
+                        {myCollectorProfile.compliance_status === "VERIFIED" ? "🟢 VERIFIED" : "🟡 PENDING"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="info-grid" style={{ marginBottom: "14px" }}>
+                    <div className="form-group">
+                      <label>CFDC Registration Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CFDC-2026-9842"
+                        value={myCfdcNumber}
+                        onChange={e => setMyCfdcNumber(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>CFDC Expiry Date</label>
+                      <input
+                        type="date"
+                        value={myCfdcExpiry}
+                        onChange={e => setMyCfdcExpiry(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#34d399", marginBottom: "10px", marginTop: "16px" }}>
+                    🏦 Separate Statutory Trust Account
+                  </div>
+
+                  <div className="info-grid" style={{ marginBottom: "14px" }}>
+                    <div className="form-group">
+                      <label>Trust Bank Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Standard Bank / FNB / Nedbank"
+                        value={myTrustBank}
+                        onChange={e => setMyTrustBank(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Trust Branch Code</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 051001"
+                        value={myTrustBranch}
+                        onChange={e => setMyTrustBranch(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="info-grid" style={{ marginBottom: "14px" }}>
+                    <div className="form-group">
+                      <label>Trust Account Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 0228491039"
+                        value={myTrustAccNum}
+                        onChange={e => setMyTrustAccNum(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Trust Account Holder Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sithole Collections Trust Account"
+                        value={myTrustAccHolder}
+                        onChange={e => setMyTrustAccHolder(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: "14px" }}>
+                    <label>Annual Trust Audit Due Date</label>
+                    <input
+                      type="date"
+                      value={myTrustAuditDue}
+                      onChange={e => setMyTrustAuditDue(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="info-grid">
+                    <div className="form-group">
+                      <label>Bank Confirmation Letter URL</label>
+                      <input
+                        type="text"
+                        placeholder="https://storage.khokhisa.co.za/trust/bank_letter.pdf"
+                        value={myTrustBankLetterUrl}
+                        onChange={e => setMyTrustBankLetterUrl(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Auditor Letter URL</label>
+                      <input
+                        type="text"
+                        placeholder="https://storage.khokhisa.co.za/trust/auditor_letter.pdf"
+                        value={myTrustAuditorLetterUrl}
+                        onChange={e => setMyTrustAuditorLetterUrl(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: "12.5px", color: "#94a3b8" }}>
                   Assigned Role: <strong style={{ color: "#38bdf8" }}>{currentUser.role}</strong>
@@ -6807,6 +7086,91 @@ function App() {
                         ⚠️ No municipalities currently operate under the <strong>SaaS Subscription</strong> model.
                       </div>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* COLLECTOR COMPLIANCE & TRUST PROFILE IN EDIT USER */}
+              {editRole === "COLLECTOR" && (
+                <div style={{ padding: "14px 16px", borderRadius: "8px", background: "rgba(56, 189, 248, 0.05)", border: "1px solid rgba(56, 189, 248, 0.2)", marginBottom: "20px" }}>
+                  <h4 style={{ margin: "0 0 10px 0", fontSize: "13.5px", color: "#38bdf8" }}>🏛️ Collector CFDC & Trust Banking Particulars</h4>
+                  
+                  <div className="info-grid" style={{ marginBottom: "12px" }}>
+                    <div className="form-group">
+                      <label>CFDC Registration Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. CFDC-2026-9842"
+                        value={editUserCfdcNumber}
+                        onChange={e => setEditUserCfdcNumber(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>CFDC Expiry Date</label>
+                      <input
+                        type="date"
+                        value={editUserCfdcExpiry}
+                        onChange={e => setEditUserCfdcExpiry(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="info-grid" style={{ marginBottom: "12px" }}>
+                    <div className="form-group">
+                      <label>Trust Bank Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Standard Bank / FNB"
+                        value={editUserTrustBank}
+                        onChange={e => setEditUserTrustBank(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Trust Branch Code</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 051001"
+                        value={editUserTrustBranch}
+                        onChange={e => setEditUserTrustBranch(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="info-grid" style={{ marginBottom: "12px" }}>
+                    <div className="form-group">
+                      <label>Trust Account Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 0228491039"
+                        value={editUserTrustAccNum}
+                        onChange={e => setEditUserTrustAccNum(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Account Holder Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Sithole Collections Trust"
+                        value={editUserTrustAccHolder}
+                        onChange={e => setEditUserTrustAccHolder(e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Trust Audit Due Date</label>
+                    <input
+                      type="date"
+                      value={editUserTrustAuditDue}
+                      onChange={e => setEditUserTrustAuditDue(e.target.value)}
+                      className="form-input"
+                    />
                   </div>
                 </div>
               )}
