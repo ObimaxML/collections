@@ -670,32 +670,79 @@ We may update these Terms with at least 30 days' notice. Material changes requir
 17.3 Notices may be given electronically in accordance with ECTA, to the addresses in the Contact section of the Platform.
 """
 
-DEFAULT_PRIVACY_POLICY = """
-# KHOKHISA POPIA PRIVACY POLICY & DATA PROCESSING NOTICE
+DEFAULT_PRIVACY_POLICY = """# PRIVACY POLICY
+Khokhisa Debt Collection OS — Version 1.0 | Effective date: 1 September 2026
+Information Officer: Head of Legal & Regulatory Compliance | Email: privacy@khokhisa.co.za
 
-**In accordance with Sections 18, 19, and 51 of POPIA (Act 4 of 2013)**
+### 1. WHO WE ARE AND WHO THIS POLICY APPLIES TO
+1.1 Khokhisa Technologies (Pty) Ltd ("we", "the Platform") operates a municipal debt collection management platform. In terms of the Protection of Personal Information Act 4 of 2013 (POPIA):
+   (a) each Municipality using the Platform is the **RESPONSIBLE PARTY** for debtor personal information processed on its behalf;
+   (b) the Platform acts as an **OPERATOR**, processing that information only on the Municipality's documented instructions under a written operator agreement (section 21 of POPIA);
+   (c) Collectors act as operators or independent responsible parties in respect of their own collection activities.
+1.2 This policy applies to three audiences: Municipal users, Collectors, and Debtors. Sections 2–13 apply to everyone; audience-specific details are set out in sections 14–16.
 
-### 1. WHAT DATA WE PROCESS
-- **Debtors / Consumers:** Full names, ID numbers, contact numbers, residential addresses, municipal account numbers, arrears balances, payment records, and communication timestamps.
-- **Municipal & Collector Users:** Name, official email address, role, IP address, and electronic signature logs.
+### 2. INFORMATION WE COLLECT
+(a) **Municipal users:** name, job title, work email and phone number, role and permissions, login and activity logs.
+(b) **Collectors:** identity or company registration documents, CFDC registration number, certificate and expiry date, trust account and banking details, bank confirmation and auditor's letters, audit reports, contact details.
+(c) **Debtors (uploaded by Municipalities or generated through use):** name, ID or account number, contact details, municipal account balances and ageing, payment history, communication and payment-arrangement records.
+(d) **All users:** device, browser, IP address, and usage data; cookies as described in our Cookie Notice.
 
-### 2. LAWFUL BASIS & PURPOSE OF PROCESSING
-Processing is necessary for:
-- Performing statutory municipal credit control and debt recovery under the Municipal Systems Act 32 of 2000 (Section 96) and MFMA 56 of 2003.
-- Compliance with the Debt Collectors Act 114 of 1998.
-- Legitimate interests of the municipality in recovering public revenue.
+### 3. PURPOSES AND LAWFUL BASIS (SECTION 11)
+We process personal information to: operate and secure the Platform; verify Collector registration and trust account details; record and reconcile payments (without holding funds); generate statements and reports; communicate service and compliance notifications; meet legal and audit obligations; and enforce our terms. Processing is based on: performance of a contract, compliance with law, legitimate interests of the Platform and Municipalities, and, where applicable, consent.
 
-### 3. SECURITY SAFEGUARDS (SECTION 19)
-- High-grade AES-256 encryption at rest; TLS 1.3 encryption in transit.
-- Role-Based Access Control (RBAC) and Multi-Factor Authentication.
-- Complete audit logging of every query, view, edit, or export of debtor records.
+### 4. SPECIAL AND CHILDREN'S PERSONAL INFORMATION
+We do not intentionally collect special personal information (sections 26–33 of POPIA) or children's information. If a Municipality uploads such information, it warrants it has a lawful basis, and we process it strictly on its instructions.
 
-### 4. DATA RESIDENCY (SECTION 72)
-All databases and backup archives are hosted exclusively in **South Africa** (Johannesburg / Cape Town).
+### 5. WHO WE SHARE INFORMATION WITH
+- The relevant Municipality and its assigned Collectors (for collection purposes under mandate);
+- Payment gateways and banks (to process payments directly into configured accounts);
+- Hosting, infrastructure, and support providers bound by written operator agreements;
+- Regulators, courts, or authorities where required by law.
+We do not sell personal information.
 
-### 5. INFORMATION REGULATOR CONTACT DETAILS
-- **JD House, 27 Stiemens Street, Braamfontein, Johannesburg, 2001**
-- Email: `POPIAComplaints@inforegulator.org.za` / `enquiries@inforegulator.org.za`
+### 6. SECURITY SAFEGUARDS (SECTION 19)
+We maintain appropriate, generally accepted technical and organisational measures, including: encryption in transit (TLS 1.3) and at rest (AES-256); multi-factor authentication; role-based access control; full audit logging of access to personal information; segregated multi-tenant data storage; and regular security testing.
+
+### 7. DATA BREACHES (SECTION 22)
+If we believe personal information has been accessed or acquired by an unauthorised person, we will notify the affected Municipality (as responsible party) without undue delay, with sufficient detail for it to notify the Information Regulator and affected data subjects, and we will cooperate with its response.
+
+### 8. WHERE YOUR INFORMATION IS (SECTION 72)
+All personal information is hosted and stored in South Africa (AWS / Azure South Africa North DCs). We do not transfer personal information outside South Africa unless a lawful basis under section 72 exists and has been recorded.
+
+### 9. RETENTION
+We retain personal information only as long as needed for the purposes above or as required by law, including the record-keeping periods applicable under the Debt Collectors Act and municipal records requirements, after which it is securely destroyed or de-identified.
+
+### 10. YOUR RIGHTS (SECTIONS 23–25)
+You may request: confirmation of and access to your personal information; correction or deletion; and you may object to certain processing or withdraw consent where processing is based on consent.
+- **Debtors:** submit requests to your Municipality or its assigned Collector (the responsible party). You may also use the request form in the debtor portal, which we route to the Municipality.
+- **Municipal users and Collectors:** submit requests to privacy@khokhisa.co.za.
+We respond within the timeframes required by POPIA and PAIA.
+
+### 11. DIRECT MARKETING (SECTION 69)
+Debtor communications through the Platform (payment reminders and collection notices) are sent by or on behalf of the Municipality or Collector, not as Platform marketing. We only send our own marketing with your consent or as otherwise permitted, and every message includes an opt-out.
+
+### 12. COOKIES
+We use necessary cookies for authentication and security, and performance cookies subject to your consent via our cookie settings.
+
+### 13. COMPLAINTS & INFORMATION REGULATOR DETAILS
+If you are unhappy with how your personal information is handled, contact our Information Officer at privacy@khokhisa.co.za. You also have the right to complain to the Information Regulator (South Africa):
+- **Email:** POPIAComplaints@inforegulator.org.za / enquiries@inforegulator.org.za
+- **Physical Address:** JD House, 27 Stiemens Street, Braamfontein, Johannesburg, 2001.
+
+### 14. MUNICIPAL USERS — ADDITIONAL NOTICE
+Your personal information is processed to provide your account, manage your municipality's subscription, and meet audit and MFMA compliance requirements. Activity on the Platform is logged and visible to your municipality's administrators.
+
+### 15. COLLECTORS — ADDITIONAL NOTICE
+Your registration, trust account, and audit information is processed to verify your eligibility under the Debt Collectors Act and is visible to the Platform's verification team and to Municipalities that assign or consider assigning you. Compliance status (including suspensions) is shared with Municipalities you are assigned to.
+
+### 16. DEBTORS — ADDITIONAL NOTICE
+Your information comes from your Municipality and is processed so the Municipality and its assigned Collector can manage and collect your municipal account. The Platform Operator does not decide what is collected, does not set your balance, and cannot change your account — those queries go to your Municipality or Collector.
+
+### 17. CHANGES TO THIS POLICY
+We may update this policy and will post the new version with its effective date. Material changes will be notified in-app and by email.
+
+### 18. PAIA
+Our PAIA manual, describing how to request records under the Promotion of Access to Information Act 2 of 2000, is available in the platform legal policy browser.
 """
 
 DEFAULT_PAIA_MANUAL = """
