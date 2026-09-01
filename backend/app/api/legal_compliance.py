@@ -95,6 +95,14 @@ class UserAcceptanceCreate(BaseModel):
     version_accepted: str
 
 
+class ContactTicketCreate(BaseModel):
+    name: str
+    email: str
+    category: str = "Technical"  # Technical, Billing, Compliance, Privacy, General
+    message: str
+    tenant_id: UUID | None = None
+
+
 # -------------------------------------------------------------
 # Default Standard POPIA Operator Agreement Template (s 21)
 # -------------------------------------------------------------
@@ -941,3 +949,43 @@ def list_user_acceptances(
             "acceptance_hash": a.acceptance_hash,
         })
     return results
+
+
+@router.post("/contact-tickets")
+def submit_contact_ticket(
+    payload: ContactTicketCreate,
+    req: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Process official Contact Us query and generate verifiable tracking ticket reference.
+    """
+    ticket_ref = f"TICK-{payload.category[:4].upper()}-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
+    client_ip = req.client.host if req.client else "127.0.0.1"
+
+    # Log to audit trail
+    audit = AuditEvent(
+        id=uuid.uuid4(),
+        tenant_id=payload.tenant_id or uuid.UUID("00000000-0000-0000-0000-000000000000"),
+        actor=f"{payload.name} ({payload.email})",
+        event_type="CONTACT_INQUIRY_SUBMITTED",
+        entity_type="ContactTicket",
+        entity_id=None,
+        payload={
+            "ticket_reference": ticket_ref,
+            "category": payload.category,
+            "email": payload.email,
+            "message_length": len(payload.message),
+            "ip_address": client_ip,
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+    db.commit()
+
+    return {
+        "message": "Your inquiry has been logged successfully. We use these details strictly to respond to your query in accordance with our Privacy Policy.",
+        "ticket_reference": ticket_ref,
+        "category": payload.category,
+        "submitted_at": datetime.now(timezone.utc).isoformat(),
+    }

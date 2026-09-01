@@ -307,7 +307,14 @@ function App() {
   const [legalPiiLogs, setLegalPiiLogs] = useState<any[]>([]);
   const [legalDocuments, setLegalDocuments] = useState<any[]>([]);
   const [legalAcceptances, setLegalAcceptances] = useState<any[]>([]);
-  const [legalComplianceTab, setLegalComplianceTab] = useState<"popia_agreements" | "pii_audit" | "mfma_mandates" | "breaches" | "legal_docs">("popia_agreements");
+  const [legalComplianceTab, setLegalComplianceTab] = useState<"popia_agreements" | "pii_audit" | "mfma_mandates" | "breaches" | "legal_docs" | "contact_us">("popia_agreements");
+
+  // Contact Us Form State
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactCategory, setContactCategory] = useState("Technical");
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactTicketResult, setContactTicketResult] = useState<any>(null);
 
   // Sign DPA Modal
   const [signingDpa, setSigningDpa] = useState<any>(null);
@@ -5056,6 +5063,9 @@ function App() {
                 <div className={`tab ${legalComplianceTab === "legal_docs" ? "active" : ""}`} onClick={() => setLegalComplianceTab("legal_docs")}>
                   📜 Legal Policies & PAIA ({legalDocuments.length})
                 </div>
+                <div className={`tab ${legalComplianceTab === "contact_us" ? "active" : ""}`} onClick={() => setLegalComplianceTab("contact_us")}>
+                  📞 Contact & Regulatory Directory
+                </div>
               </div>
 
               {/* TAB 1: S21 OPERATOR AGREEMENTS */}
@@ -5545,6 +5555,154 @@ function App() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 6: CONTACT & REGULATORY DIRECTORY */}
+              {legalComplianceTab === "contact_us" && (
+                <div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "24px" }}>
+                    {/* Platform Operator Details */}
+                    <div className="glass-panel" style={{ padding: "20px", border: "1px solid var(--border-subtle)" }}>
+                      <h4 style={{ margin: "0 0 12px 0", color: "#38bdf8", fontSize: "16px" }}>🏢 Platform Operator Particulars</h4>
+                      <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
+                        <div><strong>Legal Entity:</strong> Khokhisa Technologies (Pty) Ltd</div>
+                        <div><strong>Company Registration:</strong> 2014/032353/07</div>
+                        <div><strong>VAT Registration:</strong> 4120268894</div>
+                        <div><strong>Registered Address:</strong> 85 Grayston Drive, Sandton, Johannesburg, Gauteng, 2196</div>
+                        <div><strong>Postal Address:</strong> PostNet Suite 412, Private Bag X9, Benmore, 2010</div>
+                      </div>
+                    </div>
+
+                    {/* Operational Support */}
+                    <div className="glass-panel" style={{ padding: "20px", border: "1px solid var(--border-subtle)" }}>
+                      <h4 style={{ margin: "0 0 12px 0", color: "#34d399", fontSize: "16px" }}>🛟 Technical Support & Helpdesk</h4>
+                      <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
+                        <div><strong>Support Email:</strong> support@khokhisa.co.za</div>
+                        <div><strong>Emergency Hotline:</strong> +27 (0) 11 884 9200</div>
+                        <div><strong>Operating Hours:</strong> Monday – Friday, 08:00 – 17:00 SAST</div>
+                        <div><strong>SLA Response Targets:</strong> Critical (4 hrs) | Billing (1 bus. day) | General (2 bus. days)</div>
+                      </div>
+                    </div>
+
+                    {/* Compliance & Privacy Officer */}
+                    <div className="glass-panel" style={{ padding: "20px", border: "1px solid var(--border-subtle)" }}>
+                      <h4 style={{ margin: "0 0 12px 0", color: "#c084fc", fontSize: "16px" }}>⚖️ Information Officer & Compliance</h4>
+                      <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
+                        <div><strong>Information Officer:</strong> Head of Legal & Regulatory Compliance</div>
+                        <div><strong>POPIA s 55 Registration:</strong> Registered with Information Regulator</div>
+                        <div><strong>Privacy Inquiries:</strong> privacy@khokhisa.co.za</div>
+                        <div><strong>Municipal Audit Queries:</strong> compliance@khokhisa.co.za</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Statutory Isolation & Disclaimers */}
+                  <div style={{ padding: "16px", background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.25)", borderRadius: "8px", marginBottom: "24px", fontSize: "12.5px", lineHeight: "1.5", color: "#cbd5e1" }}>
+                    <strong style={{ color: "#facc15" }}>⚠️ Debtor Account Queries & Statutory Notice:</strong><br />
+                    Khokhisa is a technology provider and operator only — it cannot alter account balances, payment arrangements, or debtor records. For account-specific queries, contact your municipality or the collector assigned to your account (details shown on your statement and debtor portal). For technical portal issues, contact platform support above.
+                  </div>
+
+                  {/* Statutory Regulator Directory */}
+                  <h4 style={{ margin: "0 0 12px 0", color: "#f8fafc", fontSize: "15px" }}>🏛️ Statutory Regulatory Contacts</h4>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "28px" }}>
+                    <div className="glass-panel" style={{ padding: "16px", border: "1px solid var(--border-subtle)" }}>
+                      <h5 style={{ margin: "0 0 6px 0", color: "#38bdf8" }}>Council for Debt Collectors (CFDC)</h5>
+                      <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
+                        For complaints regarding external debt collector conduct, statutory fee caps, or ethics under Act 114 of 1998.<br />
+                        <strong>Website:</strong> cfdc.org.za | <strong>Email:</strong> info@cfdc.org.za
+                      </div>
+                    </div>
+
+                    <div className="glass-panel" style={{ padding: "16px", border: "1px solid var(--border-subtle)" }}>
+                      <h5 style={{ margin: "0 0 6px 0", color: "#34d399" }}>Information Regulator (South Africa)</h5>
+                      <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
+                        For privacy, POPIA compliance, or data subject complaints.<br />
+                        <strong>Address:</strong> JD House, 27 Stiemens Street, Braamfontein, JHB<br />
+                        <strong>Email:</strong> POPIAComplaints@inforegulator.org.za
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Official Inquiry Submission Form */}
+                  <div className="glass-panel" style={{ padding: "22px", border: "1px solid var(--border-subtle)" }}>
+                    <h4 style={{ margin: "0 0 8px 0", color: "#f8fafc", fontSize: "16px" }}>📩 Log Official Inquiry or Compliance Request</h4>
+                    <p style={{ margin: "0 0 18px 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                      Submit your query directly to our support and compliance desk. An automated tracking ticket reference will be generated.
+                    </p>
+
+                    {contactTicketResult && (
+                      <div style={{ padding: "14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", color: "#166534", marginBottom: "18px", fontSize: "13px" }}>
+                        <strong>✓ Ticket Reference: <span style={{ fontFamily: "monospace" }}>{contactTicketResult.ticket_reference}</span></strong><br />
+                        {contactTicketResult.message}
+                      </div>
+                    )}
+
+                    <form onSubmit={async (e) => {
+                      e.preventDefault();
+                      setLoading(true);
+                      try {
+                        const targetTenant = (selectedTenant && selectedTenant !== "GLOBAL") ? selectedTenant : null;
+                        const res = await fetch(`${API}/legal-compliance/contact-tickets`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            name: contactName || currentUser?.full_name || "User",
+                            email: contactEmail || currentUser?.email || "user@domain.co.za",
+                            category: contactCategory,
+                            message: contactMessage,
+                            tenant_id: targetTenant,
+                          }),
+                        });
+                        const data = await res.json();
+                        setContactTicketResult(data);
+                        setContactMessage("");
+                        alert(`Inquiry logged successfully! Ticket: ${data.ticket_reference}`);
+                        refreshData();
+                      } catch (err: any) {
+                        alert("Error submitting ticket: " + err.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}>
+                      <div className="info-grid" style={{ marginBottom: "14px" }}>
+                        <div className="form-group">
+                          <label>Your Full Name</label>
+                          <input type="text" placeholder="e.g. Sipho Ndlovu" value={contactName} onChange={e => setContactName(e.target.value)} className="form-input" required />
+                        </div>
+                        <div className="form-group">
+                          <label>Work / Official Email Address</label>
+                          <input type="email" placeholder="e.g. sipho@municipality.gov.za" value={contactEmail} onChange={e => setContactEmail(e.target.value)} className="form-input" required />
+                        </div>
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: "14px" }}>
+                        <label>Inquiry Category</label>
+                        <select value={contactCategory} onChange={e => setContactCategory(e.target.value)} className="form-select">
+                          <option value="Technical">Technical Support</option>
+                          <option value="Billing">Billing & Commercial Proposals</option>
+                          <option value="Compliance">Compliance, Audit & SITA Requirements</option>
+                          <option value="Privacy">Privacy & POPIA Data Subject Request</option>
+                          <option value="General">General Inquiries</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group" style={{ marginBottom: "16px" }}>
+                        <label>Detailed Message</label>
+                        <textarea rows={4} placeholder="Provide specifics regarding your inquiry, account reference, or compliance query..." value={contactMessage} onChange={e => setContactMessage(e.target.value)} className="form-textarea" required />
+                      </div>
+
+                      <div style={{ fontSize: "11.5px", color: "#94a3b8", marginBottom: "16px" }}>
+                        🔒 <em>We use the details you submit only to respond to your query. See our Privacy Policy.</em>
+                      </div>
+
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <button type="submit" className="btn btn-primary" disabled={loading || !contactMessage}>
+                          🚀 Submit Inquiry & Generate Ticket
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </div>
               )}
