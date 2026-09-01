@@ -277,6 +277,9 @@ function App() {
   const [newTenantModel, setNewTenantModel] = useState<"MANAGED_SERVICE" | "SAAS_SELF_SERVICE">("MANAGED_SERVICE");
   const [newTenantTier, setNewTenantTier] = useState("STARTER");
   const [newTenantStatus, setNewTenantStatus] = useState("TRIAL");
+  const [newTenantNumAccounts, setNewTenantNumAccounts] = useState("10000");
+  const [newTenantNumCollectors, setNewTenantNumCollectors] = useState("5");
+  const [newTenantOnboardingFee, setNewTenantOnboardingFee] = useState("50000.00");
   const [newTenantCommission, setNewTenantCommission] = useState("10.00");
   const [newTenantMonthlyFee, setNewTenantMonthlyFee] = useState("25000.00");
   const [newTenantBillingEmail, setNewTenantBillingEmail] = useState("");
@@ -8479,40 +8482,182 @@ function App() {
                 </div>
               </div>
 
-              {/* TIER CAPACITY & FEATURE MATRIX PREVIEW */}
+              {/* INTERACTIVE CAPACITY & USAGE FEE CALCULATOR */}
               <div style={{
                 marginBottom: "20px",
-                padding: "14px 16px",
-                borderRadius: "8px",
-                background: newTenantTier === "STARTER"
-                  ? "rgba(56, 189, 248, 0.05)"
-                  : newTenantTier === "PROFESSIONAL"
-                  ? "rgba(129, 140, 248, 0.07)"
-                  : "rgba(234, 179, 8, 0.06)",
-                border: `1px solid ${
-                  newTenantTier === "STARTER"
-                    ? "rgba(56, 189, 248, 0.3)"
-                    : newTenantTier === "PROFESSIONAL"
-                    ? "rgba(129, 140, 248, 0.35)"
-                    : "rgba(234, 179, 8, 0.35)"
-                }`,
+                padding: "16px 18px",
+                borderRadius: "10px",
+                background: "linear-gradient(145deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.7) 100%)",
+                border: "1px solid rgba(56, 189, 248, 0.25)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-                  <div style={{ fontWeight: 800, fontSize: "13px", color: newTenantTier === "STARTER" ? "#38bdf8" : newTenantTier === "PROFESSIONAL" ? "#a5b4fc" : "#facc15" }}>
-                    {newTenantTier === "STARTER" && "🏷️ STARTER TIER — Small Local Municipality / Single-Town Debt Book (Phase 1 Ready)"}
-                    {newTenantTier === "PROFESSIONAL" && "⚡ PROFESSIONAL TIER — Medium Municipality or Large Local District (Core Margin Driver)"}
-                    {newTenantTier === "ENTERPRISE" && "👑 ENTERPRISE TIER — Metro Municipalities, Multi-Client Debt Agencies (Metro & Agency Scale)"}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: "14.5px", color: "#38bdf8", display: "flex", alignItems: "center", gap: "8px" }}>
+                      🧮 Platform Usage & Seat Capacity Calculator
+                    </h4>
+                    <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#94a3b8" }}>
+                      Calculate recommended monthly SaaS license fee and setup package based on operational debt book size
+                    </p>
                   </div>
-                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "rgba(255,255,255,0.08)" }}>
-                    {newTenantTier === "STARTER" ? "R 18,000 – R 30,000 / mo" : newTenantTier === "PROFESSIONAL" ? "R 55,000 – R 95,000 / mo" : "R 140,000 – R 250,000+ / mo"}
+                  <span style={{
+                    fontSize: "11px",
+                    fontWeight: 800,
+                    padding: "3px 10px",
+                    borderRadius: "6px",
+                    background: newTenantTier === "STARTER" ? "rgba(56, 189, 248, 0.2)" : newTenantTier === "PROFESSIONAL" ? "rgba(129, 140, 248, 0.2)" : "rgba(234, 179, 8, 0.2)",
+                    color: newTenantTier === "STARTER" ? "#38bdf8" : newTenantTier === "PROFESSIONAL" ? "#a5b4fc" : "#facc15",
+                    border: `1px solid ${newTenantTier === "STARTER" ? "rgba(56, 189, 248, 0.4)" : newTenantTier === "PROFESSIONAL" ? "rgba(129, 140, 248, 0.4)" : "rgba(234, 179, 8, 0.4)"}`,
+                  }}>
+                    {newTenantTier === "STARTER" ? "Phase 1 Ready" : newTenantTier === "PROFESSIONAL" ? "Core Margin Driver" : "Metro & Agency Scale"}
                   </span>
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px", fontSize: "12px", color: "#cbd5e1" }}>
-                  <div>📁 <strong>Accounts:</strong> {newTenantTier === "STARTER" ? "Up to ~25,000" : newTenantTier === "PROFESSIONAL" ? "Up to ~100,000" : "Unlimited Volume"}</div>
-                  <div>👥 <strong>Collectors:</strong> {newTenantTier === "STARTER" ? "5 included (R1,500/extra user)" : newTenantTier === "PROFESSIONAL" ? "15 included (R1,200/extra user)" : "Unlimited / Volume Pricing"}</div>
-                  <div>🚀 <strong>Onboarding:</strong> {newTenantTier === "STARTER" ? "R40k – R75k (once-off)" : newTenantTier === "PROFESSIONAL" ? "R100k – R180k (once-off)" : "R200k – R350k+ (includes billing integration)"}</div>
-                  <div>🌐 <strong>Infra:</strong> {newTenantTier === "STARTER" ? "Hetzner JHB (Shared Infra)" : newTenantTier === "PROFESSIONAL" ? "Hetzner JHB (Dedicated)" : "AWS Cape Town (Multi-AZ, SLA-backed)"}</div>
-                  <div style={{ gridColumn: "1 / -1" }}>🎧 <strong>Support:</strong> {newTenantTier === "STARTER" ? "Email, standard business hours" : newTenantTier === "PROFESSIONAL" ? "Priority support + named CSM" : "24/7 SLA + Dedicated Account Mgr"}</div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "14px", marginBottom: "14px" }}>
+                  <div className="form-group">
+                    <label style={{ fontSize: "12.5px", color: "#e2e8f0" }}>📁 Operational Debt Accounts</label>
+                    <input
+                      type="number"
+                      step="500"
+                      min="100"
+                      placeholder="e.g. 10000"
+                      value={newTenantNumAccounts}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setNewTenantNumAccounts(val);
+                        const nAcc = Number(val) || 0;
+                        const nColl = Number(newTenantNumCollectors) || 5;
+                        
+                        // Auto-recommend tier and calculate fee
+                        let base = 25000;
+                        let extraCollRate = 1500;
+                        let includedColl = 5;
+
+                        if (nAcc <= 25000 && nColl <= 10) {
+                          setNewTenantTier("STARTER");
+                          base = Math.max(18000, Math.min(30000, 18000 + Math.round((nAcc / 25000) * 12000)));
+                          extraCollRate = 1500;
+                          includedColl = 5;
+                          if (!newTenantOnboardingFee || newTenantOnboardingFee === "100000.00" || newTenantOnboardingFee === "250000.00") {
+                            setNewTenantOnboardingFee("50000.00");
+                          }
+                        } else if (nAcc <= 100000 && nColl <= 30) {
+                          setNewTenantTier("PROFESSIONAL");
+                          base = Math.max(55000, Math.min(95000, 55000 + Math.round(((nAcc - 25000) / 75000) * 40000)));
+                          extraCollRate = 1200;
+                          includedColl = 15;
+                          if (!newTenantOnboardingFee || newTenantOnboardingFee === "50000.00" || newTenantOnboardingFee === "250000.00") {
+                            setNewTenantOnboardingFee("120000.00");
+                          }
+                        } else {
+                          setNewTenantTier("ENTERPRISE");
+                          base = Math.max(140000, 140000 + Math.round(((nAcc - 100000) / 100000) * 60000));
+                          extraCollRate = 1000;
+                          includedColl = 50;
+                          if (!newTenantOnboardingFee || newTenantOnboardingFee === "50000.00" || newTenantOnboardingFee === "120000.00") {
+                            setNewTenantOnboardingFee("250000.00");
+                          }
+                        }
+
+                        const extraSeats = Math.max(0, nColl - includedColl);
+                        const calculated = base + (extraSeats * extraCollRate);
+                        setNewTenantMonthlyFee(calculated.toFixed(2));
+                      }}
+                      className="form-input"
+                    />
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "3px", fontSize: "11px" }}>
+                      Starter: ≤25k | Pro: ≤100k | Enterprise: 100k+
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontSize: "12.5px", color: "#e2e8f0" }}>👥 Active Collector Seats</label>
+                    <input
+                      type="number"
+                      step="1"
+                      min="1"
+                      placeholder="e.g. 5"
+                      value={newTenantNumCollectors}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setNewTenantNumCollectors(val);
+                        const nColl = Number(val) || 1;
+                        const nAcc = Number(newTenantNumAccounts) || 10000;
+                        
+                        let base = 25000;
+                        let extraCollRate = 1500;
+                        let includedColl = 5;
+
+                        if (newTenantTier === "STARTER") {
+                          base = 25000;
+                          extraCollRate = 1500;
+                          includedColl = 5;
+                        } else if (newTenantTier === "PROFESSIONAL") {
+                          base = 75000;
+                          extraCollRate = 1200;
+                          includedColl = 15;
+                        } else {
+                          base = 180000;
+                          extraCollRate = 1000;
+                          includedColl = 50;
+                        }
+
+                        const extraSeats = Math.max(0, nColl - includedColl);
+                        const calculated = base + (extraSeats * extraCollRate);
+                        setNewTenantMonthlyFee(calculated.toFixed(2));
+                      }}
+                      className="form-input"
+                    />
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "3px", fontSize: "11px" }}>
+                      Included: Starter (5), Pro (15), Enterprise (50+)
+                    </small>
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontSize: "12.5px", color: "#e2e8f0" }}>🚀 Onboarding & Setup Fee (ZAR)</label>
+                    <input
+                      type="number"
+                      step="1000"
+                      placeholder="e.g. 50000"
+                      value={newTenantOnboardingFee}
+                      onChange={e => setNewTenantOnboardingFee(e.target.value)}
+                      className="form-input"
+                    />
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "3px", fontSize: "11px" }}>
+                      Starter: R40k-75k | Pro: R100k-180k | Ent: R200k-350k+
+                    </small>
+                  </div>
+                </div>
+
+                {/* CALCULATOR SUMMARY CHIPS */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                  gap: "10px",
+                  padding: "10px 14px",
+                  borderRadius: "8px",
+                  background: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.06)",
+                  fontSize: "12px"
+                }}>
+                  <div>
+                    <div style={{ color: "#94a3b8" }}>Calculated Monthly SaaS</div>
+                    <div style={{ fontSize: "15px", fontWeight: 800, color: "#38bdf8" }}>
+                      R {Number(newTenantMonthlyFee || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / mo
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#94a3b8" }}>Once-Off Setup & Data Migration</div>
+                    <div style={{ fontSize: "15px", fontWeight: 800, color: "#a5b4fc" }}>
+                      R {Number(newTenantOnboardingFee || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ color: "#94a3b8" }}>Annual Contract Value (ARR)</div>
+                    <div style={{ fontSize: "15px", fontWeight: 800, color: "#34d399" }}>
+                      R {(Number(newTenantMonthlyFee || 0) * 12 + Number(newTenantOnboardingFee || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -8523,7 +8668,7 @@ function App() {
                 </div>
                 <div className={newTenantModel === "MANAGED_SERVICE" ? "info-grid" : "form-group"} style={{ marginBottom: "12px" }}>
                   <div className="form-group">
-                    <label style={{ color: "#60a5fa" }}>Monthly Platform Usage / SaaS License Fee (ZAR)</label>
+                    <label style={{ color: "#60a5fa" }}>Confirmed Monthly Platform Usage Fee (ZAR)</label>
                     <input
                       type="number"
                       step="100"
