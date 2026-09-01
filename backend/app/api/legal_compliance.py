@@ -88,12 +88,51 @@ class ContractMandateCreate(BaseModel):
     sla_response_time_hours: int = 24
 
 
+class ContractMandateUpdate(BaseModel):
+    contract_title: str | None = None
+    contract_type: str | None = None
+    vendor_party_name: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    contract_value: Decimal | None = None
+    contingency_commission_pct: Decimal | None = None
+    scope_of_work: str | None = None
+    status: str | None = None
+    sla_response_time_hours: int | None = None
+
+
 class LegalDocumentCreate(BaseModel):
-    doc_type: str  # TERMS_OF_USE, POPIA_COLLECTOR_NOTICE, POPIA_MUNICIPAL_NOTICE, POPIA_DEBTOR_NOTICE, PAIA_MANUAL
+    doc_type: str  # TERMS_OF_USE, COMMERCIAL_TERMS, POPIA_PRIVACY_NOTICE, DEBTOR_RIGHTS_SUMMARY, PAIA_MANUAL
     title: str
     version: str
     content: str
     requires_reacceptance: bool = False
+
+
+class LegalDocumentUpdate(BaseModel):
+    title: str | None = None
+    version: str | None = None
+    content: str | None = None
+    is_active: bool | None = None
+    requires_reacceptance: bool | None = None
+
+
+class DirectoryConfigUpdate(BaseModel):
+    operator_name: str | None = None
+    company_registration: str | None = None
+    vat_number: str | None = None
+    registered_address: str | None = None
+    postal_address: str | None = None
+    support_email: str | None = None
+    support_phone: str | None = None
+    operating_hours: str | None = None
+    sla_targets: str | None = None
+    information_officer_title: str | None = None
+    privacy_email: str | None = None
+    compliance_email: str | None = None
+    debtor_query_notice: str | None = None
+    cfdc_contact_info: str | None = None
+    regulator_contact_info: str | None = None
 
 
 class UserAcceptanceCreate(BaseModel):
@@ -609,6 +648,66 @@ def create_contract_mandate(
     return {"message": "MFMA contract mandate registered.", "id": str(mandate.id)}
 
 
+@router.patch("/mandates/{mandate_id}")
+def update_contract_mandate(
+    mandate_id: UUID,
+    payload: ContractMandateUpdate,
+    actor: str = "Superadmin",
+    db: Session = Depends(get_db),
+):
+    """
+    Update MFMA Section 116 Contract Mandate parameters, duration, vendor, or commission rates.
+    """
+    mandate = db.get(MunicipalContractMandate, mandate_id)
+    if not mandate:
+        raise HTTPException(status_code=404, detail="Contract mandate not found.")
+
+    if payload.contract_title is not None:
+        mandate.contract_title = payload.contract_title
+    if payload.contract_type is not None:
+        mandate.contract_type = payload.contract_type
+    if payload.vendor_party_name is not None:
+        mandate.vendor_party_name = payload.vendor_party_name
+    if payload.start_date is not None:
+        mandate.start_date = payload.start_date
+    if payload.end_date is not None:
+        mandate.end_date = payload.end_date
+    if payload.contract_value is not None:
+        mandate.contract_value = payload.contract_value
+    if payload.contingency_commission_pct is not None:
+        mandate.contingency_commission_pct = payload.contingency_commission_pct
+    if payload.scope_of_work is not None:
+        mandate.scope_of_work = payload.scope_of_work
+    if payload.status is not None:
+        mandate.status = payload.status
+    if payload.sla_response_time_hours is not None:
+        mandate.sla_response_time_hours = payload.sla_response_time_hours
+
+    mandate.updated_at = datetime.now(timezone.utc)
+
+    # Log to audit trail
+    audit = AuditEvent(
+        id=uuid.uuid4(),
+        tenant_id=mandate.tenant_id,
+        actor=actor,
+        event_type="MFMA_MANDATE_UPDATED",
+        entity_type="MunicipalContractMandate",
+        entity_id=mandate.id,
+        payload={
+            "mandate_ref": mandate.mandate_reference,
+            "vendor": mandate.vendor_party_name,
+            "status": mandate.status,
+            "end_date": mandate.end_date.isoformat(),
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+
+    db.commit()
+    db.refresh(mandate)
+    return {"message": "MFMA contract mandate updated successfully.", "id": str(mandate.id)}
+
+
 # -------------------------------------------------------------
 # 4. POPIA Section 19 Personal Information Access Audit Trail
 # -------------------------------------------------------------
@@ -948,6 +1047,147 @@ def list_legal_documents(
         }
         for d in docs
     ]
+
+
+@router.patch("/documents/{doc_id}")
+def update_legal_document(
+    doc_id: UUID,
+    payload: LegalDocumentUpdate,
+    actor: str = "Superadmin",
+    db: Session = Depends(get_db),
+):
+    """
+    Allow Superadmin to edit legal policies and PAIA manuals with statutory version incrementing.
+    """
+    doc = db.get(LegalDocument, doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Legal document not found.")
+
+    if payload.title is not None:
+        doc.title = payload.title
+    if payload.version is not None:
+        doc.version = payload.version
+    if payload.content is not None:
+        doc.content = payload.content
+    if payload.is_active is not None:
+        doc.is_active = payload.is_active
+    if payload.requires_reacceptance is not None:
+        doc.requires_reacceptance = payload.requires_reacceptance
+
+    doc.published_date = date.today()
+
+    # Log to audit trail
+    audit = AuditEvent(
+        id=uuid.uuid4(),
+        tenant_id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
+        actor=actor,
+        event_type="LEGAL_DOCUMENT_UPDATED",
+        entity_type="LegalDocument",
+        entity_id=doc.id,
+        payload={
+            "doc_type": doc.doc_type,
+            "title": doc.title,
+            "version": doc.version,
+            "published_date": doc.published_date.isoformat(),
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+
+    db.commit()
+    db.refresh(doc)
+    return {"message": f"Legal document '{doc.title}' updated to version {doc.version}.", "id": str(doc.id)}
+
+
+# Global Directory Configuration Store (Persistent via Legal Document storage)
+DIRECTORY_CONFIG_DOC_TYPE = "DIRECTORY_CONFIG"
+DEFAULT_DIRECTORY_CONFIG = {
+    "operator_name": "Khokhisa Technologies (Pty) Ltd",
+    "company_registration": "2014/032353/07",
+    "vat_number": "4120268894",
+    "registered_address": "85 Grayston Drive, Sandton, Johannesburg, Gauteng, 2196",
+    "postal_address": "PostNet Suite 412, Private Bag X9, Benmore, 2010",
+    "support_email": "support@khokhisa.co.za",
+    "support_phone": "+27 (0) 11 884 9200",
+    "operating_hours": "Monday – Friday, 08:00 – 17:00 SAST",
+    "sla_targets": "Critical (4 hrs) | Billing (1 bus. day) | General (2 bus. days)",
+    "information_officer_title": "Head of Legal & Regulatory Compliance (s 55 POPIA)",
+    "privacy_email": "privacy@khokhisa.co.za",
+    "compliance_email": "compliance@khokhisa.co.za",
+    "debtor_query_notice": "Khokhisa is a technology provider and operator only — it cannot alter account balances, payment arrangements, or debtor records. For account-specific queries, contact your municipality or the collector assigned to your account. For technical portal issues, contact platform support above.",
+    "cfdc_contact_info": "Council for Debt Collectors (CFDC) | Web: cfdc.org.za | Email: info@cfdc.org.za | Tel: +27 12 804 9983",
+    "regulator_contact_info": "Information Regulator (South Africa) | JD House, 27 Stiemens Street, Braamfontein, JHB | Email: POPIAComplaints@inforegulator.org.za",
+}
+
+
+@router.get("/directory-config")
+def get_directory_config(db: Session = Depends(get_db)):
+    """
+    Get current platform contact and regulatory directory particulars.
+    """
+    doc = db.scalar(select(LegalDocument).where(LegalDocument.doc_type == DIRECTORY_CONFIG_DOC_TYPE))
+    if not doc:
+        return DEFAULT_DIRECTORY_CONFIG
+    try:
+        return json.loads(doc.content)
+    except Exception:
+        return DEFAULT_DIRECTORY_CONFIG
+
+
+@router.put("/directory-config")
+def update_directory_config(
+    payload: DirectoryConfigUpdate,
+    actor: str = "Superadmin",
+    db: Session = Depends(get_db),
+):
+    """
+    Allow Superadmin to update Contact & Regulatory Directory particulars.
+    """
+    doc = db.scalar(select(LegalDocument).where(LegalDocument.doc_type == DIRECTORY_CONFIG_DOC_TYPE))
+    current_data = DEFAULT_DIRECTORY_CONFIG.copy()
+    if doc:
+        try:
+            current_data.update(json.loads(doc.content))
+        except Exception:
+            pass
+
+    # Update supplied fields
+    for field, val in payload.model_dump(exclude_unset=True).items():
+        if val is not None:
+            current_data[field] = val
+
+    content_str = json.dumps(current_data, indent=2)
+
+    if not doc:
+        doc = LegalDocument(
+            id=uuid.uuid4(),
+            doc_type=DIRECTORY_CONFIG_DOC_TYPE,
+            title="Platform Contact & Regulatory Directory Particulars",
+            version="v1.0",
+            content=content_str,
+            is_active=True,
+            published_date=date.today(),
+        )
+        db.add(doc)
+    else:
+        doc.content = content_str
+        doc.published_date = date.today()
+
+    # Log to audit trail
+    audit = AuditEvent(
+        id=uuid.uuid4(),
+        tenant_id=uuid.UUID("00000000-0000-0000-0000-000000000000"),
+        actor=actor,
+        event_type="DIRECTORY_CONFIG_UPDATED",
+        entity_type="LegalDocument",
+        entity_id=doc.id,
+        payload={"updated_fields": list(payload.model_dump(exclude_unset=True).keys())},
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+
+    db.commit()
+    return {"message": "Contact and regulatory directory updated successfully.", "config": current_data}
 
 
 @router.post("/acceptances")

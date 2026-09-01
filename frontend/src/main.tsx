@@ -344,8 +344,43 @@ function App() {
   const [newBreachCategory, setNewBreachCategory] = useState("Debtor names and arrears balances");
   const [newBreachContainment, setNewBreachContainment] = useState("");
 
-  // View Legal Policy Modal
+  // View & Edit Legal Policy Modal
   const [viewingLegalDoc, setViewingLegalDoc] = useState<any>(null);
+  const [editingLegalDoc, setEditingLegalDoc] = useState<any>(null);
+  const [editDocTitle, setEditDocTitle] = useState("");
+  const [editDocVersion, setEditDocVersion] = useState("");
+  const [editDocContent, setEditDocContent] = useState("");
+
+  // Edit Mandate Modal
+  const [editingMandate, setEditingMandate] = useState<any>(null);
+  const [editMandateTitle, setEditMandateTitle] = useState("");
+  const [editMandateType, setEditMandateType] = useState("");
+  const [editMandateVendor, setEditMandateVendor] = useState("");
+  const [editMandateStart, setEditMandateStart] = useState("");
+  const [editMandateEnd, setEditMandateEnd] = useState("");
+  const [editMandateValue, setEditMandateValue] = useState("");
+  const [editMandateComm, setEditMandateComm] = useState("");
+  const [editMandateStatus, setEditMandateStatus] = useState("ACTIVE");
+  const [editMandateScope, setEditMandateScope] = useState("");
+
+  // Directory Config State
+  const [directoryConfig, setDirectoryConfig] = useState<any>(null);
+  const [editingDirectory, setEditingDirectory] = useState(false);
+  const [dirOperatorName, setDirOperatorName] = useState("");
+  const [dirRegNumber, setDirRegNumber] = useState("");
+  const [dirVatNumber, setDirVatNumber] = useState("");
+  const [dirRegAddress, setDirRegAddress] = useState("");
+  const [dirPostalAddress, setDirPostalAddress] = useState("");
+  const [dirSupportEmail, setDirSupportEmail] = useState("");
+  const [dirSupportPhone, setDirSupportPhone] = useState("");
+  const [dirOperatingHours, setDirOperatingHours] = useState("");
+  const [dirSlaTargets, setDirSlaTargets] = useState("");
+  const [dirIoTitle, setDirIoTitle] = useState("");
+  const [dirPrivacyEmail, setDirPrivacyEmail] = useState("");
+  const [dirComplianceEmail, setDirComplianceEmail] = useState("");
+  const [dirDebtorNotice, setDirDebtorNotice] = useState("");
+  const [dirCfdcInfo, setDirCfdcInfo] = useState("");
+  const [dirRegulatorInfo, setDirRegulatorInfo] = useState("");
 
   const [accSearch, setAccSearch] = useState("");
   const [accMobileSearch, setAccMobileSearch] = useState("");
@@ -686,6 +721,30 @@ function App() {
     fetch(`${API}/legal-compliance/acceptances/roster${tenantParam}`)
       .then(r => r.json())
       .then(setLegalAcceptances)
+      .catch(console.error);
+
+    fetch(`${API}/legal-compliance/directory-config`)
+      .then(r => r.json())
+      .then(data => {
+        setDirectoryConfig(data);
+        if (data) {
+          setDirOperatorName(data.operator_name || "");
+          setDirRegNumber(data.company_registration || "");
+          setDirVatNumber(data.vat_number || "");
+          setDirRegAddress(data.registered_address || "");
+          setDirPostalAddress(data.postal_address || "");
+          setDirSupportEmail(data.support_email || "");
+          setDirSupportPhone(data.support_phone || "");
+          setDirOperatingHours(data.operating_hours || "");
+          setDirSlaTargets(data.sla_targets || "");
+          setDirIoTitle(data.information_officer_title || "");
+          setDirPrivacyEmail(data.privacy_email || "");
+          setDirComplianceEmail(data.compliance_email || "");
+          setDirDebtorNotice(data.debtor_query_notice || "");
+          setDirCfdcInfo(data.cfdc_contact_info || "");
+          setDirRegulatorInfo(data.regulator_contact_info || "");
+        }
+      })
       .catch(console.error);
   };
 
@@ -5318,6 +5377,7 @@ function App() {
                           <th>Expiry Warning</th>
                           <th>Contingency Comm</th>
                           <th>Status</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -5349,6 +5409,27 @@ function App() {
                               }}>
                                 {m.status}
                               </span>
+                            </td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: "11px", padding: "2px 8px" }}
+                                onClick={() => {
+                                  setEditingMandate(m);
+                                  setEditMandateTitle(m.contract_title);
+                                  setEditMandateType(m.contract_type);
+                                  setEditMandateVendor(m.vendor_party_name);
+                                  setEditMandateStart(m.start_date);
+                                  setEditMandateEnd(m.end_date);
+                                  setEditMandateValue(m.contract_value?.toString() || "");
+                                  setEditMandateComm(m.contingency_commission_pct?.toString() || "10.00");
+                                  setEditMandateStatus(m.status);
+                                  setEditMandateScope(m.scope_of_work || "");
+                                }}
+                              >
+                                ✏️ Edit
+                              </button>
                             </td>
                           </tr>
                         ))}
@@ -5478,7 +5559,7 @@ function App() {
                           </p>
                         </div>
 
-                        <div style={{ display: "flex", gap: "8px" }}>
+                        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
                           <button
                             type="button"
                             className="btn btn-secondary btn-sm"
@@ -5491,8 +5572,23 @@ function App() {
                               });
                             }}
                           >
-                            📄 Read Policy
+                            📄 Read
                           </button>
+                          {currentUser?.role === "SUPERADMIN" && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              style={{ flex: 1 }}
+                              onClick={() => {
+                                setEditingLegalDoc(doc);
+                                setEditDocTitle(doc.title);
+                                setEditDocVersion(doc.version);
+                                setEditDocContent(doc.content);
+                              }}
+                            >
+                              ✏️ Edit
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="btn btn-primary btn-sm"
@@ -5519,7 +5615,7 @@ function App() {
                               }
                             }}
                           >
-                            ✓ Accept Terms
+                            ✓ Accept
                           </button>
                         </div>
                       </div>
@@ -5566,16 +5662,35 @@ function App() {
               {/* TAB 6: CONTACT & REGULATORY DIRECTORY */}
               {legalComplianceTab === "contact_us" && (
                 <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>Platform Contact Particulars & Statutory Regulators Directory</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Official company registration, support helpdesk, Information Officer compliance details, and statutory oversight bodies.
+                      </p>
+                    </div>
+
+                    {currentUser?.role === "SUPERADMIN" && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setEditingDirectory(true)}
+                      >
+                        ✏️ Edit Directory Particulars
+                      </button>
+                    )}
+                  </div>
+
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "20px", marginBottom: "24px" }}>
                     {/* Platform Operator Details */}
                     <div className="glass-panel" style={{ padding: "20px", border: "1px solid var(--border-subtle)" }}>
                       <h4 style={{ margin: "0 0 12px 0", color: "#38bdf8", fontSize: "16px" }}>🏢 Platform Operator Particulars</h4>
                       <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
-                        <div><strong>Legal Entity:</strong> Khokhisa Technologies (Pty) Ltd</div>
-                        <div><strong>Company Registration:</strong> 2014/032353/07</div>
-                        <div><strong>VAT Registration:</strong> 4120268894</div>
-                        <div><strong>Registered Address:</strong> 85 Grayston Drive, Sandton, Johannesburg, Gauteng, 2196</div>
-                        <div><strong>Postal Address:</strong> PostNet Suite 412, Private Bag X9, Benmore, 2010</div>
+                        <div><strong>Legal Entity:</strong> {directoryConfig?.operator_name || "Khokhisa Technologies (Pty) Ltd"}</div>
+                        <div><strong>Company Registration:</strong> {directoryConfig?.company_registration || "2014/032353/07"}</div>
+                        <div><strong>VAT Registration:</strong> {directoryConfig?.vat_number || "4120268894"}</div>
+                        <div><strong>Registered Address:</strong> {directoryConfig?.registered_address || "85 Grayston Drive, Sandton, Johannesburg, Gauteng, 2196"}</div>
+                        <div><strong>Postal Address:</strong> {directoryConfig?.postal_address || "PostNet Suite 412, Private Bag X9, Benmore, 2010"}</div>
                       </div>
                     </div>
 
@@ -5583,10 +5698,10 @@ function App() {
                     <div className="glass-panel" style={{ padding: "20px", border: "1px solid var(--border-subtle)" }}>
                       <h4 style={{ margin: "0 0 12px 0", color: "#34d399", fontSize: "16px" }}>🛟 Technical Support & Helpdesk</h4>
                       <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
-                        <div><strong>Support Email:</strong> support@khokhisa.co.za</div>
-                        <div><strong>Emergency Hotline:</strong> +27 (0) 11 884 9200</div>
-                        <div><strong>Operating Hours:</strong> Monday – Friday, 08:00 – 17:00 SAST</div>
-                        <div><strong>SLA Response Targets:</strong> Critical (4 hrs) | Billing (1 bus. day) | General (2 bus. days)</div>
+                        <div><strong>Support Email:</strong> {directoryConfig?.support_email || "support@khokhisa.co.za"}</div>
+                        <div><strong>Emergency Hotline:</strong> {directoryConfig?.support_phone || "+27 (0) 11 884 9200"}</div>
+                        <div><strong>Operating Hours:</strong> {directoryConfig?.operating_hours || "Monday – Friday, 08:00 – 17:00 SAST"}</div>
+                        <div><strong>SLA Response Targets:</strong> {directoryConfig?.sla_targets || "Critical (4 hrs) | Billing (1 bus. day) | General (2 bus. days)"}</div>
                       </div>
                     </div>
 
@@ -5594,10 +5709,9 @@ function App() {
                     <div className="glass-panel" style={{ padding: "20px", border: "1px solid var(--border-subtle)" }}>
                       <h4 style={{ margin: "0 0 12px 0", color: "#c084fc", fontSize: "16px" }}>⚖️ Information Officer & Compliance</h4>
                       <div style={{ fontSize: "13px", lineHeight: "1.6", color: "#cbd5e1" }}>
-                        <div><strong>Information Officer:</strong> Head of Legal & Regulatory Compliance</div>
-                        <div><strong>POPIA s 55 Registration:</strong> Registered with Information Regulator</div>
-                        <div><strong>Privacy Inquiries:</strong> privacy@khokhisa.co.za</div>
-                        <div><strong>Municipal Audit Queries:</strong> compliance@khokhisa.co.za</div>
+                        <div><strong>Information Officer:</strong> {directoryConfig?.information_officer_title || "Head of Legal & Regulatory Compliance (s 55 POPIA)"}</div>
+                        <div><strong>Privacy Inquiries:</strong> {directoryConfig?.privacy_email || "privacy@khokhisa.co.za"}</div>
+                        <div><strong>Municipal Audit Queries:</strong> {directoryConfig?.compliance_email || "compliance@khokhisa.co.za"}</div>
                       </div>
                     </div>
                   </div>
@@ -5605,7 +5719,7 @@ function App() {
                   {/* Statutory Isolation & Disclaimers */}
                   <div style={{ padding: "16px", background: "rgba(234, 179, 8, 0.08)", border: "1px solid rgba(234, 179, 8, 0.25)", borderRadius: "8px", marginBottom: "24px", fontSize: "12.5px", lineHeight: "1.5", color: "#cbd5e1" }}>
                     <strong style={{ color: "#facc15" }}>⚠️ Debtor Account Queries & Statutory Notice:</strong><br />
-                    Khokhisa is a technology provider and operator only — it cannot alter account balances, payment arrangements, or debtor records. For account-specific queries, contact your municipality or the collector assigned to your account (details shown on your statement and debtor portal). For technical portal issues, contact platform support above.
+                    {directoryConfig?.debtor_query_notice || "Khokhisa is a technology provider and operator only — it cannot alter account balances, payment arrangements, or debtor records. For account-specific queries, contact your municipality or the collector assigned to your account. For technical portal issues, contact platform support above."}
                   </div>
 
                   {/* Statutory Regulator Directory */}
@@ -5614,17 +5728,14 @@ function App() {
                     <div className="glass-panel" style={{ padding: "16px", border: "1px solid var(--border-subtle)" }}>
                       <h5 style={{ margin: "0 0 6px 0", color: "#38bdf8" }}>Council for Debt Collectors (CFDC)</h5>
                       <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
-                        For complaints regarding external debt collector conduct, statutory fee caps, or ethics under Act 114 of 1998.<br />
-                        <strong>Website:</strong> cfdc.org.za | <strong>Email:</strong> info@cfdc.org.za
+                        {directoryConfig?.cfdc_contact_info || "For complaints regarding external debt collector conduct, statutory fee caps, or ethics under Act 114 of 1998. Web: cfdc.org.za | Email: info@cfdc.org.za"}
                       </div>
                     </div>
 
                     <div className="glass-panel" style={{ padding: "16px", border: "1px solid var(--border-subtle)" }}>
                       <h5 style={{ margin: "0 0 6px 0", color: "#34d399" }}>Information Regulator (South Africa)</h5>
                       <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: "1.5" }}>
-                        For privacy, POPIA compliance, or data subject complaints.<br />
-                        <strong>Address:</strong> JD House, 27 Stiemens Street, Braamfontein, JHB<br />
-                        <strong>Email:</strong> POPIAComplaints@inforegulator.org.za
+                        {directoryConfig?.regulator_contact_info || "For privacy, POPIA compliance, or data subject complaints. Address: JD House, 27 Stiemens Street, Braamfontein, JHB | Email: POPIAComplaints@inforegulator.org.za"}
                       </div>
                     </div>
                   </div>
@@ -6016,6 +6127,305 @@ function App() {
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowNewBreachModal(false)}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={loading || !newBreachDesc}>🚨 Post Incident Log</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT MFMA MANDATE (SUPERADMIN / ADMIN) */}
+      {editingMandate && (
+        <div className="modal-backdrop" onClick={() => setEditingMandate(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "620px", width: "92%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>✏️ Edit MFMA Section 116 Contract Mandate</h3>
+                <p>Modify mandate <strong>{editingMandate.mandate_reference}</strong> ({editingMandate.tenant_name})</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setEditingMandate(null)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                await fetch(`${API}/legal-compliance/mandates/${editingMandate.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contract_title: editMandateTitle,
+                    contract_type: editMandateType,
+                    vendor_party_name: editMandateVendor,
+                    start_date: editMandateStart,
+                    end_date: editMandateEnd,
+                    contract_value: Number(editMandateValue),
+                    contingency_commission_pct: Number(editMandateComm),
+                    status: editMandateStatus,
+                    scope_of_work: editMandateScope,
+                  }),
+                });
+                alert("MFMA Contract Mandate updated successfully!");
+                setEditingMandate(null);
+                refreshData();
+              } catch (err: any) {
+                alert("Error updating mandate: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Contract Title</label>
+                  <input type="text" value={editMandateTitle} onChange={e => setEditMandateTitle(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Contract Type</label>
+                  <select value={editMandateType} onChange={e => setEditMandateType(e.target.value)} className="form-select">
+                    <option value="COLLECTOR_MANDATE">COLLECTOR_MANDATE</option>
+                    <option value="PLATFORM_SLA">PLATFORM_SLA</option>
+                    <option value="PANEL_APPOINTMENT">PANEL_APPOINTMENT</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Vendor / Collector Firm Name</label>
+                <input type="text" value={editMandateVendor} onChange={e => setEditMandateVendor(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Start Date</label>
+                  <input type="date" value={editMandateStart} onChange={e => setEditMandateStart(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>End Date</label>
+                  <input type="date" value={editMandateEnd} onChange={e => setEditMandateEnd(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Contingency Commission (%)</label>
+                  <input type="number" value={editMandateComm} onChange={e => setEditMandateComm(e.target.value)} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Mandate Status</label>
+                  <select value={editMandateStatus} onChange={e => setEditMandateStatus(e.target.value)} className="form-select">
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="EXPIRING_SOON">EXPIRING_SOON</option>
+                    <option value="EXPIRED">EXPIRED</option>
+                    <option value="TERMINATED">TERMINATED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label>Scope of Work / Services</label>
+                <textarea rows={3} value={editMandateScope} onChange={e => setEditMandateScope(e.target.value)} className="form-textarea" />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingMandate(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>💾 Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT LEGAL DOCUMENT / PAIA (SUPERADMIN) */}
+      {editingLegalDoc && (
+        <div className="modal-backdrop" onClick={() => setEditingLegalDoc(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "800px", width: "95%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
+              <div className="panel-title">
+                <h3>✏️ Edit Legal Policy / PAIA Manual & Increment Version</h3>
+                <p>Modify document content and statutory version for <strong>{editingLegalDoc.doc_type}</strong></p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setEditingLegalDoc(null)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                await fetch(`${API}/legal-compliance/documents/${editingLegalDoc.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    title: editDocTitle,
+                    version: editDocVersion,
+                    content: editDocContent,
+                  }),
+                });
+                alert(`Legal document '${editDocTitle}' updated to version ${editDocVersion}!`);
+                setEditingLegalDoc(null);
+                refreshData();
+              } catch (err: any) {
+                alert("Error updating legal document: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Document Title</label>
+                  <input type="text" value={editDocTitle} onChange={e => setEditDocTitle(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Statutory Version (e.g., v1.1, v2.0)</label>
+                  <input type="text" value={editDocVersion} onChange={e => setEditDocVersion(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "18px" }}>
+                <label>Document Content (Markdown / Text)</label>
+                <textarea
+                  rows={14}
+                  value={editDocContent}
+                  onChange={e => setEditDocContent(e.target.value)}
+                  className="form-textarea"
+                  style={{ fontFamily: "monospace", fontSize: "12px", lineHeight: "1.5" }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingLegalDoc(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading || !editDocContent}>
+                  💾 Publish Version {editDocVersion}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT CONTACT & REGULATORY DIRECTORY (SUPERADMIN) */}
+      {editingDirectory && (
+        <div className="modal-backdrop" onClick={() => setEditingDirectory(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "760px", width: "95%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
+              <div className="panel-title">
+                <h3>✏️ Edit Contact & Regulatory Directory Particulars</h3>
+                <p>Configure official operator company details, SLA response targets, Information Officer and regulator contacts</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setEditingDirectory(false)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                await fetch(`${API}/legal-compliance/directory-config`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    operator_name: dirOperatorName,
+                    company_registration: dirRegNumber,
+                    vat_number: dirVatNumber,
+                    registered_address: dirRegAddress,
+                    postal_address: dirPostalAddress,
+                    support_email: dirSupportEmail,
+                    support_phone: dirSupportPhone,
+                    operating_hours: dirOperatingHours,
+                    sla_targets: dirSlaTargets,
+                    information_officer_title: dirIoTitle,
+                    privacy_email: dirPrivacyEmail,
+                    compliance_email: dirComplianceEmail,
+                    debtor_query_notice: dirDebtorNotice,
+                    cfdc_contact_info: dirCfdcInfo,
+                    regulator_contact_info: dirRegulatorInfo,
+                  }),
+                });
+                alert("Contact and regulatory directory particulars updated successfully!");
+                setEditingDirectory(false);
+                refreshData();
+              } catch (err: any) {
+                alert("Error updating directory: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Operator Legal Entity Name</label>
+                  <input type="text" value={dirOperatorName} onChange={e => setDirOperatorName(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Company Registration No.</label>
+                  <input type="text" value={dirRegNumber} onChange={e => setDirRegNumber(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>VAT Registration Number</label>
+                  <input type="text" value={dirVatNumber} onChange={e => setDirVatNumber(e.target.value)} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Support Phone Hotline</label>
+                  <input type="text" value={dirSupportPhone} onChange={e => setDirSupportPhone(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Support Helpdesk Email</label>
+                  <input type="email" value={dirSupportEmail} onChange={e => setDirSupportEmail(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Privacy Officer Email</label>
+                  <input type="email" value={dirPrivacyEmail} onChange={e => setDirPrivacyEmail(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Compliance & Audit Email</label>
+                  <input type="email" value={dirComplianceEmail} onChange={e => setDirComplianceEmail(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Operating Hours</label>
+                  <input type="text" value={dirOperatingHours} onChange={e => setDirOperatingHours(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>SLA Response Targets</label>
+                <input type="text" value={dirSlaTargets} onChange={e => setDirSlaTargets(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Physical Registered Address</label>
+                <input type="text" value={dirRegAddress} onChange={e => setDirRegAddress(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Postal Address</label>
+                <input type="text" value={dirPostalAddress} onChange={e => setDirPostalAddress(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Debtor Account Query Statutory Notice</label>
+                <textarea rows={2} value={dirDebtorNotice} onChange={e => setDirDebtorNotice(e.target.value)} className="form-textarea" required />
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "18px" }}>
+                <div className="form-group">
+                  <label>Council for Debt Collectors (CFDC) Details</label>
+                  <textarea rows={2} value={dirCfdcInfo} onChange={e => setDirCfdcInfo(e.target.value)} className="form-textarea" required />
+                </div>
+                <div className="form-group">
+                  <label>Information Regulator Contact Details</label>
+                  <textarea rows={2} value={dirRegulatorInfo} onChange={e => setDirRegulatorInfo(e.target.value)} className="form-textarea" required />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setEditingDirectory(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>💾 Save Directory Particulars</button>
               </div>
             </form>
           </div>
