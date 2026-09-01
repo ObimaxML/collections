@@ -592,25 +592,82 @@ def list_pii_access_logs(
 # 5. Versioned In-App Legal Policies & ECTA User Acceptance
 # -------------------------------------------------------------
 
-DEFAULT_TERMS_OF_USE = """
-# KHOKHISA DEBT COLLECTION OS — MASTER TERMS OF SERVICE
+DEFAULT_TERMS_OF_USE = """# TERMS OF USE
+Khokhisa Debt Collection OS — Version 1.0 | Effective date: 1 September 2026
 
-**Effective Date: 1 September 2026 | Version: v2.1-ZA**
+### 1. INTRODUCTION AND ACCEPTANCE
+1.1 These Terms of Use ("Terms") govern access to and use of Khokhisa Debt Collection OS ("the Platform"), operated by Khokhisa Technologies (Pty) Ltd, registration number 2014/032353/07, a company incorporated in South Africa ("we", "us", "the Platform Operator").
+1.2 By registering an account, accessing, or using the Platform, you agree to be bound by these Terms, our Privacy Policy, and any commercial terms applicable to your subscription. If you do not agree, do not use the Platform.
+1.3 If you use the Platform on behalf of a municipality, company, or other entity, you warrant that you are authorised to bind that entity, and "you" includes that entity.
 
-### 1. NATURE OF SERVICE: TECHNOLOGY PLATFORM ONLY
-1.1 Khokhisa Debt Collection OS provides cloud-native municipal revenue software, workflow automation, and algorithmic case routing.
-1.2 **Khokhisa is a technology provider, not a debt collection agency.** Khokhisa does not engage in direct debt recovery, does not take cession of municipal book debts, and never receives, holds, or disburses debtor funds into its own accounts.
+### 2. DEFINITIONS
+"Act" means the Debt Collectors Act 114 of 1998, including its regulations and code of conduct; "CFDC" means the Council for Debt Collectors; "Collector" means a debt collector registered with the CFDC and verified on the Platform; "Municipality" means a municipality as defined in the Local Government: Municipal Systems Act 32 of 2000 that subscribes to the Platform; "Debtor" means a person whose municipal account is managed through the Platform; "POPIA" means the Protection of Personal Information Act 4 of 2013.
 
-### 2. COLLECTOR STATUTORY COMPLIANCE & TRUST ACCOUNTS
-2.1 All debt collection practitioners utilizing the platform warrant that they maintain active, unencumbered registration with the **Council for Debt Collectors (CFDC)** under Act 114 of 1998.
-2.2 Collectors warrant that all debtor payments collected settle exclusively into verified statutory **Trust Accounts** (Section 9(1) of Act 114 of 1998) or directly into the designated municipal bank accounts.
+### 3. NATURE OF THE PLATFORM
+3.1 The Platform is a software and workflow tool only. We are not a debt collector, do not perform debt collection, and do not provide legal, financial, or debt counselling advice.
+3.2 The Platform never takes possession, custody, or control of Debtor funds. All payments are made directly into the Collector's trust account contemplated in section 20(1) of the Act, or directly into the Municipality's bank account, as configured.
+3.3 The Platform is not a party to any collection mandate between a Municipality and a Collector, and is not responsible for the conduct of Collectors or the instructions of Municipalities.
 
-### 3. POPIA ROLES & RESPONSIBILITIES
-3.1 Municipalities act as the **Responsible Party** under Section 1 of the Protection of Personal Information Act (POPIA Act 4 of 2013).
-3.2 The Platform acts strictly as an **Operator** under Section 21 of POPIA, processing debtor data only on documented municipal instructions.
+### 4. ELIGIBILITY AND ACCOUNTS
+4.1 You must provide accurate, current, and complete registration information and keep it updated.
+4.2 You are responsible for safeguarding your login credentials, for all activity under your account, and for notifying us immediately at security@khokhisa.co.za of any unauthorised access. Accounts are personal and may not be shared.
+4.3 We may refuse, suspend, or terminate accounts that provide false information or breach these Terms.
 
-### 4. LIMITATION OF LIABILITY
-To the maximum extent permitted by South African law, Khokhisa shall not be liable for statutory non-compliance by third-party collectors, nor for municipal credit control determinations.
+### 5. COLLECTOR-SPECIFIC TERMS
+5.1 To register as a Collector you must: (a) hold valid, current registration with the CFDC under section 8 of the Act; (b) maintain a separate trust account as required by section 20(1) of the Act and provide verified details of that account; (c) complete our identity/KYC verification; and (d) submit your annual trust account audit report within the period prescribed by the Act.
+5.2 Verification on the Platform is an administrative control only. It does not certify, replace, or constitute CFDC registration, and we make no representation that any Collector is compliant with the Act.
+5.3 You must comply with the Act, its code of conduct, and all prescribed fee caps at all times. You may only charge or recover collection fees lawfully due to a registered debt collector.
+5.4 You may only act for Municipalities to which you have been assigned on the Platform, and only within the scope of your mandate from that Municipality.
+5.5 If your CFDC registration lapses or expires, your trust account verification is withdrawn, or your audit becomes overdue, the Platform will automatically suspend your collection access and notify your assigned Municipalities. This suspension is a protective administrative measure and does not constitute a finding of non-compliance by us.
+5.6 You may not harass, threaten, or mislead Debtors, and must conduct all collection activity lawfully and within the code of conduct.
+
+### 6. MUNICIPALITY-SPECIFIC TERMS
+6.1 The Municipality warrants that: (a) it has lawful authority to appoint and instruct Collectors; (b) debtor data uploaded to the Platform is accurate and lawfully obtained; and (c) its use of the Platform complies with the Local Government: Municipal Finance Management Act 56 of 2003 and its own supply chain management policy.
+6.2 The Municipality is the responsible party under POPIA for all debtor personal information processed through the Platform, and must ensure a lawful basis exists for all instructions given through the Platform.
+6.3 The Municipality is responsible for approving, managing, and removing Collectors assigned to it, and for the actions of its own users.
+
+### 7. DEBTOR PORTAL
+7.1 Debtor portal access is provided on behalf of the relevant Municipality and/or assigned Collector. Account-specific debt queries, disputes, and payment arrangements must be directed to that Municipality or Collector, not to the Platform Operator.
+7.2 Payment confirmations displayed on the portal are subject to bank settlement and reconciliation by the receiving account holder.
+
+### 8. ACCEPTABLE USE
+You may not: (a) use the Platform for any unlawful purpose; (b) process personal information outside an authorised mandate or lawful basis; (c) harass, intimidate, or mislead any person through the Platform; (d) attempt to gain unauthorised access to any part of the Platform or another user's data; (e) reverse engineer, copy, or scrape the Platform except as permitted by law; or (f) introduce malware or disrupt the Platform.
+
+### 9. INTELLECTUAL PROPERTY
+9.1 The Platform, including all software, design, and documentation, is owned by or licensed to the Platform Operator. We grant you a limited, non-exclusive, non-transferable, revocable licence to use the Platform for its intended purpose while your account is active.
+9.2 You retain all ownership of data you upload. You grant us a limited licence to host, process, and display that data solely to provide the Platform services.
+
+### 10. DISCLAIMERS
+10.1 The Platform is provided "as is" and "as available". To the extent permitted by law, we disclaim all warranties, express or implied, including merchantability, fitness for a particular purpose, and non-infringement.
+10.2 We do not warrant that the Platform will be uninterrupted or error-free, that debtor data uploaded by Municipalities is accurate, or that any Collector is or will remain compliant with the Act.
+10.3 Nothing in these Terms excludes liability that cannot be excluded under the Consumer Protection Act 68 of 2008, the Electronic Communications and Transactions Act 25 of 2002, or other applicable law.
+
+### 11. LIMITATION OF LIABILITY
+To the maximum extent permitted by law: (a) we are not liable for the conduct of any Collector or Municipality, for payment gateway or banking failures, or for indirect, consequential, special, or punitive damages, including loss of revenue or data; and (b) our total aggregate liability arising from or relating to the Platform is limited to the subscription fees paid by you in the 12 months preceding the claim.
+
+### 12. INDEMNIFICATION
+Collectors and Municipalities each indemnify the Platform Operator against all claims, losses, fines, and expenses (including reasonable legal costs) arising from: (a) their unlawful collection conduct or breach of the Act; (b) unlawful or unauthorised processing instructions; or (c) their breach of these Terms.
+
+### 13. SUSPENSION AND TERMINATION
+13.1 We may suspend or terminate access for material breach, unlawful use, non-payment (subject to the commercial terms), or where required by law or a regulator.
+13.2 On termination, you may export your data within 30 days, after which it will be deleted in accordance with our retention policy, subject to legal retention obligations.
+13.3 Clauses that by their nature should survive (including liability, indemnity, IP, and dispute clauses) survive termination.
+
+### 14. PRIVACY
+Your use of the Platform is subject to our Privacy Policy. Municipalities remain the responsible parties under POPIA; the Platform acts as operator as described in the Privacy Policy and applicable operator agreements.
+
+### 15. GOVERNING LAW AND DISPUTES
+15.1 These Terms are governed by the laws of South Africa.
+15.2 Disputes will follow this escalation: (a) written notice and good-faith negotiation for 30 days; (b) failing resolution, mediation; (c) failing mediation, the courts of South Africa, and you consent to the jurisdiction of the Gauteng Division of the High Court, Johannesburg.
+15.3 Nothing prevents either party from seeking urgent interim relief.
+
+### 16. AMENDMENTS
+We may update these Terms with at least 30 days' notice. Material changes require re-acceptance before continued use; otherwise, continued use after the effective date constitutes acceptance. Previous versions are available on request.
+
+### 17. GENERAL
+17.1 These Terms, together with the Privacy Policy and any commercial terms, are the whole agreement between you and us regarding the Platform.
+17.2 If any provision is unenforceable, the remainder continues in force. No waiver is effective unless in writing. You may not cede or delegate your rights or obligations without our consent.
+17.3 Notices may be given electronically in accordance with ECTA, to the addresses in the Contact section of the Platform.
 """
 
 DEFAULT_PRIVACY_POLICY = """
