@@ -275,10 +275,10 @@ function App() {
   const [newTenantName, setNewTenantName] = useState("");
   const [newTenantCode, setNewTenantCode] = useState("");
   const [newTenantModel, setNewTenantModel] = useState<"MANAGED_SERVICE" | "SAAS_SELF_SERVICE">("MANAGED_SERVICE");
-  const [newTenantTier, setNewTenantTier] = useState("ENTERPRISE");
-  const [newTenantStatus, setNewTenantStatus] = useState("ACTIVE");
+  const [newTenantTier, setNewTenantTier] = useState("STARTER");
+  const [newTenantStatus, setNewTenantStatus] = useState("TRIAL");
   const [newTenantCommission, setNewTenantCommission] = useState("10.00");
-  const [newTenantMonthlyFee, setNewTenantMonthlyFee] = useState("0.00");
+  const [newTenantMonthlyFee, setNewTenantMonthlyFee] = useState("25000.00");
   const [newTenantBillingEmail, setNewTenantBillingEmail] = useState("");
   const [newTenantPhysicalAddress, setNewTenantPhysicalAddress] = useState("");
   const [newTenantPostalAddress, setNewTenantPostalAddress] = useState("");
@@ -8441,12 +8441,22 @@ function App() {
                   <label>Subscription Tier</label>
                   <select
                     value={newTenantTier}
-                    onChange={e => setNewTenantTier(e.target.value)}
+                    onChange={e => {
+                      const selected = e.target.value;
+                      setNewTenantTier(selected);
+                      if (selected === "STARTER") {
+                        setNewTenantMonthlyFee("25000.00");
+                      } else if (selected === "PROFESSIONAL") {
+                        setNewTenantMonthlyFee("75000.00");
+                      } else if (selected === "ENTERPRISE") {
+                        setNewTenantMonthlyFee("180000.00");
+                      }
+                    }}
                     className="form-select"
                   >
-                    <option value="ENTERPRISE">Enterprise (Full Feature Suite, PII Audit & Compliance)</option>
-                    <option value="PROFESSIONAL">Professional (Standard Analytics & Work Queue)</option>
-                    <option value="STARTER">Starter Tier</option>
+                    <option value="STARTER">🏷️ Starter Tier (R18,000 – R30,000 / mo | ~25,000 Accounts | 5 Collectors)</option>
+                    <option value="PROFESSIONAL">⚡ Professional Tier (R55,000 – R95,000 / mo | ~100,000 Accounts | 15 Collectors)</option>
+                    <option value="ENTERPRISE">👑 Enterprise Tier (R140,000 – R250,000+ / mo | Unlimited Accounts & Volume)</option>
                   </select>
                 </div>
 
@@ -8461,11 +8471,48 @@ function App() {
                       color: newTenantStatus === "ACTIVE" ? "#34d399" : newTenantStatus === "TRIAL" ? "#38bdf8" : newTenantStatus === "SUSPENDED" ? "#f87171" : "#fbbf24"
                     }}
                   >
+                    <option value="TRIAL">🔵 TRIAL (Evaluation / POC Mode - Default)</option>
                     <option value="ACTIVE">🟢 ACTIVE (Live Production)</option>
-                    <option value="TRIAL">🔵 TRIAL (Evaluation / POC Mode)</option>
                     <option value="SUSPENDED">🔴 SUSPENDED (Hold Access)</option>
                     <option value="EXPIRED">🟡 EXPIRED (Contract Concluded)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* TIER CAPACITY & FEATURE MATRIX PREVIEW */}
+              <div style={{
+                marginBottom: "20px",
+                padding: "14px 16px",
+                borderRadius: "8px",
+                background: newTenantTier === "STARTER"
+                  ? "rgba(56, 189, 248, 0.05)"
+                  : newTenantTier === "PROFESSIONAL"
+                  ? "rgba(129, 140, 248, 0.07)"
+                  : "rgba(234, 179, 8, 0.06)",
+                border: `1px solid ${
+                  newTenantTier === "STARTER"
+                    ? "rgba(56, 189, 248, 0.3)"
+                    : newTenantTier === "PROFESSIONAL"
+                    ? "rgba(129, 140, 248, 0.35)"
+                    : "rgba(234, 179, 8, 0.35)"
+                }`,
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <div style={{ fontWeight: 800, fontSize: "13px", color: newTenantTier === "STARTER" ? "#38bdf8" : newTenantTier === "PROFESSIONAL" ? "#a5b4fc" : "#facc15" }}>
+                    {newTenantTier === "STARTER" && "🏷️ STARTER TIER — Small Local Municipality / Single-Town Debt Book (Phase 1 Ready)"}
+                    {newTenantTier === "PROFESSIONAL" && "⚡ PROFESSIONAL TIER — Medium Municipality or Large Local District (Core Margin Driver)"}
+                    {newTenantTier === "ENTERPRISE" && "👑 ENTERPRISE TIER — Metro Municipalities, Multi-Client Debt Agencies (Metro & Agency Scale)"}
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px", background: "rgba(255,255,255,0.08)" }}>
+                    {newTenantTier === "STARTER" ? "R 18,000 – R 30,000 / mo" : newTenantTier === "PROFESSIONAL" ? "R 55,000 – R 95,000 / mo" : "R 140,000 – R 250,000+ / mo"}
+                  </span>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "8px", fontSize: "12px", color: "#cbd5e1" }}>
+                  <div>📁 <strong>Accounts:</strong> {newTenantTier === "STARTER" ? "Up to ~25,000" : newTenantTier === "PROFESSIONAL" ? "Up to ~100,000" : "Unlimited Volume"}</div>
+                  <div>👥 <strong>Collectors:</strong> {newTenantTier === "STARTER" ? "5 included (R1,500/extra user)" : newTenantTier === "PROFESSIONAL" ? "15 included (R1,200/extra user)" : "Unlimited / Volume Pricing"}</div>
+                  <div>🚀 <strong>Onboarding:</strong> {newTenantTier === "STARTER" ? "R40k – R75k (once-off)" : newTenantTier === "PROFESSIONAL" ? "R100k – R180k (once-off)" : "R200k – R350k+ (includes billing integration)"}</div>
+                  <div>🌐 <strong>Infra:</strong> {newTenantTier === "STARTER" ? "Hetzner JHB (Shared Infra)" : newTenantTier === "PROFESSIONAL" ? "Hetzner JHB (Dedicated)" : "AWS Cape Town (Multi-AZ, SLA-backed)"}</div>
+                  <div style={{ gridColumn: "1 / -1" }}>🎧 <strong>Support:</strong> {newTenantTier === "STARTER" ? "Email, standard business hours" : newTenantTier === "PROFESSIONAL" ? "Priority support + named CSM" : "24/7 SLA + Dedicated Account Mgr"}</div>
                 </div>
               </div>
 
