@@ -1425,7 +1425,8 @@ function App() {
     const fd = new FormData();
     fd.append("file", targetFile);
     try {
-      const res = await fetch(`${API}/imports/accounts/mapping`, {
+      const tenantParam = selectedTenant && selectedTenant !== "GLOBAL" ? `?tenant_id=${selectedTenant}` : "";
+      const res = await fetch(`${API}/imports/accounts/mapping${tenantParam}`, {
         method: "POST",
         body: fd,
       });
@@ -1898,7 +1899,7 @@ function App() {
             📑 Debt Books & Accounts
             <span className="nav-badge">{accounts.length}</span>
           </div>
-          {currentUser?.role === "SUPERADMIN" && (
+          {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
             <div className={`nav-item ${view === "imports" ? "active" : ""}`} onClick={() => { setView("imports"); setMobileMenuOpen(false); }}>
               📥 Import Engine
             </div>
@@ -2676,7 +2677,7 @@ function App() {
           );
         })()}
 
-        {view === "imports" && currentUser?.role === "SUPERADMIN" && (
+        {view === "imports" && (currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
           <div className="glass-panel">
             <div className="panel-header">
               <div className="panel-title">
@@ -2790,6 +2791,52 @@ function App() {
                     </button>
                   </div>
                 </div>
+
+                {/* SUBSCRIPTION TIER QUOTA & UPGRADE BANNER */}
+                {importMappingData.tier_info && (
+                  <div style={{
+                    padding: "14px 18px",
+                    borderRadius: "8px",
+                    marginBottom: "18px",
+                    background: importMappingData.tier_info.exceeded
+                      ? "linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.15))"
+                      : "linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(30, 41, 59, 0.5))",
+                    border: `1px solid ${importMappingData.tier_info.exceeded ? "rgba(239, 68, 68, 0.5)" : "rgba(56, 189, 248, 0.3)"}`,
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                      <div>
+                        <div style={{ fontWeight: 800, fontSize: "13.5px", color: importMappingData.tier_info.exceeded ? "#fca5a5" : "#38bdf8", display: "flex", alignItems: "center", gap: "8px" }}>
+                          {importMappingData.tier_info.exceeded ? "🚫 Subscription Tier Limit Exceeded" : "🛡️ Subscription Tier Quota Verification"}
+                          <span style={{ fontSize: "11px", padding: "2px 8px", borderRadius: "4px", background: "rgba(255,255,255,0.1)", color: "#f8fafc" }}>
+                            {importMappingData.tier_info.tier} Tier (Max: {typeof importMappingData.tier_info.max_allowed === "number" ? importMappingData.tier_info.max_allowed.toLocaleString() : importMappingData.tier_info.max_allowed} accounts)
+                          </span>
+                        </div>
+                        <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "#cbd5e1" }}>
+                          Current: <strong>{importMappingData.tier_info.existing_accounts.toLocaleString()}</strong> accounts + Uploading: <strong>{importMappingData.tier_info.file_rows.toLocaleString()}</strong> rows ➔ Projected: <strong>{importMappingData.tier_info.projected_total.toLocaleString()}</strong> accounts.
+                        </p>
+                      </div>
+                      {importMappingData.tier_info.exceeded && (
+                        <div>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ background: "#ef4444", borderColor: "#dc2626", fontWeight: 700 }}
+                            onClick={() => {
+                              const tObj = tenants.find(t => t.id === selectedTenant);
+                              if (tObj) {
+                                setEditingTenant(tObj);
+                              } else {
+                                setView("onboarding");
+                              }
+                            }}
+                          >
+                            ⚡ Upgrade to {importMappingData.tier_info.recommended_tier} Tier ➔
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {importMappingData.missing_required && importMappingData.missing_required.length > 0 ? (
                   <div style={{ padding: "14px 18px", background: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.4)", borderRadius: "8px", color: "#fca5a5", marginBottom: "20px" }}>
@@ -2944,9 +2991,58 @@ function App() {
                   </table>
                 </div>
 
+                {/* SUBSCRIPTION TIER QUOTA ON PREVIEW */}
+                {importMappingData.tier_info && importMappingData.tier_info.exceeded && (
+                  <div style={{
+                    padding: "14px 18px",
+                    borderRadius: "8px",
+                    marginBottom: "16px",
+                    background: "linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(185, 28, 28, 0.2))",
+                    border: "1px solid rgba(239, 68, 68, 0.6)",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "10px",
+                  }}>
+                    <div>
+                      <div style={{ color: "#fca5a5", fontWeight: 800, fontSize: "14px" }}>
+                        🚫 Cannot Ingest: {importMappingData.tier_info.tier} Tier Quota Exceeded ({importMappingData.tier_info.max_allowed} max accounts)
+                      </div>
+                      <p style={{ margin: "2px 0 0 0", color: "#fecaca", fontSize: "12.5px" }}>
+                        Ingesting {importMappingData.tier_info.file_rows.toLocaleString()} accounts exceeds the {importMappingData.tier_info.tier} tier limit. Upgrade {importMappingData.tier_info.tenant_name} to <strong>{importMappingData.tier_info.recommended_tier}</strong> to unlock higher volume ingestion.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      style={{ background: "#ef4444", borderColor: "#dc2626", fontWeight: 700 }}
+                      onClick={() => {
+                        const tObj = tenants.find(t => t.id === selectedTenant);
+                        if (tObj) {
+                          setEditingTenant(tObj);
+                        } else {
+                          setView("onboarding");
+                        }
+                      }}
+                    >
+                      ⚡ Upgrade to {importMappingData.tier_info.recommended_tier} Tier ➔
+                    </button>
+                  </div>
+                )}
+
                 <div style={{ marginTop: "20px", display: "flex", justifyContent: "flex-end" }}>
-                  <button className="btn btn-primary" onClick={handleImport} disabled={loading} style={{ padding: "10px 24px" }}>
-                    {loading ? "Ingesting Data..." : `🚀 Ingest ${importMappingData.total_rows} Accounts into Database`}
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleImport}
+                    disabled={loading || importMappingData.tier_info?.exceeded}
+                    style={{
+                      padding: "10px 24px",
+                      opacity: importMappingData.tier_info?.exceeded ? 0.5 : 1,
+                      cursor: importMappingData.tier_info?.exceeded ? "not-allowed" : "pointer"
+                    }}
+                  >
+                    {loading ? "Ingesting Data..." : importMappingData.tier_info?.exceeded ? `🚫 Ingestion Blocked (Upgrade to ${importMappingData.tier_info.recommended_tier})` : `🚀 Ingest ${importMappingData.total_rows} Accounts into Database`}
                   </button>
                 </div>
               </div>
@@ -3011,115 +3107,6 @@ function App() {
         {view === "onboarding" && currentUser?.role === "SUPERADMIN" && (
           <div className="view-content" style={{ animation: "fadeIn 0.2s ease" }}>
             
-            {/* Commercial Revenue Pipeline & Potential Projections */}
-            {(() => {
-              const activeTenants = tenants.filter(t => t.subscription_status === "ACTIVE" || !t.subscription_status);
-              const managedTenants = tenants.filter(t => t.engagement_model === "MANAGED_SERVICE");
-
-              // SaaS MRR applies across all contracted municipalities
-              const monthlySaasMRR = tenants.reduce((acc, t) => acc + (Number(t.monthly_subscription_fee) || 0), 0);
-              const projectedSaasARR = monthlySaasMRR * 12;
-
-              // Managed recovery commission potential directly on the managed debt book
-              const totalLedgerBalance = summary?.outstanding || summary?.debt_book || 0;
-              const avgManagedCommission = managedTenants.length > 0 
-                ? managedTenants.reduce((acc, t) => acc + (Number(t.commission_rate) || 10), 0) / managedTenants.length 
-                : 15;
-              
-              // Total potential commission across the managed portfolio
-              const totalManagedCommissionPotential = totalLedgerBalance * (avgManagedCommission / 100);
-
-              const totalProjectedAnnualRevenue = projectedSaasARR + totalManagedCommissionPotential;
-
-              return (
-                <div style={{ marginBottom: "28px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
-                    <div>
-                      <h2 style={{ fontSize: "22px", margin: "0 0 4px 0", color: "#f8fafc", display: "flex", alignItems: "center", gap: "10px" }}>
-                        📈 Commercial Revenue & Portfolio Analytics
-                      </h2>
-                      <p style={{ margin: 0, color: "#94a3b8", fontSize: "13px" }}>
-                        Live financial projections based on active municipal subscriptions, licensing tiers, and managed collection commissions.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      style={{ background: "linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.2))", borderColor: "#a855f7", color: "#e9d5ff", fontWeight: 600 }}
-                      onClick={() => setView("saas_tiers")}
-                    >
-                      💎 View SaaS Tier Matrix & Pricing
-                    </button>
-                  </div>
-
-                  {/* Revenue KPI Cards Row */}
-                  <div className="metrics-grid" style={{ marginBottom: "24px" }}>
-                    
-                    <div className="metric-card">
-                      <div className="metric-header">
-                        <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          💻 SaaS MRR
-                        </span>
-                        <span className="metric-badge badge-blue">Monthly Recurring</span>
-                      </div>
-                      <div className="metric-value" style={{ color: "#38bdf8" }}>
-                        R {monthlySaasMRR.toLocaleString()}
-                      </div>
-                      <div className="metric-subtitle">
-                        Across <strong>{tenants.length}</strong> contracted municipalities
-                      </div>
-                    </div>
-
-                    <div className="metric-card">
-                      <div className="metric-header">
-                        <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          🚀 SaaS ARR
-                        </span>
-                        <span className="metric-badge badge-indigo" style={{ background: "rgba(99, 102, 241, 0.15)", color: "#a5b4fc" }}>
-                          Annualized
-                        </span>
-                      </div>
-                      <div className="metric-value" style={{ color: "#818cf8" }}>
-                        R {projectedSaasARR.toLocaleString()}
-                      </div>
-                      <div className="metric-subtitle">Contracted subscription ARR</div>
-                    </div>
-
-                    <div className="metric-card">
-                      <div className="metric-header">
-                        <span className="metric-title" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          🛡️ Managed Commission Potential
-                        </span>
-                        <span className="metric-badge badge-green">Commission</span>
-                      </div>
-                      <div className="metric-value" style={{ color: "#34d399" }}>
-                        R {Math.round(totalManagedCommissionPotential).toLocaleString()}
-                      </div>
-                      <div className="metric-subtitle">
-                        {avgManagedCommission.toFixed(1)}% commission on R {Math.round(totalLedgerBalance).toLocaleString()} debt book
-                      </div>
-                    </div>
-
-                    <div className="metric-card" style={{ borderColor: "rgba(234, 179, 8, 0.4)", background: "linear-gradient(145deg, rgba(234, 179, 8, 0.08) 0%, rgba(15, 23, 42, 0.7) 100%)" }}>
-                      <div className="metric-header">
-                        <span className="metric-title" style={{ color: "#facc15", display: "flex", alignItems: "center", gap: "6px" }}>
-                          👑 Total Potential ARR
-                        </span>
-                        <span className="metric-badge badge-amber">Combined ARR</span>
-                      </div>
-                      <div className="metric-value" style={{ color: "#fef08a" }}>
-                        R {Math.round(totalProjectedAnnualRevenue).toLocaleString()}
-                      </div>
-                      <div className="metric-subtitle" style={{ color: "#fde047" }}>
-                        SaaS ARR + Managed Agency pipeline
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              );
-            })()}
-
             {/* Municipalities Portfolio Management Table */}
             <div className="glass-panel" style={{ marginBottom: "28px" }}>
               <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>

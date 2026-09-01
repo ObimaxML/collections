@@ -2150,9 +2150,17 @@ def get_contact_history(
 # Import Engine
 # ---------------------------------------------------------
 
+TIER_ACCOUNT_LIMITS = {
+    "STARTER": 25000,
+    "PROFESSIONAL": 100000,
+    "ENTERPRISE": float("inf"),
+}
+
 @router.post("/imports/accounts/mapping")
 async def account_import_mapping(
+    tenant_id: UUID | None = None,
     file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     content = await file.read()
     filename = (
@@ -2192,6 +2200,33 @@ async def account_import_mapping(
             detail="The uploaded file is empty.",
         )
 
+    total_rows = len(df_full)
+
+    # Subscription Tier Quota Verification
+    tier_info = None
+    if tenant_id:
+        target_tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+        if target_tenant:
+            tier = (target_tenant.subscription_tier or "STARTER").upper()
+            max_allowed = TIER_ACCOUNT_LIMITS.get(tier, 25000)
+            existing_count = db.query(func.count(MunicipalAccount.id)).filter(MunicipalAccount.tenant_id == tenant_id).scalar() or 0
+            projected_total = existing_count + total_rows
+            
+            exceeded = projected_total > max_allowed
+            recommended_tier = "PROFESSIONAL" if projected_total <= 100000 else "ENTERPRISE"
+            
+            tier_info = {
+                "tenant_name": target_tenant.name,
+                "tenant_code": target_tenant.code,
+                "tier": tier,
+                "max_allowed": max_allowed if max_allowed != float("inf") else "Unlimited",
+                "existing_accounts": existing_count,
+                "file_rows": total_rows,
+                "projected_total": projected_total,
+                "exceeded": exceeded,
+                "recommended_tier": recommended_tier if exceeded else None,
+            }
+
     columns = list(df_full.columns)
     mapping, missing = validate_columns(
         columns
@@ -2214,9 +2249,10 @@ async def account_import_mapping(
         "mapping": mapping,
         "missing_required": missing,
         "valid": not missing,
-        "total_rows": len(df_full),
+        "total_rows": total_rows,
         "preview_rows": preview_rows,
         "system_fields": system_fields,
+        "tier_info": tier_info,
     }
 
 
@@ -2263,6 +2299,29 @@ async def import_accounts_endpoint(
         raise HTTPException(
             status_code=400,
             detail="The uploaded file is empty.",
+        )
+
+    file_row_count = len(df)
+
+    # Strict subscription tier capacity enforcement
+    target_tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not target_tenant:
+        raise HTTPException(status_code=404, detail="Selected entity or municipality does not exist.")
+
+    current_tier = (target_tenant.subscription_tier or "STARTER").upper()
+    max_quota = TIER_ACCOUNT_LIMITS.get(current_tier, 25000)
+    existing_acc_count = db.query(func.count(MunicipalAccount.id)).filter(MunicipalAccount.tenant_id == tenant_id).scalar() or 0
+    projected = existing_acc_count + file_row_count
+
+    if projected > max_quota:
+        recommended = "PROFESSIONAL (R55,000 – R95,000/mo, up to ~100,000 accounts)" if projected <= 100000 else "ENTERPRISE (R140,000 – R250,000+/mo, Unlimited accounts)"
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Subscription Tier Limit Exceeded: {target_tenant.name} is on the {current_tier} Tier "
+                f"(max {max_quota:,} accounts). Ingesting {file_row_count:,} accounts would bring total to "
+                f"{projected:,} accounts. Please upgrade {target_tenant.name} to the {recommended} to proceed with ingestion."
+            ),
         )
 
     df = df.fillna("")
