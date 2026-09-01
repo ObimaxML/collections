@@ -70,6 +70,11 @@ def create_tenant(
         contact_phone=payload.contact_phone,
         contract_start_date=payload.contract_start_date,
         contract_end_date=payload.contract_end_date,
+        bank_name=payload.bank_name,
+        branch_code=payload.branch_code,
+        account_number=payload.account_number,
+        account_holder_name=payload.account_holder_name,
+        payment_reference_format=payload.payment_reference_format or "MUNI-{ACCOUNT_NO}",
         created_at=datetime.now(timezone.utc),
     )
 
@@ -154,6 +159,16 @@ def update_tenant(
         tenant.contract_start_date = payload.contract_start_date
     if payload.contract_end_date is not None:
         tenant.contract_end_date = payload.contract_end_date
+    if payload.bank_name is not None:
+        tenant.bank_name = payload.bank_name
+    if payload.branch_code is not None:
+        tenant.branch_code = payload.branch_code
+    if payload.account_number is not None:
+        tenant.account_number = payload.account_number
+    if payload.account_holder_name is not None:
+        tenant.account_holder_name = payload.account_holder_name
+    if payload.payment_reference_format is not None:
+        tenant.payment_reference_format = payload.payment_reference_format
 
     db.commit()
     db.refresh(tenant)

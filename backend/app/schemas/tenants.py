@@ -21,6 +21,11 @@ class TenantCreate(BaseModel):
     contact_phone: str | None = None
     contract_start_date: date | None = None
     contract_end_date: date | None = None
+    bank_name: str | None = None
+    branch_code: str | None = None
+    account_number: str | None = None
+    account_holder_name: str | None = None
+    payment_reference_format: str | None = None
 
 
 class TenantUpdate(BaseModel):
@@ -39,6 +44,11 @@ class TenantUpdate(BaseModel):
     contact_phone: str | None = None
     contract_start_date: date | None = None
     contract_end_date: date | None = None
+    bank_name: str | None = None
+    branch_code: str | None = None
+    account_number: str | None = None
+    account_holder_name: str | None = None
+    payment_reference_format: str | None = None
 
 
 class TenantResponse(BaseModel):
@@ -58,6 +68,11 @@ class TenantResponse(BaseModel):
     contact_phone: str | None = None
     contract_start_date: date | None
     contract_end_date: date | None
+    bank_name: str | None = None
+    branch_code: str | None = None
+    account_number: str | None = None
+    account_holder_name: str | None = None
+    payment_reference_format: str | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

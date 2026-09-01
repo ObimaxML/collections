@@ -285,6 +285,11 @@ function App() {
   const [newTenantContactPerson, setNewTenantContactPerson] = useState("");
   const [newTenantContactPosition, setNewTenantContactPosition] = useState("");
   const [newTenantContactPhone, setNewTenantContactPhone] = useState("");
+  const [newTenantBankName, setNewTenantBankName] = useState("");
+  const [newTenantBranchCode, setNewTenantBranchCode] = useState("");
+  const [newTenantAccountNum, setNewTenantAccountNum] = useState("");
+  const [newTenantAccountHolder, setNewTenantAccountHolder] = useState("");
+  const [newTenantRefFormat, setNewTenantRefFormat] = useState("MUNI-{ACCOUNT_NO}");
   const [editingTenant, setEditingTenant] = useState<any>(null);
   const [showOnboardTenantModal, setShowOnboardTenantModal] = useState(false);
   const [editingDebtor, setEditingDebtor] = useState<any>(null);
@@ -492,22 +497,27 @@ function App() {
           engagement_model: newTenantModel,
           subscription_tier: newTenantTier,
           commission_rate: newTenantModel === "MANAGED_SERVICE" ? Number(newTenantCommission) : 0,
-          monthly_subscription_fee: newTenantModel === "SAAS_SELF_SERVICE" ? Number(newTenantMonthlyFee) : 0,
+          monthly_subscription_fee: Number(newTenantMonthlyFee) || 0,
           billing_contact_email: newTenantBillingEmail || null,
           physical_address: newTenantPhysicalAddress || null,
           postal_address: newTenantPostalAddress || null,
           contact_person: newTenantContactPerson || null,
           contact_position: newTenantContactPosition || null,
           contact_phone: newTenantContactPhone || null,
+          bank_name: newTenantBankName || null,
+          branch_code: newTenantBranchCode || null,
+          account_number: newTenantAccountNum || null,
+          account_holder_name: newTenantAccountHolder || null,
+          payment_reference_format: newTenantRefFormat || "MUNI-{ACCOUNT_NO}",
           subscription_status: newTenantStatus,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(`Error onboarding municipality: ${data.detail}`);
+        alert(`Error onboarding entity: ${data.detail}`);
         return;
       }
-      alert(`Municipality ${data.name} (${data.code}) onboarded successfully under ${data.engagement_model === "MANAGED_SERVICE" ? "Khokhisa Managed Collections" : "Internal SaaS Subscription"}!`);
+      alert(`Entity ${data.name} (${data.code}) onboarded successfully under ${data.engagement_model === "MANAGED_SERVICE" ? "Panel & Agency Managed Collections" : "Cloud SaaS Subscription"}!`);
       setNewTenantName("");
       setNewTenantCode("");
       setNewTenantStatus("ACTIVE");
@@ -517,6 +527,10 @@ function App() {
       setNewTenantContactPerson("");
       setNewTenantContactPosition("");
       setNewTenantContactPhone("");
+      setNewTenantBankName("");
+      setNewTenantBranchCode("");
+      setNewTenantAccountNum("");
+      setNewTenantAccountHolder("");
       fetchTenants();
     } catch (err: any) {
       alert("Could not reach backend API");
@@ -3117,7 +3131,7 @@ function App() {
                     style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 700 }}
                     onClick={() => setShowOnboardTenantModal(true)}
                   >
-                    🏛️ Onboard Municipality & Activate Contract
+                    🏛️ Onboard New Entity & Activate Contract
                   </button>
                 )}
               </div>
@@ -8033,7 +8047,7 @@ function App() {
 
               <div className="info-grid" style={{ marginBottom: "16px" }}>
                 <div className="form-group">
-                  <label style={{ color: "#60a5fa" }}>Monthly SaaS License Fee (ZAR)</label>
+                  <label style={{ color: "#60a5fa" }}>Monthly Platform Usage / SaaS License Fee (ZAR)</label>
                   <input
                     type="number"
                     step="100"
@@ -8043,26 +8057,89 @@ function App() {
                   />
                   <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring software subscription fee.</small>
                 </div>
-                <div className="form-group">
-                  <label style={{ color: "#34d399" }}>Khokhisa Recovery Commission Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editingTenant.commission_rate ?? 10.00}
-                    onChange={e => setEditingTenant({ ...editingTenant, commission_rate: Number(e.target.value) })}
-                    className="form-input"
-                  />
-                  <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Contingency recovery fee on collected cash.</small>
-                </div>
+                {editingTenant.engagement_model === "MANAGED_SERVICE" && (
+                  <div className="form-group">
+                    <label style={{ color: "#34d399" }}>Collector Success Commission Benchmark (%)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editingTenant.commission_rate ?? 10.00}
+                      onChange={e => setEditingTenant({ ...editingTenant, commission_rate: Number(e.target.value) })}
+                      className="form-input"
+                    />
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Benchmark rate calculated for individual collectors.</small>
+                  </div>
+                )}
               </div>
 
-              <div className="info-grid" style={{ marginBottom: "16px" }}>
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Billing & Notice Email</label>
+                <input
+                  type="email"
+                  value={editingTenant.billing_contact_email || ""}
+                  onChange={e => setEditingTenant({ ...editingTenant, billing_contact_email: e.target.value })}
+                  className="form-input"
+                />
+              </div>
+
+              {/* DYNAMIC BANKING / TRUST ACCOUNT SECTION IN EDIT MODAL */}
+              <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: editingTenant.engagement_model === "MANAGED_SERVICE" ? "rgba(16, 185, 129, 0.04)" : "rgba(59, 130, 246, 0.04)", border: `1px solid ${editingTenant.engagement_model === "MANAGED_SERVICE" ? "rgba(16, 185, 129, 0.25)" : "rgba(59, 130, 246, 0.25)"}` }}>
+                <div style={{ fontWeight: 700, color: editingTenant.engagement_model === "MANAGED_SERVICE" ? "#34d399" : "#60a5fa", marginBottom: "10px", fontSize: "13.5px" }}>
+                  {editingTenant.engagement_model === "MANAGED_SERVICE"
+                    ? "🏦 Statutory Separate Trust Account Details (Panel & Agency)"
+                    : "🏛️ Primary Revenue Bank Account (Direct Debtor Settlements)"}
+                </div>
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label>{editingTenant.engagement_model === "MANAGED_SERVICE" ? "Trust Bank Name" : "Bank Name"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. First National Bank (FNB)"
+                      value={editingTenant.bank_name || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, bank_name: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{editingTenant.engagement_model === "MANAGED_SERVICE" ? "Trust Branch Code" : "Branch Code"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 250655"
+                      value={editingTenant.branch_code || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, branch_code: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label>{editingTenant.engagement_model === "MANAGED_SERVICE" ? "Trust Account Number" : "Account Number"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 62899432101"
+                      value={editingTenant.account_number || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, account_number: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{editingTenant.engagement_model === "MANAGED_SERVICE" ? "Trust Account Holder" : "Account Holder Name"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Revenue Primary Account"
+                      value={editingTenant.account_holder_name || ""}
+                      onChange={e => setEditingTenant({ ...editingTenant, account_holder_name: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
                 <div className="form-group">
-                  <label>Billing & Notice Email</label>
+                  <label>Debtor Payment Reference Format</label>
                   <input
-                    type="email"
-                    value={editingTenant.billing_contact_email || ""}
-                    onChange={e => setEditingTenant({ ...editingTenant, billing_contact_email: e.target.value })}
+                    type="text"
+                    placeholder="e.g. MUNI-{ACCOUNT_NO}"
+                    value={editingTenant.payment_reference_format || "MUNI-{ACCOUNT_NO}"}
+                    onChange={e => setEditingTenant({ ...editingTenant, payment_reference_format: e.target.value })}
                     className="form-input"
                   />
                 </div>
@@ -8071,7 +8148,7 @@ function App() {
               {/* Address & Official Representation Fields */}
               <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "10px", fontSize: "13px" }}>
-                  📍 Municipal Address & Official Representation (Rendered on Invoices & Proposals)
+                  📍 Physical & Postal Address / Official Representation
                 </div>
                 <div className="info-grid" style={{ marginBottom: "12px" }}>
                   <div className="form-group">
@@ -8300,14 +8377,14 @@ function App() {
         </div>
       )}
 
-      {/* ONBOARD MUNICIPALITY & ACTIVATE CONTRACT MODAL */}
+      {/* ONBOARD NEW ENTITY & ACTIVATE CONTRACT MODAL */}
       {showOnboardTenantModal && (
         <div className="modal-backdrop" onClick={() => setShowOnboardTenantModal(false)}>
           <div className="modal-content glass-panel" style={{ maxWidth: "780px", width: "94%", maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <div className="panel-header" style={{ marginBottom: "16px" }}>
               <div className="panel-title">
-                <h3>🏛️ Onboard New Municipality & Activate Contract</h3>
-                <p>Register a South African municipality for either <strong>Khokhisa Managed Debt Recovery</strong> or <strong>Internal Municipal SaaS Subscription</strong></p>
+                <h3>🏛️ Onboard New Entity & Activate Contract</h3>
+                <p>Register a municipality, state enterprise, corporate credit provider, or debt collection agency onto the Khokhisa platform</p>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setShowOnboardTenantModal(false)}>✕</button>
             </div>
@@ -8318,10 +8395,10 @@ function App() {
             }}>
               <div className="info-grid" style={{ marginBottom: "16px" }}>
                 <div className="form-group">
-                  <label>Municipality / Portfolio Name</label>
+                  <label>Organization / Entity Name</label>
                   <input
                     type="text"
-                    placeholder="e.g. City of Johannesburg Metropolitan Municipality"
+                    placeholder="e.g. City of Johannesburg Metropolitan Municipality / Nedbank / Sithole Collections"
                     value={newTenantName}
                     onChange={e => setNewTenantName(e.target.value)}
                     className="form-input"
@@ -8329,10 +8406,10 @@ function App() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Municipal Code (Unique Identifier)</label>
+                  <label>Entity Code (Unique Identifier)</label>
                   <input
                     type="text"
-                    placeholder="e.g. JHB, EKU, TSH"
+                    placeholder="e.g. JHB, NED, STH"
                     value={newTenantCode}
                     onChange={e => setNewTenantCode(e.target.value)}
                     className="form-input"
@@ -8392,11 +8469,12 @@ function App() {
                 </div>
               </div>
 
+              {/* COMMERCIAL & PLATFORM USAGE TERMS */}
               <div style={{ marginBottom: "20px", padding: "16px", background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px" }}>
                 <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "12px", fontSize: "13.5px" }}>
                   💼 Commercial & Platform Usage Terms
                 </div>
-                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                <div className={newTenantModel === "MANAGED_SERVICE" ? "info-grid" : "form-group"} style={{ marginBottom: "12px" }}>
                   <div className="form-group">
                     <label style={{ color: "#60a5fa" }}>Monthly Platform Usage / SaaS License Fee (ZAR)</label>
                     <input
@@ -8408,27 +8486,29 @@ function App() {
                       className="form-input"
                       required
                     />
-                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Recurring platform subscription fee invoiced monthly to municipality.</small>
+                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Platform access & infrastructure fee invoiced monthly by Khokhisa.</small>
                   </div>
-                  <div className="form-group">
-                    <label style={{ color: "#34d399" }}>Collector Success Commission Benchmark (%)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 10.00"
-                      value={newTenantCommission}
-                      onChange={e => setNewTenantCommission(e.target.value)}
-                      className="form-input"
-                      required
-                    />
-                    <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Commission rate calculated for individual collectors upon verified trust settlement.</small>
-                  </div>
+                  {newTenantModel === "MANAGED_SERVICE" && (
+                    <div className="form-group">
+                      <label style={{ color: "#34d399" }}>Collector Success Commission Benchmark (%)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="e.g. 10.00"
+                        value={newTenantCommission}
+                        onChange={e => setNewTenantCommission(e.target.value)}
+                        className="form-input"
+                        required
+                      />
+                      <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Commission rate calculated for individual collectors upon verified trust settlement.</small>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Billing & Contract Contact Email</label>
                   <input
                     type="email"
-                    placeholder="revenue.cfo@municipality.gov.za"
+                    placeholder="finance@organization.co.za"
                     value={newTenantBillingEmail}
                     onChange={e => setNewTenantBillingEmail(e.target.value)}
                     className="form-input"
@@ -8436,10 +8516,86 @@ function App() {
                 </div>
               </div>
 
+              {/* DYNAMIC BANKING / TRUST ACCOUNT SECTION */}
+              <div style={{ marginBottom: "20px", padding: "16px", background: newTenantModel === "MANAGED_SERVICE" ? "rgba(16, 185, 129, 0.04)" : "rgba(59, 130, 246, 0.04)", border: `1px solid ${newTenantModel === "MANAGED_SERVICE" ? "rgba(16, 185, 129, 0.25)" : "rgba(59, 130, 246, 0.25)"}`, borderRadius: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <div>
+                    <div style={{ fontWeight: 700, color: newTenantModel === "MANAGED_SERVICE" ? "#34d399" : "#60a5fa", fontSize: "14px" }}>
+                      {newTenantModel === "MANAGED_SERVICE" 
+                        ? "🏦 Statutory Separate Trust Account Details (Panel & Agency)" 
+                        : "🏛️ Primary Revenue Bank Account (Direct Debtor Settlements)"}
+                    </div>
+                    <small style={{ color: "#94a3b8" }}>
+                      {newTenantModel === "MANAGED_SERVICE"
+                        ? "Prescribed Section 20 statutory trust account where collected funds are received before municipal remittance"
+                        : "Official institutional bank account for direct customer EFT and municipal ledger reconciliation"}
+                    </small>
+                  </div>
+                </div>
+
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label>{newTenantModel === "MANAGED_SERVICE" ? "Trust Bank Name" : "Bank Name"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. First National Bank (FNB) / Standard Bank"
+                      value={newTenantBankName}
+                      onChange={e => setNewTenantBankName(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{newTenantModel === "MANAGED_SERVICE" ? "Trust Branch Code" : "Branch Code"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 250655"
+                      value={newTenantBranchCode}
+                      onChange={e => setNewTenantBranchCode(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="info-grid" style={{ marginBottom: "12px" }}>
+                  <div className="form-group">
+                    <label>{newTenantModel === "MANAGED_SERVICE" ? "Trust Account Number" : "Account Number"}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 62899432101"
+                      value={newTenantAccountNum}
+                      onChange={e => setNewTenantAccountNum(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>{newTenantModel === "MANAGED_SERVICE" ? "Trust Account Holder Name" : "Account Holder Name"}</label>
+                    <input
+                      type="text"
+                      placeholder={newTenantModel === "MANAGED_SERVICE" ? "e.g. Sithole Collections Trust Account" : "e.g. City of Johannesburg Primary Revenue"}
+                      value={newTenantAccountHolder}
+                      onChange={e => setNewTenantAccountHolder(e.target.value)}
+                      className="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Debtor Payment Reference Format</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. MUNI-{ACCOUNT_NO} or INV-{DEBTOR_ID}"
+                    value={newTenantRefFormat}
+                    onChange={e => setNewTenantRefFormat(e.target.value)}
+                    className="form-input"
+                  />
+                  <small style={{ color: "#94a3b8", display: "block", marginTop: "4px" }}>Pattern used for matching bank statements with collection cases</small>
+                </div>
+              </div>
+
               {/* Address & Official Representation Fields */}
               <div style={{ marginBottom: "18px", padding: "14px", borderRadius: "8px", background: "rgba(255,255,255,0.02)", border: "1px solid var(--border-subtle)" }}>
                 <div style={{ fontWeight: 700, color: "#f8fafc", marginBottom: "10px", fontSize: "13px" }}>
-                  📍 Municipal Address & Official Representation (Rendered on Invoices & Proposals)
+                  📍 Physical & Postal Address / Official Representation
                 </div>
                 <div className="info-grid" style={{ marginBottom: "12px" }}>
                   <div className="form-group">
@@ -8503,7 +8659,7 @@ function App() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={loading || !newTenantName || !newTenantCode}>
-                  {loading ? "Registering..." : "🏛️ Onboard Municipality & Activate Contract"}
+                  {loading ? "Registering..." : "🏛️ Onboard New Entity & Activate Contract"}
                 </button>
               </div>
             </form>
