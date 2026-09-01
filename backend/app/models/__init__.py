@@ -916,6 +916,13 @@ from app.models.compliance import (
     CollectorMunicipalAssignment,
     CollectorRemittance,
 )
+from app.models.legal_compliance import (
+    DataProcessingAgreement,
+    DataBreachIncident,
+    MunicipalContractMandate,
+    LegalDocument,
+    UserLegalAcceptance,
+)
 
 __all__ = [
     "Tenant",
@@ -941,4 +948,9 @@ __all__ = [
     "CollectorTrustAccount",
     "CollectorMunicipalAssignment",
     "CollectorRemittance",
+    "DataProcessingAgreement",
+    "DataBreachIncident",
+    "MunicipalContractMandate",
+    "LegalDocument",
+    "UserLegalAcceptance",
 ]

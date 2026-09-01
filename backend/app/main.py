@@ -33,6 +33,7 @@ from app.api.imports import router as imports_router
 from app.api.popia import router as popia_router
 from app.api.billing import router as billing_router
 from app.api.compliance import router as compliance_router
+from app.api.legal_compliance import router as legal_compliance_router
 from app.core.config import settings
 from app.db.session import Base
 
@@ -178,6 +179,10 @@ app.include_router(
 )
 app.include_router(
     compliance_router,
+    prefix="/api",
+)
+app.include_router(
+    legal_compliance_router,
     prefix="/api",
 )
 app.include_router(

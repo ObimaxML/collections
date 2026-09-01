@@ -90,7 +90,7 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "compliance" | "billing" | "reports" | "settings">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "compliance" | "legal_compliance" | "billing" | "reports" | "settings">("dashboard");
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
@@ -299,6 +299,44 @@ function App() {
   const [remitCommRate, setRemitCommRate] = useState("10.00");
   const [remitBankStatementRef, setRemitBankStatementRef] = useState("");
   const [remitNotes, setRemitNotes] = useState("");
+
+  // Legal & Regulatory Compliance State
+  const [legalAgreements, setLegalAgreements] = useState<any[]>([]);
+  const [legalIncidents, setLegalIncidents] = useState<any[]>([]);
+  const [legalMandates, setLegalMandates] = useState<any[]>([]);
+  const [legalPiiLogs, setLegalPiiLogs] = useState<any[]>([]);
+  const [legalDocuments, setLegalDocuments] = useState<any[]>([]);
+  const [legalAcceptances, setLegalAcceptances] = useState<any[]>([]);
+  const [legalComplianceTab, setLegalComplianceTab] = useState<"popia_agreements" | "pii_audit" | "mfma_mandates" | "breaches" | "legal_docs">("popia_agreements");
+
+  // Sign DPA Modal
+  const [signingDpa, setSigningDpa] = useState<any>(null);
+  const [dpaSignerName, setDpaSignerName] = useState("");
+  const [dpaSignerPosition, setDpaSignerPosition] = useState("");
+
+  // New Mandate Modal
+  const [showNewMandateModal, setShowNewMandateModal] = useState(false);
+  const [newMandateRef, setNewMandateRef] = useState(`MFMA-${Date.now().toString().slice(-4)}`);
+  const [newMandateTitle, setNewMandateTitle] = useState("");
+  const [newMandateType, setNewMandateType] = useState("COLLECTOR_MANDATE");
+  const [newMandateVendor, setNewMandateVendor] = useState("");
+  const [newMandateStart, setNewMandateStart] = useState(new Date().toISOString().split("T")[0]);
+  const [newMandateEnd, setNewMandateEnd] = useState(new Date(Date.now() + 365 * 86400000).toISOString().split("T")[0]);
+  const [newMandateValue, setNewMandateValue] = useState("500000");
+  const [newMandateComm, setNewMandateComm] = useState("10.00");
+  const [newMandateScope, setNewMandateScope] = useState("Municipal debtor tracing and collection services under MFMA s 116.");
+
+  // New Breach Incident Modal
+  const [showNewBreachModal, setShowNewBreachModal] = useState(false);
+  const [newBreachType, setNewBreachType] = useState("UNAUTHORIZED_ACCESS_ATTEMPT");
+  const [newBreachSeverity, setNewBreachSeverity] = useState("MEDIUM");
+  const [newBreachDesc, setNewBreachDesc] = useState("");
+  const [newBreachCount, setNewBreachCount] = useState("0");
+  const [newBreachCategory, setNewBreachCategory] = useState("Debtor names and arrears balances");
+  const [newBreachContainment, setNewBreachContainment] = useState("");
+
+  // View Legal Policy Modal
+  const [viewingLegalDoc, setViewingLegalDoc] = useState<any>(null);
 
   const [accSearch, setAccSearch] = useState("");
   const [accMobileSearch, setAccMobileSearch] = useState("");
@@ -608,6 +646,37 @@ function App() {
     fetch(`${API}/compliance/remittances${tenantParam}`)
       .then(r => r.json())
       .then(setComplianceRemittances)
+      .catch(console.error);
+
+    // 7. Legal & Regulatory Compliance (POPIA, MFMA, ECTA)
+    fetch(`${API}/legal-compliance/operator-agreements${tenantParam}`)
+      .then(r => r.json())
+      .then(setLegalAgreements)
+      .catch(console.error);
+
+    fetch(`${API}/legal-compliance/mandates${tenantParam}`)
+      .then(r => r.json())
+      .then(setLegalMandates)
+      .catch(console.error);
+
+    fetch(`${API}/legal-compliance/breach-incidents${tenantParam}`)
+      .then(r => r.json())
+      .then(setLegalIncidents)
+      .catch(console.error);
+
+    fetch(`${API}/legal-compliance/pii-access-logs${tenantParam}`)
+      .then(r => r.json())
+      .then(setLegalPiiLogs)
+      .catch(console.error);
+
+    fetch(`${API}/legal-compliance/documents`)
+      .then(r => r.json())
+      .then(setLegalDocuments)
+      .catch(console.error);
+
+    fetch(`${API}/legal-compliance/acceptances/roster${tenantParam}`)
+      .then(r => r.json())
+      .then(setLegalAcceptances)
       .catch(console.error);
   };
 
@@ -1618,11 +1687,19 @@ function App() {
             </div>
           )}
           <div className={`nav-item ${view === "compliance" ? "active" : ""}`} onClick={() => { setView("compliance"); setMobileMenuOpen(false); }}>
-            🛡️ Compliance & Trust Accounts
+            🛡️ Collector Compliance & Trust
             <span className="nav-badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#34d399" }}>
               {complianceCollectors.length}
             </span>
           </div>
+          {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+            <div className={`nav-item ${view === "legal_compliance" ? "active" : ""}`} onClick={() => { setView("legal_compliance"); setMobileMenuOpen(false); }}>
+              ⚖️ Legal & POPIA Safeguards
+              <span className="nav-badge" style={{ background: "rgba(56, 189, 248, 0.2)", color: "#38bdf8" }}>
+                {legalAgreements.length + legalMandates.length}
+              </span>
+            </div>
+          )}
           {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
             <div className={`nav-item ${view === "billing" ? "active" : ""}`} onClick={() => { setView("billing"); setMobileMenuOpen(false); }}>
               🧾 Proposals & Invoicing
@@ -1701,6 +1778,7 @@ function App() {
               {view === "users" && "System User Management & Role-Based Access Control"}
               {view === "saas_tiers" && "💎 Commercial SaaS Tier Matrix & Pricing Breakdown"}
               {view === "compliance" && "🛡️ Collector Verification, Trust Accounts & Statutory Remittance"}
+              {view === "legal_compliance" && "⚖️ Legal & Regulatory Compliance (POPIA, MFMA, ECTA & Government Standards)"}
               {view === "billing" && "🧾 Commercial Proposals & Municipal Invoicing"}
               {view === "reports" && "📈 Executive & Regulatory Municipal Reports"}
               {view === "settings" && "Account & Profile Settings"}
@@ -1714,6 +1792,7 @@ function App() {
               {view === "users" && "Provision new administrative and collector accounts and configure permissions"}
               {view === "saas_tiers" && "Commercial packaging, municipal feature limits, and revenue matrix"}
               {view === "compliance" && "CFDC verification, trust account auditor letters, municipal assignments, and statutory remittance tracking"}
+              {view === "legal_compliance" && "POPIA Section 21 operator agreements, Section 19 PII access audit trail, MFMA mandates, and breach management"}
               {view === "billing" && "Issue structured proposals, generate official tax invoices (PDF), and manage banking remittance"}
               {view === "reports" && "Generate MFMA Section 71/96 compliance summaries, arrears aging, and collection audits (CSV & Printable PDF)"}
               {view === "settings" && "Update your personal details, email address, and account password"}
@@ -4905,7 +4984,835 @@ function App() {
             </div>
           </div>
         )}
+        {/* LEGAL & REGULATORY COMPLIANCE VIEW */}
+        {view === "legal_compliance" && (
+          <div>
+            {/* Top Stat Cards */}
+            <div className="metrics-grid" style={{ marginBottom: "24px" }}>
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">POPIA S21 Agreements</span>
+                  <span className="metric-badge badge-blue">Responsible Party</span>
+                </div>
+                <div className="metric-value">{legalAgreements.length}</div>
+                <div className="metric-subtitle">
+                  {legalAgreements.filter(a => a.status === "EXECUTED").length} ECTA S13 Executed
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">PII Access Audit Log</span>
+                  <span className="metric-badge badge-emerald" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
+                    POPIA S19
+                  </span>
+                </div>
+                <div className="metric-value" style={{ color: "#34d399" }}>
+                  {legalPiiLogs.length}
+                </div>
+                <div className="metric-subtitle">Immutable view & export trails</div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">MFMA S116 Mandates</span>
+                  <span className="metric-badge badge-indigo">Municipal SLAs</span>
+                </div>
+                <div className="metric-value" style={{ color: "#38bdf8" }}>
+                  {legalMandates.length}
+                </div>
+                <div className="metric-subtitle">
+                  {legalMandates.filter(m => m.status === "EXPIRING_SOON").length} Expiring in &lt;30 days
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Data Residency</span>
+                  <span className="metric-badge badge-purple">POPIA S72</span>
+                </div>
+                <div className="metric-value" style={{ color: "#a855f7", fontSize: "19px" }}>
+                  🇿🇦 South Africa
+                </div>
+                <div className="metric-subtitle">100% In-Country Cloud (JHB/CPT)</div>
+              </div>
+            </div>
+
+            {/* Legal Compliance Navigation Tabs */}
+            <div className="glass-panel" style={{ marginBottom: "24px" }}>
+              <div className="tabs" style={{ marginBottom: "20px" }}>
+                <div className={`tab ${legalComplianceTab === "popia_agreements" ? "active" : ""}`} onClick={() => setLegalComplianceTab("popia_agreements")}>
+                  📝 S21 Operator Agreements ({legalAgreements.length})
+                </div>
+                <div className={`tab ${legalComplianceTab === "pii_audit" ? "active" : ""}`} onClick={() => setLegalComplianceTab("pii_audit")}>
+                  🔍 S19 PII Access Audit Log ({legalPiiLogs.length})
+                </div>
+                <div className={`tab ${legalComplianceTab === "mfma_mandates" ? "active" : ""}`} onClick={() => setLegalComplianceTab("mfma_mandates")}>
+                  🏛️ MFMA Contract Mandates ({legalMandates.length})
+                </div>
+                <div className={`tab ${legalComplianceTab === "breaches" ? "active" : ""}`} onClick={() => setLegalComplianceTab("breaches")}>
+                  🚨 S22 Incident Registry ({legalIncidents.length})
+                </div>
+                <div className={`tab ${legalComplianceTab === "legal_docs" ? "active" : ""}`} onClick={() => setLegalComplianceTab("legal_docs")}>
+                  📜 Legal Policies & PAIA ({legalDocuments.length})
+                </div>
+              </div>
+
+              {/* TAB 1: S21 OPERATOR AGREEMENTS */}
+              {legalComplianceTab === "popia_agreements" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>POPIA Section 21 Written Operator Agreements</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Mandatory written agreement establishing Municipality as Responsible Party and Platform as Technology Operator.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={async () => {
+                        const targetTenant = (selectedTenant && selectedTenant !== "GLOBAL") ? selectedTenant : tenants[0]?.id;
+                        if (!targetTenant) {
+                          alert("Please select a municipality first.");
+                          return;
+                        }
+                        setLoading(true);
+                        try {
+                          await fetch(`${API}/legal-compliance/operator-agreements`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ tenant_id: targetTenant, agreement_version: "v1.0-2026" }),
+                          });
+                          alert("POPIA Section 21 Agreement generated!");
+                          refreshData();
+                        } catch (err: any) {
+                          alert("Error: " + err.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                    >
+                      ➕ Generate S21 Operator Agreement
+                    </button>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Municipality</th>
+                          <th>Version</th>
+                          <th>Status</th>
+                          <th>Signatory</th>
+                          <th>Signed Date</th>
+                          <th>ECTA Tamper Hash</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {legalAgreements.map(a => (
+                          <tr key={a.id}>
+                            <td><strong>{a.tenant_name} ({a.tenant_code})</strong></td>
+                            <td><span style={{ fontFamily: "monospace", color: "#38bdf8", fontWeight: 700 }}>{a.agreement_version}</span></td>
+                            <td>
+                              <span style={{
+                                padding: "3px 8px",
+                                borderRadius: "4px",
+                                fontSize: "11px",
+                                fontWeight: 800,
+                                background: a.status === "EXECUTED" ? "rgba(16, 185, 129, 0.15)" : "rgba(234, 179, 8, 0.15)",
+                                color: a.status === "EXECUTED" ? "#34d399" : "#facc15",
+                              }}>
+                                {a.status}
+                              </span>
+                            </td>
+                            <td>
+                              {a.signed_by_name ? (
+                                <div>
+                                  <div style={{ fontWeight: 600 }}>{a.signed_by_name}</div>
+                                  <div style={{ fontSize: "11px", color: "#94a3b8" }}>{a.signed_by_position}</div>
+                                </div>
+                              ) : (
+                                <span style={{ color: "#94a3b8", fontSize: "12px" }}>Pending Execution</span>
+                              )}
+                            </td>
+                            <td>{a.signed_at ? a.signed_at.split("T")[0] : "—"}</td>
+                            <td>
+                              {a.tamper_proof_hash ? (
+                                <span style={{ fontFamily: "monospace", fontSize: "10.5px", color: "#94a3b8" }} title={a.tamper_proof_hash}>
+                                  {a.tamper_proof_hash.slice(0, 14)}...
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
+                            <td>
+                              <div style={{ display: "flex", gap: "6px" }}>
+                                {a.status !== "EXECUTED" ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-primary btn-sm"
+                                    style={{ fontSize: "11px", padding: "3px 8px" }}
+                                    onClick={() => {
+                                      setSigningDpa(a);
+                                      setDpaSignerName(currentUser?.full_name || "");
+                                      setDpaSignerPosition("Chief Financial Officer / Authorized Signatory");
+                                    }}
+                                  >
+                                    ✍️ E-Sign Agreement
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: "11px", padding: "3px 8px" }}
+                                    onClick={() => {
+                                      setViewingLegalDoc({
+                                        title: a.agreement_title,
+                                        version: a.agreement_version,
+                                        content: a.agreement_text,
+                                        signed_by: a.signed_by_name,
+                                        signed_at: a.signed_at,
+                                        tamper_hash: a.tamper_proof_hash,
+                                      });
+                                    }}
+                                  >
+                                    📄 View Agreement
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: POPIA S19 PII ACCESS AUDIT TRAIL */}
+              {legalComplianceTab === "pii_audit" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>POPIA Section 19 Personal Information Access & Audit Trail</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Tamper-evident logs of every access, view, search, edit, or export of debtor records for procurement audit compliance.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => {
+                        const csvContent = "data:text/csv;charset=utf-8," + 
+                          ["Timestamp,Actor,Event Type,Entity,Account / Debtor,Payload"].join(",") + "\n" +
+                          legalPiiLogs.map(l => `"${l.created_at}","${l.actor}","${l.event_type}","${l.entity_type}","${l.payload?.account_number || ''}","${JSON.stringify(l.payload).replace(/"/g, '""')}"`).join("\n");
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `POPIA_PII_Access_Audit_${new Date().toISOString().split("T")[0]}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      📥 Export Audit Log (CSV)
+                    </button>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Timestamp (UTC)</th>
+                          <th>Operator / Actor</th>
+                          <th>Access Event</th>
+                          <th>Entity Type</th>
+                          <th>Debtor / Account</th>
+                          <th>Security Audit Payload</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {legalPiiLogs.map(l => (
+                          <tr key={l.id}>
+                            <td style={{ fontSize: "11px", color: "#94a3b8" }}>{l.created_at}</td>
+                            <td><strong>{l.actor}</strong></td>
+                            <td>
+                              <span style={{
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "10.5px",
+                                fontWeight: 700,
+                                background: l.event_type.includes("VIEW") ? "rgba(56, 189, 248, 0.15)" : "rgba(168, 85, 247, 0.15)",
+                                color: l.event_type.includes("VIEW") ? "#38bdf8" : "#c084fc",
+                              }}>
+                                {l.event_type}
+                              </span>
+                            </td>
+                            <td>{l.entity_type || "Customer"}</td>
+                            <td>
+                              <span style={{ fontFamily: "monospace", color: "#34d399", fontWeight: 700 }}>
+                                {l.payload?.account_number || l.payload?.debtor_name || "—"}
+                              </span>
+                            </td>
+                            <td>
+                              <pre style={{ margin: 0, fontSize: "10.5px", color: "#94a3b8", maxHeight: "40px", overflowY: "auto", background: "transparent" }}>
+                                {JSON.stringify(l.payload)}
+                              </pre>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: MFMA CONTRACT MANDATES */}
+              {legalComplianceTab === "mfma_mandates" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>MFMA Section 116 Municipal Contract & Collector Mandates</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Statutory contract register tracking collector panels, platform SLAs, and automated 30/14/7-day expiry warnings.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setShowNewMandateModal(true)}
+                    >
+                      ➕ Register Contract Mandate
+                    </button>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Mandate Ref</th>
+                          <th>Contract Title</th>
+                          <th>Type</th>
+                          <th>Vendor / Collector</th>
+                          <th>Period</th>
+                          <th>Expiry Warning</th>
+                          <th>Contingency Comm</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {legalMandates.map(m => (
+                          <tr key={m.id}>
+                            <td style={{ fontFamily: "monospace", color: "#38bdf8", fontWeight: 700 }}>{m.mandate_reference}</td>
+                            <td><strong>{m.contract_title}</strong></td>
+                            <td><span style={{ fontSize: "11px", color: "#94a3b8" }}>{m.contract_type}</span></td>
+                            <td>{m.vendor_party_name}</td>
+                            <td>{m.start_date} to {m.end_date}</td>
+                            <td>
+                              {m.days_remaining <= 0 ? (
+                                <span style={{ color: "#fb7185", fontWeight: 800, fontSize: "11px" }}>🚨 EXPIRED</span>
+                              ) : m.days_remaining <= 30 ? (
+                                <span style={{ color: "#facc15", fontWeight: 800, fontSize: "11px" }}>⚠️ {m.days_remaining} Days Remaining</span>
+                              ) : (
+                                <span style={{ color: "#34d399", fontSize: "11px" }}>🟢 {m.days_remaining} Days</span>
+                              )}
+                            </td>
+                            <td>{m.contingency_commission_pct ? `${m.contingency_commission_pct}%` : "SLA"}</td>
+                            <td>
+                              <span style={{
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "10.5px",
+                                fontWeight: 700,
+                                background: m.status === "ACTIVE" ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)",
+                                color: m.status === "ACTIVE" ? "#34d399" : "#fb7185",
+                              }}>
+                                {m.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 4: POPIA S22 BREACH INCIDENTS */}
+              {legalComplianceTab === "breaches" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>POPIA Section 22 Incident & Breach Notification Registry</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Workflow for logging incidents, notifying municipalities without undue delay, and statutory Information Regulator reporting.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.4)" }}
+                      onClick={() => setShowNewBreachModal(true)}
+                    >
+                      🚨 Log Security Incident
+                    </button>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Incident Ref</th>
+                          <th>Severity</th>
+                          <th>Incident Type</th>
+                          <th>Description</th>
+                          <th>Affected Records</th>
+                          <th>Containment Status</th>
+                          <th>Muni Notified</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {legalIncidents.map(inc => (
+                          <tr key={inc.id}>
+                            <td style={{ fontFamily: "monospace", color: "#fb7185", fontWeight: 700 }}>{inc.incident_reference}</td>
+                            <td>
+                              <span style={{
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "10.5px",
+                                fontWeight: 800,
+                                background: inc.severity === "CRITICAL" ? "rgba(244, 63, 94, 0.25)" : "rgba(234, 179, 8, 0.2)",
+                                color: inc.severity === "CRITICAL" ? "#fb7185" : "#facc15",
+                              }}>
+                                {inc.severity}
+                              </span>
+                            </td>
+                            <td>{inc.incident_type}</td>
+                            <td style={{ maxWidth: "250px", fontSize: "12px", color: "#94a3b8" }}>{inc.description}</td>
+                            <td><strong>{inc.affected_subjects_count}</strong></td>
+                            <td>
+                              <span style={{ padding: "2px 6px", borderRadius: "4px", fontSize: "11px", fontWeight: 700, background: "rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
+                                {inc.status}
+                              </span>
+                            </td>
+                            <td>{inc.municipality_notified_at ? `✓ ${inc.municipality_notified_at.split("T")[0]}` : "Pending"}</td>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ fontSize: "11px", padding: "2px 8px" }}
+                                onClick={async () => {
+                                  if (!confirm(`Trigger Section 22 alert to Municipal Information Officer for incident ${inc.incident_reference}?`)) return;
+                                  setLoading(true);
+                                  try {
+                                    await fetch(`${API}/legal-compliance/breach-incidents/${inc.id}`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ status: "CONTAINED", notify_municipality: true }),
+                                    });
+                                    alert("Municipal Information Officer alerted!");
+                                    refreshData();
+                                  } catch (err: any) {
+                                    alert("Error: " + err.message);
+                                  } finally {
+                                    setLoading(false);
+                                  }
+                                }}
+                              >
+                                📢 Alert Muni
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 5: LEGAL POLICIES & PAIA */}
+              {legalComplianceTab === "legal_docs" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>In-App Legal Documents, Privacy Policies & PAIA Manual</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Versioned legal disclaimers, debt collector compliance isolation, and electronic acceptance records under ECTA.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+                    {legalDocuments.map(doc => (
+                      <div key={doc.id} className="glass-panel" style={{ padding: "18px", border: "1px solid var(--border-subtle)", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                        <div>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase" }}>{doc.doc_type}</span>
+                            <span style={{ fontFamily: "monospace", fontSize: "11px", color: "#94a3b8" }}>{doc.version}</span>
+                          </div>
+                          <h4 style={{ margin: "0 0 8px 0", fontSize: "15px", color: "#f8fafc" }}>{doc.title}</h4>
+                          <p style={{ fontSize: "12px", color: "#94a3b8", margin: "0 0 14px 0", lineHeight: "1.4" }}>
+                            Published: {doc.published_date} | South African Statutory Jurisdiction
+                          </p>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={() => {
+                              setViewingLegalDoc({
+                                title: doc.title,
+                                version: doc.version,
+                                content: doc.content,
+                              });
+                            }}
+                          >
+                            📄 Read Policy
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ flex: 1 }}
+                            onClick={async () => {
+                              if (!currentUser) return;
+                              setLoading(true);
+                              try {
+                                await fetch(`${API}/legal-compliance/acceptances`, {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({
+                                    user_id: currentUser.id,
+                                    doc_type: doc.doc_type,
+                                    version_accepted: doc.version,
+                                  }),
+                                });
+                                alert(`Electronic acceptance of ${doc.title} recorded under ECTA Section 13!`);
+                                refreshData();
+                              } catch (err: any) {
+                                alert("Error: " + err.message);
+                              } finally {
+                                setLoading(false);
+                              }
+                            }}
+                          >
+                            ✓ Accept Terms
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Acceptance Roster */}
+                  <h4 style={{ margin: "0 0 12px 0", color: "#f8fafc", fontSize: "15px" }}>User Electronic Acceptance Roster ({legalAcceptances.length})</h4>
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>Role</th>
+                          <th>Document Accepted</th>
+                          <th>Version</th>
+                          <th>Accepted Timestamp</th>
+                          <th>IP Address</th>
+                          <th>ECTA Signature Hash</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {legalAcceptances.map(acc => (
+                          <tr key={acc.id}>
+                            <td><strong>{acc.user_name}</strong> ({acc.user_email})</td>
+                            <td><span style={{ fontSize: "11px", color: "#38bdf8" }}>{acc.user_role}</span></td>
+                            <td>{acc.doc_type}</td>
+                            <td><span style={{ fontFamily: "monospace" }}>{acc.version_accepted}</span></td>
+                            <td style={{ fontSize: "11px", color: "#94a3b8" }}>{acc.accepted_at}</td>
+                            <td>{acc.ip_address}</td>
+                            <td>
+                              <span style={{ fontFamily: "monospace", fontSize: "10px", color: "#94a3b8" }}>
+                                {acc.acceptance_hash ? acc.acceptance_hash.slice(0, 12) + "..." : "—"}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* MODAL: SIGN POPIA OPERATOR AGREEMENT */}
+      {signingDpa && (
+        <div className="modal-backdrop" onClick={() => setSigningDpa(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "92%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>✍️ E-Sign POPIA Section 21 Operator Agreement</h3>
+                <p>Electronic execution under Section 13 of the Electronic Communications and Transactions Act (ECTA)</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSigningDpa(null)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                await fetch(`${API}/legal-compliance/operator-agreements/${signingDpa.id}/sign`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    signed_by_name: dpaSignerName,
+                    signed_by_position: dpaSignerPosition,
+                  }),
+                });
+                alert("POPIA Section 21 Operator Agreement executed successfully!");
+                setSigningDpa(null);
+                refreshData();
+              } catch (err: any) {
+                alert("Error executing agreement: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Signatory Full Name</label>
+                <input type="text" value={dpaSignerName} onChange={e => setDpaSignerName(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Official Municipal Position</label>
+                <input type="text" value={dpaSignerPosition} onChange={e => setDpaSignerPosition(e.target.value)} className="form-input" required />
+              </div>
+
+              <div style={{ padding: "12px", background: "rgba(56, 189, 248, 0.08)", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.2)", marginBottom: "20px", fontSize: "12px", color: "#94a3b8" }}>
+                🔒 By submitting, a SHA-256 cryptographic tamper-evident signature will be bound to this agreement record alongside your IP address and timestamp.
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setSigningDpa(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>✍️ Execute S21 Agreement</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: REGISTER MFMA MANDATE */}
+      {showNewMandateModal && (
+        <div className="modal-backdrop" onClick={() => setShowNewMandateModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "92%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>🏛️ Register MFMA Section 116 Contract Mandate</h3>
+                <p>Track municipal collector mandates and platform SLAs with automated expiry alerts</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowNewMandateModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const targetTenant = (selectedTenant && selectedTenant !== "GLOBAL") ? selectedTenant : tenants[0]?.id;
+              if (!targetTenant) return;
+              setLoading(true);
+              try {
+                await fetch(`${API}/legal-compliance/mandates`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    tenant_id: targetTenant,
+                    mandate_reference: newMandateRef,
+                    contract_title: newMandateTitle,
+                    contract_type: newMandateType,
+                    vendor_party_name: newMandateVendor,
+                    start_date: newMandateStart,
+                    end_date: newMandateEnd,
+                    contract_value: Number(newMandateValue),
+                    contingency_commission_pct: Number(newMandateComm),
+                    scope_of_work: newMandateScope,
+                  }),
+                });
+                alert("MFMA Contract Mandate registered successfully!");
+                setShowNewMandateModal(false);
+                refreshData();
+              } catch (err: any) {
+                alert("Error registering mandate: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Mandate Reference</label>
+                  <input type="text" value={newMandateRef} onChange={e => setNewMandateRef(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Contract Type</label>
+                  <select value={newMandateType} onChange={e => setNewMandateType(e.target.value)} className="form-select">
+                    <option value="COLLECTOR_MANDATE">COLLECTOR_MANDATE</option>
+                    <option value="PLATFORM_SLA">PLATFORM_SLA</option>
+                    <option value="PANEL_APPOINTMENT">PANEL_APPOINTMENT</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Contract Title</label>
+                <input type="text" placeholder="e.g. Debt Recovery Panel Mandate 2026-2028" value={newMandateTitle} onChange={e => setNewMandateTitle(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Vendor / Collector Firm Name</label>
+                <input type="text" placeholder="e.g. Sithole & Partners Recoveries Inc." value={newMandateVendor} onChange={e => setNewMandateVendor(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Start Date</label>
+                  <input type="date" value={newMandateStart} onChange={e => setNewMandateStart(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>End Date</label>
+                  <input type="date" value={newMandateEnd} onChange={e => setNewMandateEnd(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewMandateModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>💾 Save Mandate</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: LOG DATA BREACH INCIDENT */}
+      {showNewBreachModal && (
+        <div className="modal-backdrop" onClick={() => setShowNewBreachModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "92%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>🚨 POPIA Section 22 Data Incident Log</h3>
+                <p>Register suspected or confirmed breach to facilitate municipal and regulatory notifications</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowNewBreachModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const targetTenant = (selectedTenant && selectedTenant !== "GLOBAL") ? selectedTenant : null;
+              setLoading(true);
+              try {
+                await fetch(`${API}/legal-compliance/breach-incidents`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    tenant_id: targetTenant,
+                    incident_type: newBreachType,
+                    severity: newBreachSeverity,
+                    description: newBreachDesc,
+                    affected_subjects_count: Number(newBreachCount),
+                    affected_data_categories: newBreachCategory,
+                    containment_actions: newBreachContainment,
+                  }),
+                });
+                alert("Incident logged in Section 22 Breach Registry!");
+                setShowNewBreachModal(false);
+                refreshData();
+              } catch (err: any) {
+                alert("Error logging incident: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Incident Severity</label>
+                  <select value={newBreachSeverity} onChange={e => setNewBreachSeverity(e.target.value)} className="form-select">
+                    <option value="LOW">LOW</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="CRITICAL">CRITICAL</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Incident Classification</label>
+                  <select value={newBreachType} onChange={e => setNewBreachType(e.target.value)} className="form-select">
+                    <option value="UNAUTHORIZED_ACCESS_ATTEMPT">UNAUTHORIZED_ACCESS_ATTEMPT</option>
+                    <option value="CREDENTIAL_COMPROMISE">CREDENTIAL_COMPROMISE</option>
+                    <option value="ANOMALOUS_BULK_EXPORT">ANOMALOUS_BULK_EXPORT</option>
+                    <option value="SYSTEM_VULNERABILITY">SYSTEM_VULNERABILITY</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Incident Description & Root Cause</label>
+                <textarea rows={3} placeholder="Describe the incident, detected anomaly, or affected infrastructure..." value={newBreachDesc} onChange={e => setNewBreachDesc(e.target.value)} className="form-textarea" required />
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Estimated Affected Subjects</label>
+                  <input type="number" value={newBreachCount} onChange={e => setNewBreachCount(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Data Categories Affected</label>
+                  <input type="text" value={newBreachCategory} onChange={e => setNewBreachCategory(e.target.value)} className="form-input" />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowNewBreachModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading || !newBreachDesc}>🚨 Post Incident Log</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: VIEW LEGAL DOCUMENT */}
+      {viewingLegalDoc && (
+        <div className="modal-backdrop" onClick={() => setViewingLegalDoc(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "780px", width: "95%", background: "#ffffff", color: "#0f172a" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "16px", marginBottom: "20px" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "20px", fontWeight: 900, color: "#0f172a" }}>{viewingLegalDoc.title}</h2>
+                <div style={{ fontSize: "11px", fontWeight: 800, color: "#0284c7", textTransform: "uppercase" }}>
+                  Version: {viewingLegalDoc.version} | South African Statutory Jurisdiction
+                </div>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setViewingLegalDoc(null)} style={{ color: "#64748b" }}>✕</button>
+            </div>
+
+            {viewingLegalDoc.signed_by && (
+              <div style={{ padding: "12px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "8px", marginBottom: "16px", fontSize: "12px", color: "#166534" }}>
+                <strong>✓ Executed by:</strong> {viewingLegalDoc.signed_by} on {viewingLegalDoc.signed_at?.split("T")[0]}<br />
+                <strong>ECTA Tamper Hash:</strong> <span style={{ fontFamily: "monospace" }}>{viewingLegalDoc.tamper_hash}</span>
+              </div>
+            )}
+
+            <div style={{ maxHeight: "420px", overflowY: "auto", padding: "16px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0", fontSize: "13px", lineHeight: "1.6", whiteSpace: "pre-wrap", color: "#334155", marginBottom: "20px" }}>
+              {viewingLegalDoc.content}
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button type="button" className="btn btn-primary" onClick={() => window.print()}>🖨️ Print Legal Document</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL: TRUST ACCOUNT & KYC UPLOADS */}
       {showTrustModal && selectedCollectorForDetails && (

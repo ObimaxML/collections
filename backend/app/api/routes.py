@@ -2773,6 +2773,29 @@ def case_workbench(
         .all()
     )
 
+    # POPIA Section 19 Personal Information Access Audit Trail
+    try:
+        audit_pii = AuditEvent(
+            id=uuid4(),
+            tenant_id=account.tenant_id,
+            actor="Active Collector / Operator",
+            event_type="PII_ACCESS_VIEW",
+            entity_type="CustomerAccount360",
+            entity_id=account.id,
+            payload={
+                "account_number": account.account_number,
+                "debtor_name": f"{customer.first_name} {customer.last_name}" if customer else "N/A",
+                "id_number": customer.id_number if customer else "N/A",
+                "mobile": customer.mobile if customer else "N/A",
+                "access_reason": "Account 360 Collector Workbench Review",
+            },
+            created_at=datetime.now(timezone.utc),
+        )
+        db.add(audit_pii)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+
     return {
         "case": {
             "id": str(case.id),
