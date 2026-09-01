@@ -715,6 +715,45 @@ A guide on how to exercise PAIA rights is available from the Information Regulat
 Requests for access to records must be submitted in the prescribed Form 2 to the Information Officer.
 """
 
+DEFAULT_COMMERCIAL_TERMS = """# COMMERCIAL TERMS & CONDITIONS
+Khokhisa Debt Collection OS — Version 1.0 | Effective date: 1 September 2026
+
+### 1. SUBSCRIPTIONS AND PRICING
+1.1 The Platform is offered under the subscription tiers published in the platform tier matrix. Fees are quoted in South African Rand (ZAR) and are exclusive of Value-Added Tax under the Value-Added Tax Act 89 of 1991 (unless otherwise explicitly stated in an executed Order Form).
+1.2 Subscription fees are based on the contracted engagement tier structure (per municipality portfolio size, collector user seats, and debtor account volume), as selected at municipal sign-up or stipulated in an official municipal proposal / SLA.
+
+### 2. BILLING AND PAYMENT
+2.1 Subscriptions are billed monthly or annually in advance. Invoices are payable within 30 days of invoice date.
+2.2 Accepted payment methods: Electronic Funds Transfer (EFT), direct bank debit order, or corporate card.
+2.3 Overdue amounts attract interest at the maximum rate permitted by the National Credit Act 34 of 2005 / applicable South African law. We may suspend platform access after written notice and a statutory grace period of 15 business days. Suspension for non-payment will never result in immediate deletion of Municipal data; data remains securely exportable in standard formats for 30 days after suspension.
+
+### 3. COMMISSION AND COLLECTION FEES
+3.1 The Platform does not deduct, hold, or pay collection commission. Any collection fees or contingency commissions are strictly a matter between the Collector and the Municipality, and may only be charged by Collectors holding valid CFDC registration, within the fee caps prescribed under the Debt Collectors Act 114 of 1998 and applicable regulations (max 18% / R2,500 statutory cap).
+3.2 The Platform's fee-calculation, remittance tracking, and statement generation features are administrative tools only; the Collector and Municipality remain responsible for the statutory lawfulness of all amounts charged.
+
+### 4. SERVICE LEVELS (SLA)
+4.1 Target uptime: 99.5% per calendar month, excluding scheduled maintenance performed during standard maintenance windows (Sundays 02:00–05:00 SAST) with at least 48 hours' advance notice.
+4.2 Support response targets:
+  - Critical Severity (service down / security anomaly): 4 business hours.
+  - Standard Severity (operational workflow query): 1 business day.
+  - General Administrative Queries: 2 business days.
+4.3 If monthly uptime falls below the target, the subscriber is entitled to a service credit of 10% of that month's subscription fee, claimed within 30 days. Service credits represent the primary administrative remedy for uptime failures to the extent permitted by law.
+
+### 5. CANCELLATION AND REFUNDS
+5.1 Subscriptions may be cancelled on 30 days' written notice. Annual subscriptions cancelled early are refunded pro rata for full unused calendar months, less any volume discounts applied for annual commitment.
+5.2 We do not refund partial months or fees for periods where the service was operational and available.
+5.3 On cancellation or expiry, the subscriber may export all municipal debt books, customer records, and transaction logs in standard machine-readable format (CSV/JSON) within 30 days, after which data is securely purged in accordance with our retention policy.
+
+### 6. MUNICIPAL PROCUREMENT & MFMA COMPLIANCE
+6.1 Our contracting terms are structured to be fully compatible with the Local Government: Municipal Finance Management Act 56 of 2003 (MFMA), the Municipal Systems Act 32 of 2000, and municipal supply chain management policies.
+6.2 A contract register entry (MFMA s 116) and all compliance documentation required for municipal procurement (SARS Tax Clearance PIN, B-BBEE Level 1 Certificate, CSD Registration Report, CIPC Company Registration) are readily available.
+6.3 Where a Municipality's procurement framework requires termination-for-convenience rights or council-specific governance terms, these are incorporated by addendum.
+6.4 Subscriptions do not auto-renew into binding commitments inconsistent with municipal budget cycles; renewal quotes and Section 116 review packs are issued 60 days prior to contract expiry.
+
+### 7. CHANGES TO COMMERCIAL TERMS
+We may update commercial pricing or terms on 60 days' written notice, effective at the next municipal contract renewal cycle. Continued use after renewal constitutes acceptance.
+"""
+
 
 @router.get("/documents")
 def list_legal_documents(
@@ -722,7 +761,7 @@ def list_legal_documents(
     db: Session = Depends(get_db),
 ):
     """
-    List active versioned legal documents (Terms of Use, POPIA notices, PAIA manual).
+    List active versioned legal documents (Terms of Use, Commercial Terms, POPIA notices, PAIA manual).
     """
     query = select(LegalDocument).where(LegalDocument.is_active == True)
     if doc_type:
@@ -733,7 +772,8 @@ def list_legal_documents(
     # Seed defaults if empty
     if not docs:
         defaults = [
-            ("TERMS_OF_USE", "Khokhisa Master Terms of Service & Operator Disclaimer", "v2.1-ZA", DEFAULT_TERMS_OF_USE),
+            ("TERMS_OF_USE", "Khokhisa Master Terms of Service & Operator Disclaimer", "v1.0", DEFAULT_TERMS_OF_USE),
+            ("COMMERCIAL_TERMS", "Khokhisa SaaS Commercial Terms & Conditions", "v1.0", DEFAULT_COMMERCIAL_TERMS),
             ("POPIA_PRIVACY_NOTICE", "POPIA Section 18 Privacy Notice & Data Subject Charter", "v2.1-ZA", DEFAULT_PRIVACY_POLICY),
             ("PAIA_MANUAL", "Section 51 PAIA Compliance Manual", "v1.0-2026", DEFAULT_PAIA_MANUAL),
         ]
