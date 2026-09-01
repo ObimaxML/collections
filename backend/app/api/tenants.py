@@ -234,6 +234,17 @@ def delete_tenant(
     tenant_name = tenant.name
     tenant_code = tenant.code
 
+    # 0. Clear compliance, POPIA, data breach and municipal mandates
+    from app.models import (
+        CollectorRemittance, CollectorMunicipalAssignment,
+        DataProcessingAgreement, DataBreachIncident, MunicipalContractMandate
+    )
+    db.query(MunicipalContractMandate).filter(MunicipalContractMandate.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(DataBreachIncident).filter(DataBreachIncident.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(CollectorRemittance).filter(CollectorRemittance.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(CollectorMunicipalAssignment).filter(CollectorMunicipalAssignment.tenant_id == tenant_id).delete(synchronize_session=False)
+    db.query(DataProcessingAgreement).filter(DataProcessingAgreement.tenant_id == tenant_id).delete(synchronize_session=False)
+
     # 1. Clear payment allocations for payments belonging to tenant
     pmts = db.query(Payment).filter(Payment.tenant_id == tenant_id).all()
     pmt_ids = [p.id for p in pmts]

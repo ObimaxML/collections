@@ -1454,7 +1454,7 @@ function App() {
   const handleImport = async () => {
     if (!file) return;
     if (!selectedTenant || selectedTenant === "GLOBAL") {
-      alert("⚠️ Please select a specific target municipality (e.g. Ba-Phalaborwa Municipality) from the top-left dropdown or import screen before ingesting a debt book.");
+      alert("⚠️ Please select a specific target entity/municipality from the top-left dropdown or import screen before ingesting a debt book.");
       return;
     }
     setLoading(true);
