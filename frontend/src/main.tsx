@@ -90,7 +90,7 @@ interface Account360 {
 function App() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<string>("");
-  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "billing" | "reports" | "settings">("dashboard");
+  const [view, setView] = useState<"dashboard" | "workqueue" | "accounts" | "imports" | "onboarding" | "users" | "saas_tiers" | "compliance" | "billing" | "reports" | "settings">("dashboard");
   const [showPricingModal, setShowPricingModal] = useState(false);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
@@ -272,6 +272,33 @@ function App() {
   const [wqSearch, setWqSearch] = useState("");
   const [wqStatusFilter, setWqStatusFilter] = useState("ALL");
   const [wqStrategyFilter, setWqStrategyFilter] = useState("ALL");
+  const [wqCollectorFilter, setWqCollectorFilter] = useState("ALL");
+
+  // Collector Compliance & Trust Account states
+  const [complianceCollectors, setComplianceCollectors] = useState<any[]>([]);
+  const [complianceRemittances, setComplianceRemittances] = useState<any[]>([]);
+  const [complianceTab, setComplianceTab] = useState<"collectors" | "trust" | "remittances" | "audit">("collectors");
+  const [selectedCollectorForDetails, setSelectedCollectorForDetails] = useState<any>(null);
+  const [showTrustModal, setShowTrustModal] = useState(false);
+  const [showRemittanceModal, setShowRemittanceModal] = useState(false);
+  const [remittanceStatementModal, setRemittanceStatementModal] = useState<any>(null);
+
+  // Trust form
+  const [trustBankName, setTrustBankName] = useState("");
+  const [trustBranchCode, setTrustBranchCode] = useState("");
+  const [trustAccountNumber, setTrustAccountNumber] = useState("");
+  const [trustAccountHolder, setTrustAccountHolder] = useState("");
+  const [trustAuditDueDate, setTrustAuditDueDate] = useState("");
+  const [trustBankLetterUrl, setTrustBankLetterUrl] = useState("");
+  const [trustAuditorLetterUrl, setTrustAuditorLetterUrl] = useState("");
+  const [trustAuditReportUrl, setTrustAuditReportUrl] = useState("");
+
+  // Remittance form
+  const [remitDebtorRef, setRemitDebtorRef] = useState("");
+  const [remitAmount, setRemitAmount] = useState("");
+  const [remitCommRate, setRemitCommRate] = useState("10.00");
+  const [remitBankStatementRef, setRemitBankStatementRef] = useState("");
+  const [remitNotes, setRemitNotes] = useState("");
 
   const [accSearch, setAccSearch] = useState("");
   const [accMobileSearch, setAccMobileSearch] = useState("");
@@ -570,6 +597,17 @@ function App() {
     fetch(`${API}/billing/invoices`)
       .then(r => r.json())
       .then(setInvoices)
+      .catch(console.error);
+
+    // 6. Collector Compliance Profiles & Remittances
+    fetch(`${API}/compliance/collectors${tenantParam}`)
+      .then(r => r.json())
+      .then(setComplianceCollectors)
+      .catch(console.error);
+
+    fetch(`${API}/compliance/remittances${tenantParam}`)
+      .then(r => r.json())
+      .then(setComplianceRemittances)
       .catch(console.error);
   };
 
@@ -1579,6 +1617,12 @@ function App() {
               💎 SaaS Pricing & Tiers
             </div>
           )}
+          <div className={`nav-item ${view === "compliance" ? "active" : ""}`} onClick={() => { setView("compliance"); setMobileMenuOpen(false); }}>
+            🛡️ Compliance & Trust Accounts
+            <span className="nav-badge" style={{ background: "rgba(16, 185, 129, 0.2)", color: "#34d399" }}>
+              {complianceCollectors.length}
+            </span>
+          </div>
           {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
             <div className={`nav-item ${view === "billing" ? "active" : ""}`} onClick={() => { setView("billing"); setMobileMenuOpen(false); }}>
               🧾 Proposals & Invoicing
@@ -1656,6 +1700,7 @@ function App() {
               {view === "onboarding" && "🏛️ Municipal Onboarding & Engagement Portfolios"}
               {view === "users" && "System User Management & Role-Based Access Control"}
               {view === "saas_tiers" && "💎 Commercial SaaS Tier Matrix & Pricing Breakdown"}
+              {view === "compliance" && "🛡️ Collector Verification, Trust Accounts & Statutory Remittance"}
               {view === "billing" && "🧾 Commercial Proposals & Municipal Invoicing"}
               {view === "reports" && "📈 Executive & Regulatory Municipal Reports"}
               {view === "settings" && "Account & Profile Settings"}
@@ -1668,6 +1713,7 @@ function App() {
               {view === "onboarding" && "Onboard new municipal councils and configure engagement agreements"}
               {view === "users" && "Provision new administrative and collector accounts and configure permissions"}
               {view === "saas_tiers" && "Commercial packaging, municipal feature limits, and revenue matrix"}
+              {view === "compliance" && "CFDC verification, trust account auditor letters, municipal assignments, and statutory remittance tracking"}
               {view === "billing" && "Issue structured proposals, generate official tax invoices (PDF), and manage banking remittance"}
               {view === "reports" && "Generate MFMA Section 71/96 compliance summaries, arrears aging, and collection audits (CSV & Printable PDF)"}
               {view === "settings" && "Update your personal details, email address, and account password"}
@@ -1891,8 +1937,9 @@ function App() {
             
             const matchesStatus = wqStatusFilter === "ALL" || item.case_status === wqStatusFilter;
             const matchesStrategy = wqStrategyFilter === "ALL" || item.strategy_code === wqStrategyFilter;
+            const matchesCollector = wqCollectorFilter === "ALL" || item.assigned_to === wqCollectorFilter;
 
-            return matchesSearch && matchesStatus && matchesStrategy;
+            return matchesSearch && matchesStatus && matchesStrategy && matchesCollector;
           });
 
           return (
@@ -1920,6 +1967,20 @@ function App() {
                 </div>
 
                 <div className="filter-selects">
+                  <select
+                    value={wqCollectorFilter}
+                    onChange={e => setWqCollectorFilter(e.target.value)}
+                    className="form-select filter-select"
+                    style={{ borderColor: "#38bdf8" }}
+                  >
+                    <option value="ALL">👤 All Assigned Collectors</option>
+                    {complianceCollectors.map(c => (
+                      <option key={c.id} value={c.user_email}>
+                        👤 {c.user_name} ({c.compliance_status === "VERIFIED" ? "🟢 Verified" : "🔴 " + c.compliance_status})
+                      </option>
+                    ))}
+                  </select>
+
                   <select
                     value={wqStatusFilter}
                     onChange={e => setWqStatusFilter(e.target.value)}
@@ -4296,7 +4357,795 @@ function App() {
             </form>
           </div>
         )}
+        {/* COMPLIANCE, TRUST ACCOUNTS & REMITTANCE VIEW */}
+        {view === "compliance" && (
+          <div>
+            {/* Top Overview Cards */}
+            <div className="metrics-grid" style={{ marginBottom: "24px" }}>
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Registered Collectors</span>
+                  <span className="metric-badge badge-blue">CFDC Roster</span>
+                </div>
+                <div className="metric-value">{complianceCollectors.length}</div>
+                <div className="metric-subtitle">
+                  {complianceCollectors.filter(c => c.compliance_status === "VERIFIED").length} Verified & Active
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Compliance Health</span>
+                  <span className="metric-badge badge-emerald" style={{ background: "rgba(16, 185, 129, 0.15)", color: "#34d399" }}>
+                    Hard Enforced
+                  </span>
+                </div>
+                <div className="metric-value" style={{ color: "#34d399" }}>
+                  {complianceCollectors.length > 0 
+                    ? `${Math.round((complianceCollectors.filter(c => c.compliance_status === "VERIFIED").length / complianceCollectors.length) * 100)}%` 
+                    : "100%"}
+                </div>
+                <div className="metric-subtitle">
+                  {complianceCollectors.filter(c => c.compliance_status === "SUSPENDED").length} Suspended / Overdue
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Trust Remittance Pool</span>
+                  <span className="metric-badge badge-indigo">Direct to Council</span>
+                </div>
+                <div className="metric-value" style={{ color: "#38bdf8" }}>
+                  {money(complianceRemittances.reduce((sum, r) => sum + (Number(r.remittance_amount) || 0), 0))}
+                </div>
+                <div className="metric-subtitle">
+                  Across {complianceRemittances.length} trust deposits
+                </div>
+              </div>
+
+              <div className="metric-card">
+                <div className="metric-header">
+                  <span className="metric-title">Daily Audit Job</span>
+                  <span className="metric-badge badge-purple">Automated</span>
+                </div>
+                <div style={{ marginTop: "8px" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    style={{ width: "100%", justifyContent: "center", borderColor: "#a855f7", color: "#e9d5ff" }}
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const res = await fetch(`${API}/compliance/cron/run-audit`, { method: "POST" });
+                        const data = await res.json();
+                        alert(`🔍 Compliance Audit Complete!\nChecked: ${data.total_checked} | Verified: ${data.verified_collectors} | Suspended: ${data.newly_suspended}`);
+                        refreshData();
+                      } catch (err: any) {
+                        alert("Audit error: " + err.message);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    ⚡ Run Audit Cron Now
+                  </button>
+                </div>
+                <div className="metric-subtitle" style={{ marginTop: "6px" }}>Auto-suspends non-compliant collectors</div>
+              </div>
+            </div>
+
+            {/* Compliance Navigation Tabs */}
+            <div className="glass-panel" style={{ marginBottom: "24px" }}>
+              <div className="tabs" style={{ marginBottom: "20px" }}>
+                <div className={`tab ${complianceTab === "collectors" ? "active" : ""}`} onClick={() => setComplianceTab("collectors")}>
+                  👥 Collectors Compliance Roster ({complianceCollectors.length})
+                </div>
+                <div className={`tab ${complianceTab === "trust" ? "active" : ""}`} onClick={() => setComplianceTab("trust")}>
+                  🏦 Trust Account Verifications ({complianceCollectors.filter(c => c.trust_account).length})
+                </div>
+                <div className={`tab ${complianceTab === "remittances" ? "active" : ""}`} onClick={() => setComplianceTab("remittances")}>
+                  💵 Trust Remittance Ledger ({complianceRemittances.length})
+                </div>
+              </div>
+
+              {/* TAB 1: COLLECTORS COMPLIANCE ROSTER */}
+              {complianceTab === "collectors" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>Council for Debt Collectors (CFDC) Verification & Roster</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Statutory certification, annual audit reports, and municipal approvals enforced server-side.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Collector Name / Email</th>
+                          <th>CFDC Registration #</th>
+                          <th>CFDC Expiry</th>
+                          <th>Trust Account</th>
+                          <th>Municipal Assignments</th>
+                          <th>Compliance Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {complianceCollectors.map(c => {
+                          const isExpiringSoon = c.days_to_cfdc_expiry !== null && c.days_to_cfdc_expiry <= 60 && c.days_to_cfdc_expiry > 0;
+                          const isExpired = c.days_to_cfdc_expiry !== null && c.days_to_cfdc_expiry <= 0;
+
+                          return (
+                            <tr key={c.id}>
+                              <td>
+                                <div style={{ fontWeight: 700, color: "#f8fafc" }}>{c.user_name}</div>
+                                <div style={{ fontSize: "11px", color: "#94a3b8" }}>{c.user_email}</div>
+                              </td>
+                              <td>
+                                <span style={{ fontFamily: "monospace", fontSize: "12px", color: "#38bdf8", fontWeight: 700 }}>
+                                  {c.cfdc_registration_number}
+                                </span>
+                              </td>
+                              <td>
+                                <div>{c.cfdc_expiry_date || "Not Provided"}</div>
+                                {isExpiringSoon && (
+                                  <span style={{ fontSize: "10.5px", color: "#facc15", fontWeight: 700 }}>⚠️ Expires in {c.days_to_cfdc_expiry}d</span>
+                                )}
+                                {isExpired && (
+                                  <span style={{ fontSize: "10.5px", color: "#fb7185", fontWeight: 700 }}>🚨 EXPIRED</span>
+                                )}
+                              </td>
+                              <td>
+                                {c.trust_account ? (
+                                  <div>
+                                    <div style={{ fontWeight: 600 }}>{c.trust_account.bank_name}</div>
+                                    <span style={{
+                                      fontSize: "10.5px",
+                                      fontWeight: 700,
+                                      color: c.trust_account.verification_status === "VERIFIED" ? "#34d399" : "#fbbf24"
+                                    }}>
+                                      ● {c.trust_account.verification_status}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span style={{ color: "#fb7185", fontSize: "12px" }}>❌ Missing Trust Account</span>
+                                )}
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                  {c.assignments.length === 0 ? (
+                                    <span style={{ color: "#64748b", fontSize: "11.5px" }}>Unassigned</span>
+                                  ) : (
+                                    c.assignments.map((a: any) => (
+                                      <span
+                                        key={a.id}
+                                        style={{
+                                          fontSize: "11px",
+                                          padding: "2px 6px",
+                                          borderRadius: "4px",
+                                          background: a.status === "ACTIVE" ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)",
+                                          color: a.status === "ACTIVE" ? "#34d399" : "#fb7185",
+                                          border: `1px solid ${a.status === "ACTIVE" ? "rgba(16, 185, 129, 0.3)" : "rgba(244, 63, 94, 0.3)"}`,
+                                        }}
+                                      >
+                                        {a.tenant_code}: {a.status}
+                                      </span>
+                                    ))
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <span style={{
+                                  padding: "3px 8px",
+                                  borderRadius: "6px",
+                                  fontSize: "11.5px",
+                                  fontWeight: 800,
+                                  textTransform: "uppercase",
+                                  background: c.compliance_status === "VERIFIED" ? "rgba(16, 185, 129, 0.2)" : c.compliance_status === "SUSPENDED" ? "rgba(244, 63, 94, 0.2)" : "rgba(234, 179, 8, 0.2)",
+                                  color: c.compliance_status === "VERIFIED" ? "#34d399" : c.compliance_status === "SUSPENDED" ? "#fb7185" : "#facc15",
+                                  border: `1px solid ${c.compliance_status === "VERIFIED" ? "rgba(16, 185, 129, 0.35)" : c.compliance_status === "SUSPENDED" ? "rgba(244, 63, 94, 0.35)" : "rgba(234, 179, 8, 0.35)"}`,
+                                }}>
+                                  {c.compliance_status === "VERIFIED" ? "🟢 VERIFIED" : c.compliance_status === "SUSPENDED" ? "🔴 SUSPENDED" : "🟡 PENDING"}
+                                </span>
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    onClick={() => {
+                                      setSelectedCollectorForDetails(c);
+                                      if (c.trust_account) {
+                                        setTrustBankName(c.trust_account.bank_name);
+                                        setTrustBranchCode(c.trust_account.branch_code);
+                                        setTrustAccountNumber(c.trust_account.account_number);
+                                        setTrustAccountHolder(c.trust_account.account_holder_name);
+                                        setTrustAuditDueDate(c.trust_account.audit_due_date);
+                                        setTrustBankLetterUrl(c.trust_account.bank_confirmation_letter_url || "");
+                                        setTrustAuditorLetterUrl(c.trust_account.auditor_letter_url || "");
+                                        setTrustAuditReportUrl(c.trust_account.last_audit_report_url || "");
+                                      } else {
+                                        setTrustBankName("");
+                                        setTrustBranchCode("");
+                                        setTrustAccountNumber("");
+                                        setTrustAccountHolder("");
+                                        setTrustAuditDueDate("");
+                                        setTrustBankLetterUrl("");
+                                        setTrustAuditorLetterUrl("");
+                                        setTrustAuditReportUrl("");
+                                      }
+                                      setShowTrustModal(true);
+                                    }}
+                                  >
+                                    ⚙️ Trust & KYC
+                                  </button>
+
+                                  {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+                                    <>
+                                      {c.compliance_status !== "VERIFIED" ? (
+                                        <button
+                                          type="button"
+                                          className="btn btn-primary btn-sm"
+                                          style={{ background: "#059669", borderColor: "#10b981" }}
+                                          onClick={async () => {
+                                            if (!confirm(`Verify collector ${c.user_name}? This enables active collection actions.`)) return;
+                                            setLoading(true);
+                                            try {
+                                              await fetch(`${API}/compliance/collectors/${c.id}`, {
+                                                method: "PUT",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ compliance_status: "VERIFIED" }),
+                                              });
+                                              alert(`Collector ${c.user_name} marked as VERIFIED!`);
+                                              refreshData();
+                                            } catch (err: any) {
+                                              alert("Error: " + err.message);
+                                            } finally {
+                                              setLoading(false);
+                                            }
+                                          }}
+                                        >
+                                          ✓ Verify
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary btn-sm"
+                                          style={{ color: "#fb7185", borderColor: "rgba(244, 63, 94, 0.3)" }}
+                                          onClick={async () => {
+                                            const reason = prompt("Enter suspension reason:", "Annual audit report overdue or compliance audit failure");
+                                            if (!reason) return;
+                                            setLoading(true);
+                                            try {
+                                              await fetch(`${API}/compliance/collectors/${c.id}`, {
+                                                method: "PUT",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ compliance_status: "SUSPENDED", suspension_reason: reason }),
+                                              });
+                                              alert(`Collector ${c.user_name} has been SUSPENDED.`);
+                                              refreshData();
+                                            } catch (err: any) {
+                                              alert("Error: " + err.message);
+                                            } finally {
+                                              setLoading(false);
+                                            }
+                                          }}
+                                        >
+                                          ⛔ Suspend
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: TRUST ACCOUNT VERIFICATIONS */}
+              {complianceTab === "trust" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>Statutory Trust Accounts & Annual Auditor Reviews</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Section 9(1) of the Debt Collectors Act: Mandated separate trust banking accounts and external auditor verification.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Collector</th>
+                          <th>Bank & Branch</th>
+                          <th>Trust Account #</th>
+                          <th>Account Holder</th>
+                          <th>Audit Due Date</th>
+                          <th>Auditor Documents</th>
+                          <th>Trust Status</th>
+                          <th>Admin Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {complianceCollectors.filter(c => c.trust_account).map(c => {
+                          const t = c.trust_account;
+                          return (
+                            <tr key={t.id}>
+                              <td><strong>{c.user_name}</strong></td>
+                              <td>{t.bank_name} ({t.branch_code})</td>
+                              <td style={{ fontFamily: "monospace", fontWeight: 700, color: "#38bdf8" }}>{t.account_number}</td>
+                              <td>{t.account_holder_name}</td>
+                              <td>
+                                <div>{t.audit_due_date}</div>
+                                {t.days_to_audit_due !== null && t.days_to_audit_due <= 30 && (
+                                  <span style={{ fontSize: "10.5px", color: "#fb7185", fontWeight: 700 }}>
+                                    ⚠️ Due in {t.days_to_audit_due}d
+                                  </span>
+                                )}
+                              </td>
+                              <td>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px", fontSize: "11px" }}>
+                                  {t.bank_confirmation_letter_url && (
+                                    <a href={t.bank_confirmation_letter_url} target="_blank" rel="noreferrer" style={{ color: "#38bdf8" }}>
+                                      📄 Bank Letter
+                                    </a>
+                                  )}
+                                  {t.auditor_letter_url && (
+                                    <a href={t.auditor_letter_url} target="_blank" rel="noreferrer" style={{ color: "#38bdf8" }}>
+                                      📄 Auditor Letter
+                                    </a>
+                                  )}
+                                  {t.last_audit_report_url && (
+                                    <a href={t.last_audit_report_url} target="_blank" rel="noreferrer" style={{ color: "#a855f7" }}>
+                                      📊 Last Audit Report
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+                              <td>
+                                <span style={{
+                                  padding: "2px 8px",
+                                  borderRadius: "4px",
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  background: t.verification_status === "VERIFIED" ? "rgba(16, 185, 129, 0.15)" : "rgba(234, 179, 8, 0.15)",
+                                  color: t.verification_status === "VERIFIED" ? "#34d399" : "#facc15"
+                                }}>
+                                  {t.verification_status}
+                                </span>
+                              </td>
+                              <td>
+                                {(currentUser?.role === "SUPERADMIN" || currentUser?.role === "ADMIN") && (
+                                  <div style={{ display: "flex", gap: "6px" }}>
+                                    {t.verification_status !== "VERIFIED" ? (
+                                      <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        style={{ background: "#059669", borderColor: "#10b981", fontSize: "11px", padding: "3px 8px" }}
+                                        onClick={async () => {
+                                          setLoading(true);
+                                          try {
+                                            await fetch(`${API}/compliance/collectors/${c.id}/trust-account/status?verification_status=VERIFIED`, {
+                                              method: "PATCH",
+                                            });
+                                            alert("Trust account marked as VERIFIED!");
+                                            refreshData();
+                                          } catch (err: any) {
+                                            alert("Error: " + err.message);
+                                          } finally {
+                                            setLoading(false);
+                                          }
+                                        }}
+                                      >
+                                        ✓ Approve Trust
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ color: "#fb7185", fontSize: "11px", padding: "3px 8px" }}
+                                        onClick={async () => {
+                                          setLoading(true);
+                                          try {
+                                            await fetch(`${API}/compliance/collectors/${c.id}/trust-account/status?verification_status=REVOKED`, {
+                                              method: "PATCH",
+                                            });
+                                            alert("Trust verification REVOKED.");
+                                            refreshData();
+                                          } catch (err: any) {
+                                            alert("Error: " + err.message);
+                                          } finally {
+                                            setLoading(false);
+                                          }
+                                        }}
+                                      >
+                                        Revoke
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: TRUST REMITTANCE LEDGER */}
+              {complianceTab === "remittances" && (
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: "#f8fafc", fontSize: "16px" }}>Trust Account Remittance & Municipal Disbursements</h4>
+                      <p style={{ margin: "2px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                        Tracking payments collected into trust, statutory commission caps (Debt Collectors Act), and EFT remittances to municipalities.
+                      </p>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        onClick={() => setShowRemittanceModal(true)}
+                      >
+                        ➕ Record Trust Deposit & Remittance
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="table-container">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Receipt Date</th>
+                          <th>Collector</th>
+                          <th>Municipality</th>
+                          <th>Debtor Ref</th>
+                          <th>Gross Received</th>
+                          <th>Commission Earned</th>
+                          <th>Net Remittance</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {complianceRemittances.map(r => (
+                          <tr key={r.id}>
+                            <td>{r.receipt_date}</td>
+                            <td><strong>{r.collector_name}</strong></td>
+                            <td>{r.tenant_name}</td>
+                            <td style={{ fontFamily: "monospace", color: "#38bdf8", fontWeight: 700 }}>{r.debtor_reference}</td>
+                            <td style={{ fontWeight: 700, color: "#f8fafc" }}>{money(r.amount_received)}</td>
+                            <td style={{ color: "#818cf8" }}>{money(r.commission_amount)} ({r.commission_rate}%)</td>
+                            <td style={{ fontWeight: 800, color: "#34d399" }}>{money(r.remittance_amount)}</td>
+                            <td>
+                              <span style={{
+                                padding: "2px 8px",
+                                borderRadius: "4px",
+                                fontSize: "11px",
+                                fontWeight: 700,
+                                background: r.remittance_status === "REMITTED" ? "rgba(16, 185, 129, 0.15)" : "rgba(234, 179, 8, 0.15)",
+                                color: r.remittance_status === "REMITTED" ? "#34d399" : "#facc15",
+                              }}>
+                                {r.remittance_status}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: "flex", gap: "6px" }}>
+                                {r.remittance_status === "PENDING" && (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ fontSize: "11px", padding: "2px 8px", color: "#34d399", borderColor: "#10b981" }}
+                                    onClick={async () => {
+                                      const ref = prompt("Enter bank statement EFT remittance reference:", `EFT-REM-${Date.now().toString().slice(-4)}`);
+                                      if (!ref) return;
+                                      setLoading(true);
+                                      try {
+                                        await fetch(`${API}/compliance/remittances/${r.id}/status`, {
+                                          method: "PATCH",
+                                          headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ remittance_status: "REMITTED", bank_statement_ref: ref }),
+                                        });
+                                        alert("Remittance marked as REMITTED to municipality bank account!");
+                                        refreshData();
+                                      } catch (err: any) {
+                                        alert("Error: " + err.message);
+                                      } finally {
+                                        setLoading(false);
+                                      }
+                                    }}
+                                  >
+                                    ✓ Remit to Muni
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: "11px", padding: "2px 8px" }}
+                                  onClick={async () => {
+                                    setLoading(true);
+                                    try {
+                                      const res = await fetch(`${API}/compliance/remittances/statement?collector_profile_id=${r.collector_profile_id}&tenant_id=${r.tenant_id}`);
+                                      const stmt = await res.json();
+                                      setRemittanceStatementModal(stmt);
+                                    } catch (err: any) {
+                                      alert("Failed to load monthly statement: " + err.message);
+                                    } finally {
+                                      setLoading(false);
+                                    }
+                                  }}
+                                >
+                                  📄 Statement
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* MODAL: TRUST ACCOUNT & KYC UPLOADS */}
+      {showTrustModal && selectedCollectorForDetails && (
+        <div className="modal-backdrop" onClick={() => setShowTrustModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "640px", width: "94%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>🏦 Collector Trust Account & KYC Documents</h3>
+                <p>Configure statutory separate trust banking and upload auditor certification for <strong>{selectedCollectorForDetails.user_name}</strong></p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowTrustModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                await fetch(`${API}/compliance/collectors/${selectedCollectorForDetails.id}/trust-account`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    bank_name: trustBankName,
+                    branch_code: trustBranchCode,
+                    account_number: trustAccountNumber,
+                    account_holder_name: trustAccountHolder,
+                    audit_due_date: trustAuditDueDate || new Date(Date.now() + 180 * 86400000).toISOString().split("T")[0],
+                    bank_confirmation_letter_url: trustBankLetterUrl || "https://storage.khokhisa.co.za/trust/bank_letter.pdf",
+                    auditor_letter_url: trustAuditorLetterUrl || "https://storage.khokhisa.co.za/trust/auditor_letter.pdf",
+                    last_audit_report_url: trustAuditReportUrl || "https://storage.khokhisa.co.za/trust/last_audit.pdf",
+                  }),
+                });
+                alert("Trust account details updated successfully!");
+                setShowTrustModal(false);
+                refreshData();
+              } catch (err: any) {
+                alert("Error saving trust account: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Bank Name</label>
+                  <input type="text" placeholder="e.g. Standard Bank / FNB / Nedbank" value={trustBankName} onChange={e => setTrustBankName(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Branch Code</label>
+                  <input type="text" placeholder="e.g. 051001" value={trustBranchCode} onChange={e => setTrustBranchCode(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Trust Account Number</label>
+                  <input type="text" placeholder="e.g. 0228491039" value={trustAccountNumber} onChange={e => setTrustAccountNumber(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Account Holder Name</label>
+                  <input type="text" placeholder="e.g. Sithole Collections Trust Account" value={trustAccountHolder} onChange={e => setTrustAccountHolder(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <label>Annual Trust Audit Due Date</label>
+                <input type="date" value={trustAuditDueDate} onChange={e => setTrustAuditDueDate(e.target.value)} className="form-input" required />
+              </div>
+
+              <div style={{ padding: "14px", background: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid var(--border-subtle)", marginBottom: "20px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 700, color: "#38bdf8", marginBottom: "10px" }}>📑 Statutory Uploads (URLs / Files)</div>
+                <div className="form-group" style={{ marginBottom: "10px" }}>
+                  <label>Bank Confirmation Letter URL</label>
+                  <input type="text" placeholder="https://storage.khokhisa.co.za/trust/bank_letter.pdf" value={trustBankLetterUrl} onChange={e => setTrustBankLetterUrl(e.target.value)} className="form-input" />
+                </div>
+                <div className="form-group" style={{ marginBottom: "10px" }}>
+                  <label>Auditor Letter URL</label>
+                  <input type="text" placeholder="https://storage.khokhisa.co.za/trust/auditor_letter.pdf" value={trustAuditorLetterUrl} onChange={e => setTrustAuditorLetterUrl(e.target.value)} className="form-input" />
+                </div>
+                <div className="form-group">
+                  <label>Last Annual Audit Report URL</label>
+                  <input type="text" placeholder="https://storage.khokhisa.co.za/trust/last_audit.pdf" value={trustAuditReportUrl} onChange={e => setTrustAuditReportUrl(e.target.value)} className="form-input" />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowTrustModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>💾 Save Trust Details</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: RECORD TRUST REMITTANCE */}
+      {showRemittanceModal && (
+        <div className="modal-backdrop" onClick={() => setShowRemittanceModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "560px", width: "92%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "18px" }}>
+              <div className="panel-title">
+                <h3>💵 Record Trust Collection & Municipal Remittance</h3>
+                <p>Track cash received in collector trust account and calculate statutory net municipal transfer</p>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowRemittanceModal(false)}>✕</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (complianceCollectors.length === 0 || tenants.length === 0) return;
+              setLoading(true);
+              try {
+                const targetCollector = complianceCollectors[0]?.id;
+                const targetTenant = (selectedTenant && selectedTenant !== "GLOBAL") ? selectedTenant : tenants[0]?.id;
+
+                await fetch(`${API}/compliance/remittances?collector_profile_id=${targetCollector}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    tenant_id: targetTenant,
+                    debtor_reference: remitDebtorRef || "MUN001",
+                    amount_received: Number(remitAmount),
+                    receipt_date: new Date().toISOString().split("T")[0],
+                    commission_rate: Number(remitCommRate) || 10.0,
+                    bank_statement_ref: remitBankStatementRef || `EFT-${Date.now().toString().slice(-4)}`,
+                    notes: remitNotes,
+                  }),
+                });
+                alert("Trust collection & remittance record posted!");
+                setShowRemittanceModal(false);
+                refreshData();
+              } catch (err: any) {
+                alert("Error recording remittance: " + err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}>
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Debtor Account Reference</label>
+                <input type="text" placeholder="e.g. MUN001" value={remitDebtorRef} onChange={e => setRemitDebtorRef(e.target.value)} className="form-input" required />
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Gross Amount Received (ZAR)</label>
+                  <input type="number" placeholder="e.g. 5000" value={remitAmount} onChange={e => setRemitAmount(e.target.value)} className="form-input" required />
+                </div>
+                <div className="form-group">
+                  <label>Commission Rate (%)</label>
+                  <input type="number" placeholder="10.00" value={remitCommRate} onChange={e => setRemitCommRate(e.target.value)} className="form-input" required />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label>Bank Statement Reference</label>
+                <input type="text" placeholder="e.g. EFT-MUNI-0921" value={remitBankStatementRef} onChange={e => setRemitBankStatementRef(e.target.value)} className="form-input" />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "20px" }}>
+                <label>Remittance Notes</label>
+                <textarea rows={2} placeholder="Add payment reconciliation or debtor settlement notes..." value={remitNotes} onChange={e => setRemitNotes(e.target.value)} className="form-textarea" />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowRemittanceModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={loading || !remitAmount}>✓ Post Remittance Record</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: MONTHLY REMITTANCE STATEMENT */}
+      {remittanceStatementModal && (
+        <div className="modal-backdrop" onClick={() => setRemittanceStatementModal(null)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "760px", width: "95%", background: "#ffffff", color: "#0f172a" }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #e2e8f0", paddingBottom: "16px", marginBottom: "20px" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: "22px", fontWeight: 900, color: "#0f172a" }}>KHOKHISA</h2>
+                <div style={{ fontSize: "11px", fontWeight: 800, color: "#0284c7", textTransform: "uppercase" }}>Statutory Trust Remittance Statement</div>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={() => setRemittanceStatementModal(null)} style={{ color: "#64748b" }}>✕</button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px", fontSize: "12.5px" }}>
+              <div>
+                <div><strong>Registered Collector:</strong> {remittanceStatementModal.collector_name}</div>
+                <div><strong>CFDC Registration:</strong> {remittanceStatementModal.cfdc_number}</div>
+                <div><strong>Statement Period:</strong> {remittanceStatementModal.statement_period}</div>
+              </div>
+              <div>
+                <div><strong>Municipality:</strong> {remittanceStatementModal.tenant_name}</div>
+                <div><strong>Municipal Bank:</strong> {remittanceStatementModal.tenant_bank_details?.bank_name} ({remittanceStatementModal.tenant_bank_details?.account_number})</div>
+                <div><strong>Generated:</strong> {remittanceStatementModal.generated_at?.split("T")[0]}</div>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px" }}>
+              <div style={{ padding: "12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Gross Cash Collected</div>
+                <div style={{ fontSize: "18px", fontWeight: 800, color: "#0f172a" }}>{money(remittanceStatementModal.total_cash_collected)}</div>
+              </div>
+              <div style={{ padding: "12px", background: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                <div style={{ fontSize: "11px", color: "#64748b" }}>Prescribed Commission</div>
+                <div style={{ fontSize: "18px", fontWeight: 800, color: "#2563eb" }}>{money(remittanceStatementModal.total_commission_earned)}</div>
+              </div>
+              <div style={{ padding: "12px", background: "#f0fdf4", borderRadius: "8px", border: "1px solid #bbf7d0" }}>
+                <div style={{ fontSize: "11px", color: "#166534" }}>Net Municipal Remittance</div>
+                <div style={{ fontSize: "18px", fontWeight: 800, color: "#15803d" }}>{money(remittanceStatementModal.total_remitted_to_municipality + remittanceStatementModal.total_pending_remittance)}</div>
+              </div>
+            </div>
+
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px", marginBottom: "20px" }}>
+              <thead>
+                <tr style={{ background: "#f1f5f9", borderBottom: "1px solid #cbd5e1" }}>
+                  <th style={{ padding: "8px" }}>Receipt Date</th>
+                  <th style={{ padding: "8px" }}>Debtor Ref</th>
+                  <th style={{ padding: "8px" }}>Gross (ZAR)</th>
+                  <th style={{ padding: "8px" }}>Commission</th>
+                  <th style={{ padding: "8px" }}>Net Remitted</th>
+                  <th style={{ padding: "8px" }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {remittanceStatementModal.items.map((item: any) => (
+                  <tr key={item.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: "8px" }}>{item.receipt_date}</td>
+                    <td style={{ padding: "8px", fontWeight: 700 }}>{item.debtor_reference}</td>
+                    <td style={{ padding: "8px" }}>{money(item.amount_received)}</td>
+                    <td style={{ padding: "8px", color: "#2563eb" }}>{money(item.commission_amount)}</td>
+                    <td style={{ padding: "8px", fontWeight: 700, color: "#15803d" }}>{money(item.remittance_amount)}</td>
+                    <td style={{ padding: "8px" }}>{item.remittance_status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <button type="button" className="btn btn-primary" onClick={() => window.print()}>🖨️ Print Statutory Statement</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* EDIT USER MODAL (ADMIN & SUPERADMIN) */}
       {editingUser && (

@@ -32,6 +32,7 @@ from app.api.financial import (
 from app.api.imports import router as imports_router
 from app.api.popia import router as popia_router
 from app.api.billing import router as billing_router
+from app.api.compliance import router as compliance_router
 from app.core.config import settings
 from app.db.session import Base
 
@@ -52,6 +53,10 @@ from app.models import (
     ContactAttempt,
     Proposal,
     Invoice,
+    CollectorProfile,
+    CollectorTrustAccount,
+    CollectorMunicipalAssignment,
+    CollectorRemittance,
 )
 
 
@@ -169,6 +174,10 @@ app.include_router(
 )
 app.include_router(
     billing_router,
+    prefix="/api",
+)
+app.include_router(
+    compliance_router,
     prefix="/api",
 )
 app.include_router(

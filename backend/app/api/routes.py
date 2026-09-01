@@ -3060,6 +3060,26 @@ def create_promise(
             detail="Cannot create a promise on a closed case.",
         )
 
+    # Server-Side Hard Compliance Gating
+    actor_str = request.actor or "Collector"
+    collector_user = db.scalar(
+        select(User).where((User.email == actor_str) | (User.full_name == actor_str))
+    )
+    if collector_user and collector_user.role == "COLLECTOR":
+        from app.services.compliance import check_and_enforce_collector_action_allowed
+        try:
+            check_and_enforce_collector_action_allowed(
+                db=db,
+                user_id=collector_user.id,
+                tenant_id=case.tenant_id,
+                action_name="Create Promise to Pay (PTP)",
+            )
+        except PermissionError as p_err:
+            raise HTTPException(
+                status_code=403,
+                detail=str(p_err),
+            )
+
     ref_account = None
     if case.account_id:
         acc_obj = db.get(MunicipalAccount, case.account_id)
@@ -3151,6 +3171,26 @@ def create_payment_plan(
             status_code=409,
             detail="Cannot create a payment plan on a closed case.",
         )
+
+    # Server-Side Hard Compliance Gating
+    actor_str = request.actor or "Collector"
+    collector_user = db.scalar(
+        select(User).where((User.email == actor_str) | (User.full_name == actor_str))
+    )
+    if collector_user and collector_user.role == "COLLECTOR":
+        from app.services.compliance import check_and_enforce_collector_action_allowed
+        try:
+            check_and_enforce_collector_action_allowed(
+                db=db,
+                user_id=collector_user.id,
+                tenant_id=case.tenant_id,
+                action_name="Setup Payment Arrangement",
+            )
+        except PermissionError as p_err:
+            raise HTTPException(
+                status_code=403,
+                detail=str(p_err),
+            )
 
     plan = PaymentPlan(
         id=uuid4(),

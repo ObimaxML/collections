@@ -87,6 +87,28 @@ class Tenant(Base):
         Date,
         nullable=True,
     )
+    # Municipal Official Revenue Bank Account (Municipalities do NOT have trust accounts)
+    bank_name: Mapped[str | None] = mapped_column(
+        String(150),
+        nullable=True,
+    )
+    branch_code: Mapped[str | None] = mapped_column(
+        String(50),
+        nullable=True,
+    )
+    account_number: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+    )
+    account_holder_name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    payment_reference_format: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        default="MUNI-{ACCOUNT_NO}",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -888,6 +910,12 @@ class AuditEvent(Base):
 
 
 from app.models.billing import Invoice, Proposal
+from app.models.compliance import (
+    CollectorProfile,
+    CollectorTrustAccount,
+    CollectorMunicipalAssignment,
+    CollectorRemittance,
+)
 
 __all__ = [
     "Tenant",
@@ -909,4 +937,8 @@ __all__ = [
     "ImportRow",
     "Proposal",
     "Invoice",
+    "CollectorProfile",
+    "CollectorTrustAccount",
+    "CollectorMunicipalAssignment",
+    "CollectorRemittance",
 ]

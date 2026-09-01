@@ -28,6 +28,31 @@ def record_contact_attempt(
     db: Session = Depends(get_db),
 ):
     try:
+        from app.models import CollectionCase, User
+        case = db.get(CollectionCase, case_id)
+        if not case:
+            raise HTTPException(status_code=404, detail="Collection case not found.")
+
+        # Server-side hard compliance gating
+        collector_str = request.collector or "Collector"
+        collector_user = db.scalar(
+            select(User).where((User.email == collector_str) | (User.full_name == collector_str))
+        )
+        if collector_user and collector_user.role == "COLLECTOR":
+            from app.services.compliance import check_and_enforce_collector_action_allowed
+            try:
+                check_and_enforce_collector_action_allowed(
+                    db=db,
+                    user_id=collector_user.id,
+                    tenant_id=case.tenant_id,
+                    action_name="Log Contact Attempt",
+                )
+            except PermissionError as p_err:
+                raise HTTPException(
+                    status_code=403,
+                    detail=str(p_err),
+                )
+
         attempt = create_contact_attempt(
             db=db,
             case_id=case_id,
