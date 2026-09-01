@@ -46,6 +46,13 @@ class DpaSign(BaseModel):
     signed_by_name: str
     signed_by_position: str
     signer_ip_address: str | None = "127.0.0.1"
+    agreement_text: str | None = None
+
+
+class DpaUpdate(BaseModel):
+    agreement_title: str | None = None
+    agreement_version: str | None = None
+    agreement_text: str | None = None
 
 
 class DataBreachCreate(BaseModel):
@@ -235,6 +242,57 @@ def create_operator_agreement(
     return {"message": "Operator Agreement created successfully.", "id": str(dpa.id)}
 
 
+@router.patch("/operator-agreements/{agreement_id}")
+def update_operator_agreement(
+    agreement_id: UUID,
+    payload: DpaUpdate,
+    actor: str = "Authorized Signatory",
+    db: Session = Depends(get_db),
+):
+    """
+    Allow editing terms, clauses, or customized text of generated S21 Operator Agreement prior to electronic execution.
+    """
+    dpa = db.get(DataProcessingAgreement, agreement_id)
+    if not dpa:
+        raise HTTPException(status_code=404, detail="Operator Agreement not found.")
+
+    if dpa.status == "EXECUTED":
+        raise HTTPException(
+            status_code=400,
+            detail="Executed Section 21 Operator Agreements cannot be modified. Generate a new version to amend terms.",
+        )
+
+    if payload.agreement_title:
+        dpa.agreement_title = payload.agreement_title
+    if payload.agreement_version:
+        dpa.agreement_version = payload.agreement_version
+    if payload.agreement_text is not None:
+        dpa.agreement_text = payload.agreement_text
+
+    dpa.updated_at = datetime.now(timezone.utc)
+
+    # Log modification event in audit trail
+    audit = AuditEvent(
+        id=uuid.uuid4(),
+        tenant_id=dpa.tenant_id,
+        actor=actor,
+        event_type="POPIA_OPERATOR_AGREEMENT_EDITED",
+        entity_type="DataProcessingAgreement",
+        entity_id=dpa.id,
+        payload={
+            "version": dpa.agreement_version,
+            "title": dpa.agreement_title,
+            "updated_at": dpa.updated_at.isoformat(),
+        },
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
+
+    db.commit()
+    db.refresh(dpa)
+    return {"message": "Section 21 Operator Agreement text updated successfully.", "id": str(dpa.id)}
+
+
 @router.post("/operator-agreements/{agreement_id}/sign")
 def sign_operator_agreement(
     agreement_id: UUID,
@@ -247,6 +305,12 @@ def sign_operator_agreement(
     dpa = db.get(DataProcessingAgreement, agreement_id)
     if not dpa:
         raise HTTPException(status_code=404, detail="Operator Agreement not found.")
+
+    if dpa.status == "EXECUTED":
+        raise HTTPException(status_code=400, detail="Agreement has already been executed.")
+
+    if payload.agreement_text is not None:
+        dpa.agreement_text = payload.agreement_text
 
     now = datetime.now(timezone.utc)
     sig_raw = f"{dpa.id}:{dpa.agreement_version}:{payload.signed_by_name}:{payload.signed_by_position}:{now.isoformat()}"

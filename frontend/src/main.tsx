@@ -320,6 +320,8 @@ function App() {
   const [signingDpa, setSigningDpa] = useState<any>(null);
   const [dpaSignerName, setDpaSignerName] = useState("");
   const [dpaSignerPosition, setDpaSignerPosition] = useState("");
+  const [dpaAgreementText, setDpaAgreementText] = useState("");
+  const [isEditingDpaText, setIsEditingDpaText] = useState(false);
 
   // New Mandate Modal
   const [showNewMandateModal, setShowNewMandateModal] = useState(false);
@@ -5170,9 +5172,11 @@ function App() {
                                       setSigningDpa(a);
                                       setDpaSignerName(currentUser?.full_name || "");
                                       setDpaSignerPosition("Chief Financial Officer / Authorized Signatory");
+                                      setDpaAgreementText(a.agreement_text || "");
+                                      setIsEditingDpaText(false);
                                     }}
                                   >
-                                    ✍️ E-Sign Agreement
+                                    ✍️ Review & E-Sign
                                   </button>
                                 ) : (
                                   <button
@@ -5711,14 +5715,14 @@ function App() {
         )}
       </main>
 
-      {/* MODAL: SIGN POPIA OPERATOR AGREEMENT */}
+      {/* MODAL: SIGN POPIA OPERATOR AGREEMENT WITH IN-PLACE EDITING */}
       {signingDpa && (
         <div className="modal-backdrop" onClick={() => setSigningDpa(null)}>
-          <div className="modal-content glass-panel" style={{ maxWidth: "600px", width: "92%" }} onClick={e => e.stopPropagation()}>
-            <div className="panel-header" style={{ marginBottom: "18px" }}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "780px", width: "95%" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ marginBottom: "16px" }}>
               <div className="panel-title">
-                <h3>✍️ E-Sign POPIA Section 21 Operator Agreement</h3>
-                <p>Electronic execution under Section 13 of the Electronic Communications and Transactions Act (ECTA)</p>
+                <h3>✍️ Review, Edit & E-Sign POPIA Section 21 Operator Agreement</h3>
+                <p>Customize terms and execute under Section 13 of the Electronic Communications and Transactions Act (ECTA)</p>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={() => setSigningDpa(null)}>✕</button>
             </div>
@@ -5733,9 +5737,10 @@ function App() {
                   body: JSON.stringify({
                     signed_by_name: dpaSignerName,
                     signed_by_position: dpaSignerPosition,
+                    agreement_text: dpaAgreementText,
                   }),
                 });
-                alert("POPIA Section 21 Operator Agreement executed successfully!");
+                alert("POPIA Section 21 Operator Agreement edited and executed successfully!");
                 setSigningDpa(null);
                 refreshData();
               } catch (err: any) {
@@ -5744,23 +5749,100 @@ function App() {
                 setLoading(false);
               }
             }}>
-              <div className="form-group" style={{ marginBottom: "14px" }}>
-                <label>Signatory Full Name</label>
-                <input type="text" value={dpaSignerName} onChange={e => setDpaSignerName(e.target.value)} className="form-input" required />
+              {/* Signatory Info */}
+              <div className="info-grid" style={{ marginBottom: "14px" }}>
+                <div className="form-group">
+                  <label>Signatory Full Name</label>
+                  <input type="text" value={dpaSignerName} onChange={e => setDpaSignerName(e.target.value)} className="form-input" required />
+                </div>
+
+                <div className="form-group">
+                  <label>Official Municipal Position</label>
+                  <input type="text" value={dpaSignerPosition} onChange={e => setDpaSignerPosition(e.target.value)} className="form-input" required />
+                </div>
               </div>
 
-              <div className="form-group" style={{ marginBottom: "14px" }}>
-                <label>Official Municipal Position</label>
-                <input type="text" value={dpaSignerPosition} onChange={e => setDpaSignerPosition(e.target.value)} className="form-input" required />
+              {/* Editable Agreement Text Section */}
+              <div className="form-group" style={{ marginBottom: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                  <label style={{ margin: 0, fontWeight: 700 }}>
+                    Section 21 Agreement Terms & Conditions
+                  </label>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: "11px", padding: "2px 8px" }}
+                      onClick={async () => {
+                        setLoading(true);
+                        try {
+                          await fetch(`${API}/legal-compliance/operator-agreements/${signingDpa.id}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ agreement_text: dpaAgreementText }),
+                          });
+                          alert("Draft agreement text saved!");
+                          refreshData();
+                        } catch (err: any) {
+                          alert("Error saving draft: " + err.message);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      💾 Save Draft Edits
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ fontSize: "11px", padding: "2px 8px" }}
+                      onClick={() => setIsEditingDpaText(!isEditingDpaText)}
+                    >
+                      {isEditingDpaText ? "👁️ Preview Mode" : "✏️ Enable Direct Editing"}
+                    </button>
+                  </div>
+                </div>
+
+                {isEditingDpaText ? (
+                  <textarea
+                    rows={12}
+                    value={dpaAgreementText}
+                    onChange={e => setDpaAgreementText(e.target.value)}
+                    className="form-textarea"
+                    style={{ fontFamily: "monospace", fontSize: "12px", lineHeight: "1.5" }}
+                    placeholder="Enter or customize Section 21 clauses, security requirements, or municipal governance addenda..."
+                    required
+                  />
+                ) : (
+                  <div
+                    style={{
+                      maxHeight: "260px",
+                      overflowY: "auto",
+                      padding: "12px",
+                      background: "rgba(15, 23, 42, 0.6)",
+                      borderRadius: "8px",
+                      border: "1px solid var(--border-subtle)",
+                      fontSize: "12px",
+                      lineHeight: "1.6",
+                      whiteSpace: "pre-wrap",
+                      color: "#cbd5e1",
+                    }}
+                  >
+                    {dpaAgreementText || "No text defined."}
+                  </div>
+                )}
+                <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "4px" }}>
+                  💡 You can customize municipal schedules, service scope, or specific security controls before electronic signing.
+                </div>
               </div>
 
               <div style={{ padding: "12px", background: "rgba(56, 189, 248, 0.08)", borderRadius: "8px", border: "1px solid rgba(56, 189, 248, 0.2)", marginBottom: "20px", fontSize: "12px", color: "#94a3b8" }}>
-                🔒 By submitting, a SHA-256 cryptographic tamper-evident signature will be bound to this agreement record alongside your IP address and timestamp.
+                🔒 By submitting, a SHA-256 cryptographic tamper-evident signature will be bound to this exact agreement text alongside your IP address and timestamp.
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setSigningDpa(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>✍️ Execute S21 Agreement</button>
+                <button type="submit" className="btn btn-primary" disabled={loading || !dpaAgreementText}>✍️ Execute S21 Agreement</button>
               </div>
             </form>
           </div>
