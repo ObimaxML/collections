@@ -142,7 +142,8 @@ function App() {
   const [invBankingType, setInvBankingType] = useState("Business Cheque Account");
   const [invBankingSwift, setInvBankingSwift] = useState("CBLAZAJJ");
 
-  // New User Creation form for SuperAdmin / Admin
+  // New User Creation form & Modal for SuperAdmin / Admin
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [newFullName, setNewFullName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -821,6 +822,7 @@ function App() {
       setNewEmail("");
       setNewPassword("");
       setNewTenantIds([]);
+      setShowCreateUserModal(false);
       refreshData();
     } catch (err: any) {
       alert("Could not reach backend server");
@@ -3256,130 +3258,21 @@ function App() {
         {/* USER MANAGEMENT & ROLES VIEW */}
         {view === "users" && currentUser?.role === "SUPERADMIN" && (
           <div>
-            {/* Create User Card - Restricted to SUPERADMIN */}
-            <div className="glass-panel" style={{ marginBottom: "28px" }}>
-              <div className="panel-header">
-                <div className="panel-title">
-                  <h3>👥 Provision New User & Role</h3>
-                  <p>Create SuperAdmins, Municipal Admins, Team Supervisors, and Debt Collectors</p>
-                </div>
-              </div>
-
-              <form onSubmit={handleCreateUser} style={{ maxWidth: "800px" }}>
-                <div className="info-grid" style={{ marginBottom: "16px" }}>
-                  <div className="form-group">
-                    <label>Full Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Sipho Sithole"
-                      value={newFullName}
-                      onChange={e => setNewFullName(e.target.value)}
-                      className="form-input"
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Work Email</label>
-                    <input
-                      type="email"
-                      placeholder="e.g. sipho@municipality.gov.za"
-                      value={newEmail}
-                        onChange={e => setNewEmail(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="info-grid" style={{ marginBottom: "16px" }}>
-                    <div className="form-group">
-                      <label>Temporary Password</label>
-                      <input
-                        type="password"
-                        placeholder="••••••••"
-                        value={newPassword}
-                        onChange={e => setNewPassword(e.target.value)}
-                        className="form-input"
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>User Role & Access Scope</label>
-                      <select
-                        value={newRole}
-                        onChange={e => setNewRole(e.target.value)}
-                        className="form-select"
-                        style={{
-                          background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
-                          borderColor: "#3b82f6",
-                          color: "#ffffff",
-                          fontWeight: 600,
-                          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
-                        }}
-                      >
-                        <option value="SUPERADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>👑 SUPERADMIN (Global System Oversight)</option>
-                        <option value="ADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>🏛️ ADMIN (Municipality Administrator)</option>
-                        <option value="COLLECTOR" style={{ background: "#0f172a", color: "#ffffff" }}>🎯 COLLECTOR (Work Queue & Debtor Engagement)</option>
-                        <option value="AUDITOR" style={{ background: "#0f172a", color: "#ffffff" }}>📑 AUDITOR (Read-Only Financial Logs)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {newRole !== "SUPERADMIN" && (
-                    <div className="form-group" style={{ marginBottom: "20px" }}>
-                      <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span>Assign to Municipalities (Multi-Select)</span>
-                        {newRole === "ADMIN" && (
-                          <span style={{ fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
-                            ℹ️ Admin logins can only be assigned to SaaS Subscription municipalities
-                          </span>
-                        )}
-                      </label>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", padding: "10px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
-                        {tenants
-                          .filter(t => newRole !== "ADMIN" || t.engagement_model === "SAAS_SELF_SERVICE")
-                          .map(t => {
-                            const isChecked = newTenantIds.includes(t.id);
-                            return (
-                              <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
-                                <input
-                                  type="checkbox"
-                                  checked={isChecked}
-                                  onChange={e => {
-                                    if (e.target.checked) {
-                                      setNewTenantIds([...newTenantIds, t.id]);
-                                    } else {
-                                      setNewTenantIds(newTenantIds.filter(id => id !== t.id));
-                                    }
-                                  }}
-                                  style={{ width: "16px", height: "16px" }}
-                                />
-                                <span>{t.name} ({t.code})</span>
-                              </label>
-                            );
-                          })}
-                        {newRole === "ADMIN" && tenants.filter(t => t.engagement_model === "SAAS_SELF_SERVICE").length === 0 && (
-                          <div style={{ color: "#fb7185", fontSize: "12.5px", padding: "8px", gridColumn: "1 / -1" }}>
-                            ⚠️ No municipalities currently operate under the <strong>SaaS Subscription</strong> model. Please change the municipality's engagement model under <em>Municipalities</em> first.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? "Creating User..." : "➕ Create User Account"}
-                  </button>
-                </form>
-              </div>
-
-              {/* Users Table / Mobile Cards */}
-              <div className="glass-panel">
-              <div className="panel-header">
+            {/* Users Table / Mobile Cards */}
+            <div className="glass-panel">
+              <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
                 <div className="panel-title">
                   <h3>Active System Users ({usersList.length})</h3>
                   <p>All authenticated personnel with active role access</p>
                 </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ display: "inline-flex", alignItems: "center", gap: "8px", fontWeight: 700 }}
+                  onClick={() => setShowCreateUserModal(true)}
+                >
+                  ➕ Create User Account
+                </button>
               </div>
 
               {/* Desktop Users Table */}
@@ -8263,6 +8156,144 @@ function App() {
                     {loading ? "Saving..." : "💾 Update Municipality"}
                   </button>
                 </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE USER ACCOUNT MODAL */}
+      {showCreateUserModal && (
+        <div className="modal-backdrop" onClick={() => setShowCreateUserModal(false)}>
+          <div className="modal-content glass-panel" style={{ maxWidth: "700px", width: "94%", margin: "auto", animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)" }} onClick={e => e.stopPropagation()}>
+            <div className="panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "14px" }}>
+              <div className="panel-title">
+                <h3 style={{ margin: 0, color: "#f8fafc", fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  👥 Provision New User & Role
+                </h3>
+                <p style={{ margin: "4px 0 0 0", color: "#94a3b8", fontSize: "12.5px" }}>
+                  Create SuperAdmins, Municipal Admins, Team Supervisors, and Debt Collectors
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowCreateUserModal(false)}
+                style={{ padding: "4px 10px", fontSize: "14px" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateUser}>
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Sipho Sithole"
+                    value={newFullName}
+                    onChange={e => setNewFullName(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Work Email</label>
+                  <input
+                    type="email"
+                    placeholder="e.g. sipho@municipality.gov.za"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="info-grid" style={{ marginBottom: "16px" }}>
+                <div className="form-group">
+                  <label>Temporary Password</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>User Role & Access Scope</label>
+                  <select
+                    value={newRole}
+                    onChange={e => setNewRole(e.target.value)}
+                    className="form-select"
+                    style={{
+                      background: "linear-gradient(135deg, #1e3a8a, #1d4ed8)",
+                      borderColor: "#3b82f6",
+                      color: "#ffffff",
+                      fontWeight: 600,
+                      boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)",
+                    }}
+                  >
+                    <option value="SUPERADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>👑 SUPERADMIN (Global System Oversight)</option>
+                    <option value="ADMIN" style={{ background: "#0f172a", color: "#ffffff" }}>🏛️ ADMIN (Municipality Administrator)</option>
+                    <option value="COLLECTOR" style={{ background: "#0f172a", color: "#ffffff" }}>🎯 COLLECTOR (Work Queue & Debtor Engagement)</option>
+                    <option value="AUDITOR" style={{ background: "#0f172a", color: "#ffffff" }}>📑 AUDITOR (Read-Only Financial Logs)</option>
+                  </select>
+                </div>
+              </div>
+
+              {newRole !== "SUPERADMIN" && (
+                <div className="form-group" style={{ marginBottom: "20px" }}>
+                  <label style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>Assign to Municipalities / Entities (Multi-Select)</span>
+                    {newRole === "ADMIN" && (
+                      <span style={{ fontSize: "11.5px", color: "#60a5fa", fontWeight: 600 }}>
+                        ℹ️ Admin logins can only be assigned to SaaS Subscription entities
+                      </span>
+                    )}
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "8px", padding: "10px", borderRadius: "8px", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    {tenants
+                      .filter(t => newRole !== "ADMIN" || t.engagement_model === "SAAS_SELF_SERVICE")
+                      .map(t => {
+                        const isChecked = newTenantIds.includes(t.id);
+                        return (
+                          <label key={t.id} style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "13px" }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={e => {
+                                if (e.target.checked) {
+                                  setNewTenantIds([...newTenantIds, t.id]);
+                                } else {
+                                  setNewTenantIds(newTenantIds.filter(id => id !== t.id));
+                                }
+                              }}
+                              style={{ width: "16px", height: "16px" }}
+                            />
+                            <span>{t.name} ({t.code})</span>
+                          </label>
+                        );
+                      })}
+                    {newRole === "ADMIN" && tenants.filter(t => t.engagement_model === "SAAS_SELF_SERVICE").length === 0 && (
+                      <div style={{ color: "#fb7185", fontSize: "12.5px", padding: "8px", gridColumn: "1 / -1" }}>
+                        ⚠️ No municipalities currently operate under the <strong>SaaS Subscription</strong> model.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "20px" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowCreateUserModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading || !newFullName || !newEmail || !newPassword}>
+                  {loading ? "Creating User..." : "➕ Create User Account"}
+                </button>
               </div>
             </form>
           </div>
